@@ -454,3 +454,30 @@ UUID를 따옴표 없이 직접 이어 붙이면 PostgREST/PG 파서에서 하�
 - 검증됨: `http://localhost:8081` HTML 200, Expo Router entry bundle 200.
 - 제한: Browser 플러그인은 런타임 오류로 사용하지 못했다. Chrome을 직접 열어 로컬 앱과 Supabase dashboard를 표시했다.
 - 남음: 사용자가 Supabase 로그인/2FA를 완료한 뒤 Project URL과 anon key를 로컬 `.env`에 입력하고, core schema와 run-ready migration을 실제 Supabase 프로젝트에 적용해야 한다.
+
+## 2026-06-01 Supabase Project Connection Status
+
+- Supabase 프로젝트 `balance`의 project ref는 `ztcexgnelqtdzinfgoja`이며, 클라이언트 URL은 `https://ztcexgnelqtdzinfgoja.supabase.co`이다.
+- Supabase의 최신 API Keys 화면에서는 기존 `anon public` 대신 `Publishable key`가 클라이언트용 공개 키로 표시된다. Expo 앱의 `EXPO_PUBLIC_SUPABASE_ANON_KEY`에는 이 publishable key를 사용한다.
+- `.env`는 Git ignore 대상이며, 로컬 실행 환경에는 URL과 publishable key가 저장되었다. Secret key/service role key는 클라이언트나 저장소에 넣으면 안 된다.
+- 실제 DB 적용 전 `supabase/schema.sql`과 `supabase/migrations/202606011940_run_ready_security.sql`을 비교하면서 `profiles.today_participation_count` 누락을 발견했다. 앱의 profile 화면과 gamification service는 이 컬럼을 이미 사용하고 있고, 보안 마이그레이션의 `handle_new_user` 및 `submit_vote`도 이 컬럼을 갱신하므로 기본 스키마에 추가해야 한다.
+
+### Bootstrap SQL Repair Notes
+
+- 최초 SQL Editor 실행은 `syntax error at or near "life"`로 실패했다. 실패 지점은 category seed였지만, root cause는 seed 영역 전체의 문자 인코딩 손상과 quote 손상이다.
+- 깨진 한국어 seed를 줄 단위로 보수하면 이후 question/island/character seed에서도 같은 유형의 syntax error가 반복될 가능성이 높았다.
+- 따라서 seed 구간을 ASCII 기반의 `supabase/seed_clean.sql`로 교체했다. 이 seed는 categories 5개, islands 5개, characters 5개, questions 30개, question_traits 60개를 생성한다.
+- RPC 마이그레이션도 기본 schema와 일치하도록 수정했다. `questions.option_a_votes`/`option_b_votes`를 RPC 반환 alias `vote_count_a`/`vote_count_b`로 내보내고, `like_count`/`fun_count`/`hard_count`를 reaction alias로 내보낸다. category color 자리에는 현재 schema의 `emoji`를 사용한다.
+
+### RLS and Vote Side-Effect Repair Notes
+
+- 두 번째 SQL Editor 실행은 `column "user_id" does not exist`로 실패했다.
+- 원인은 `islands`와 `characters` RLS 정책이 존재하지 않는 `user_id` 컬럼을 참조한 것이다. 두 테이블은 사용자별 소유 데이터가 아니라 섬/캐릭터 마스터 데이터이므로 공개 읽기 정책(`USING (true)`)이 맞다.
+- 기본 schema에는 `votes` INSERT trigger인 `on_vote_submitted`가 있고, runtime migration의 `submit_vote` RPC도 같은 카운트와 trait score를 갱신하고 있었다. 이 상태로 성공하면 한 번의 투표가 두 번 집계될 위험이 있다.
+- 새 실행 SQL에서는 vote side-effect trigger를 제거하고, 클라이언트가 사용하는 `submit_vote` RPC를 단일 갱신 경로로 유지했다.
+
+### Live Verification
+
+- Supabase SQL Editor에서 새 프로젝트 bootstrap SQL이 성공했다.
+- `fetch_feed_questions` RPC를 publishable key로 호출했을 때 seed 질문이 정상 반환되었다. 확인된 예시는 `New hobby entry`, `Stress recovery choice`, `Friday night battery`이다.
+- 이 검증은 앱이 사용하는 공개 환경변수와 같은 URL/key 조합으로 수행되었으므로, 피드 화면의 기본 데이터 로딩 경로가 DB까지 연결된 상태임을 의미한다.

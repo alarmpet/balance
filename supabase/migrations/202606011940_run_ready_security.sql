@@ -131,18 +131,20 @@ TO authenticated
 USING (auth.uid() = user_id);
 
 DROP POLICY IF EXISTS "islands_select_own" ON public.islands;
-CREATE POLICY "islands_select_own"
+DROP POLICY IF EXISTS "islands_public_read" ON public.islands;
+CREATE POLICY "islands_public_read"
 ON public.islands
 FOR SELECT
-TO authenticated
-USING (auth.uid() = user_id);
+TO anon, authenticated
+USING (true);
 
 DROP POLICY IF EXISTS "characters_select_own" ON public.characters;
-CREATE POLICY "characters_select_own"
+DROP POLICY IF EXISTS "characters_public_read" ON public.characters;
+CREATE POLICY "characters_public_read"
 ON public.characters
 FOR SELECT
-TO authenticated
-USING (auth.uid() = user_id);
+TO anon, authenticated
+USING (true);
 
 CREATE OR REPLACE FUNCTION public.fetch_feed_questions(
   p_limit integer DEFAULT 30,
@@ -183,7 +185,7 @@ AS $$
       'id', c.id,
       'name', c.name,
       'slug', c.slug,
-      'color', c.color
+      'color', c.emoji
     ) AS category,
     q.tags,
     q.option_a_title,
@@ -192,11 +194,11 @@ AS $$
     q.option_b_title,
     q.option_b_description,
     q.option_b_image_url,
-    q.vote_count_a,
-    q.vote_count_b,
-    q.reaction_like_count,
-    q.reaction_fun_count,
-    q.reaction_hard_count,
+    q.option_a_votes,
+    q.option_b_votes,
+    q.like_count,
+    q.fun_count,
+    q.hard_count,
     q.comment_count,
     q.created_at
   FROM public.questions q
@@ -254,8 +256,8 @@ BEGIN
 
   UPDATE public.questions
   SET
-    vote_count_a = vote_count_a + CASE WHEN p_selected_option = 'A' THEN 1 ELSE 0 END,
-    vote_count_b = vote_count_b + CASE WHEN p_selected_option = 'B' THEN 1 ELSE 0 END,
+    option_a_votes = option_a_votes + CASE WHEN p_selected_option = 'A' THEN 1 ELSE 0 END,
+    option_b_votes = option_b_votes + CASE WHEN p_selected_option = 'B' THEN 1 ELSE 0 END,
     total_votes = total_votes + 1,
     updated_at = now()
   WHERE id = p_question_id;
@@ -320,9 +322,9 @@ BEGIN
 
   UPDATE public.questions
   SET
-    reaction_like_count = reaction_like_count + CASE WHEN p_reaction_type = 'like' THEN 1 ELSE 0 END,
-    reaction_fun_count = reaction_fun_count + CASE WHEN p_reaction_type = 'fun' THEN 1 ELSE 0 END,
-    reaction_hard_count = reaction_hard_count + CASE WHEN p_reaction_type = 'hard' THEN 1 ELSE 0 END,
+    like_count = like_count + CASE WHEN p_reaction_type = 'like' THEN 1 ELSE 0 END,
+    fun_count = fun_count + CASE WHEN p_reaction_type = 'fun' THEN 1 ELSE 0 END,
+    hard_count = hard_count + CASE WHEN p_reaction_type = 'hard' THEN 1 ELSE 0 END,
     updated_at = now()
   WHERE id = p_question_id;
 

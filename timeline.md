@@ -58,3 +58,28 @@
 - 이유: 앱을 브라우저에서 실제로 띄우고 Supabase live 설정으로 이어갈 수 있게 하기 위해서다.
 - 검증: `npm.cmd install` 성공, `npm.cmd run typecheck` 성공, `npm.cmd run doctor` 17/17 성공, Expo Web HTML 200, Metro entry bundle 200 확인. Browser 플러그인은 런타임 `windows sandbox failed` 오류로 사용하지 못했고, Chrome을 직접 열어 `http://localhost:8081`와 Supabase dashboard를 표시했다. `.env`는 `git check-ignore .env`로 ignore 확인.
 - 후속: 사용자가 Supabase dashboard에서 로그인/2FA를 완료하면 Project URL과 anon key를 로컬 `.env`에 입력하고 DB schema/migration 적용을 이어간다.
+
+## 2026-06-01 20:23 KST - Supabase Project Connection
+- 새 Supabase 프로젝트 `balance` (`ztcexgnelqtdzinfgoja`) 생성 확인.
+- 로컬 `.env`에 `EXPO_PUBLIC_SUPABASE_URL`과 publishable key를 저장하고, `.env`가 Git ignore 대상임을 재확인했다.
+- Expo Web 서버를 재시작해 환경변수 반영 상태로 `http://localhost:8081` 응답 200을 확인했다.
+- DB 적용 전 스키마/마이그레이션을 교차 확인하며 `profiles.today_participation_count` 누락을 발견해 `supabase/schema.sql`에 보강했다.
+
+## 2026-06-01 20:30 KST - Supabase Bootstrap SQL Repair
+- Supabase SQL Editor 실행 중 `syntax error at or near "life"`가 발생했다.
+- 원인은 `supabase/schema.sql` seed 블록의 한글 문자열이 mojibake로 깨지며 작은따옴표가 손상된 것이었다.
+- 깨진 seed 구간을 `supabase/seed_clean.sql`의 ASCII seed 30개와 islands/characters/categories seed로 교체했다.
+- `fetch_feed_questions`, `submit_vote`, `submit_reaction` RPC가 실제 테이블 컬럼명(`option_a_votes`, `like_count`, `emoji`)을 사용하도록 보정했다.
+- `supabase/apply_new_project.sql`을 재생성하고 클립보드에 다시 복사했다.
+
+## 2026-06-01 20:35 KST - RLS Policy and Vote Count Repair
+- Supabase SQL Editor 실행 중 `column "user_id" does not exist`가 발생했다.
+- 원인은 `islands`와 `characters`가 마스터 데이터 테이블인데 RLS 정책에서 존재하지 않는 `user_id` 컬럼을 참조한 것이었다.
+- 두 테이블은 `anon, authenticated` 공개 읽기 정책으로 변경했다.
+- `votes` INSERT 트리거와 `submit_vote` RPC가 같은 투표 카운트/성향 점수를 중복 갱신할 위험도 발견해, 기본 스키마의 vote side-effect trigger를 제거하고 RPC를 단일 갱신 경로로 유지했다.
+- `supabase/apply_new_project.sql`을 재생성하고 클립보드에 다시 복사했다.
+
+## 2026-06-01 20:40 KST - Supabase Bootstrap Verified
+- Supabase SQL Editor에서 `apply_new_project.sql` 실행이 `Success. No rows returned`로 완료되었다.
+- publishable key와 REST RPC로 `fetch_feed_questions`를 직접 호출해 seed 질문 3개가 반환되는 것을 확인했다.
+- 로컬 Expo Web 서버 `http://localhost:8081` 응답 200과 `npm run typecheck` 통과를 재확인했다.
