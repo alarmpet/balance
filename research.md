@@ -554,3 +554,13 @@ UUID를 따옴표 없이 직접 이어 붙이면 PostgREST/PG 파서에서 하�
 - 중복 테마는 합성 UI로 보내지 않고 자동 레벨업한다. LV1은 배경 장착, LV2는 작은 반짝임/소품, LV3은 펫 오라나 배경 오브젝트, LV5는 프로필 배지/공유 카드 프레임처럼 단계별로 보상이 보이게 한다.
 - 다음 구현 계획은 기존 `card_*` 명명보다 `pet_species`, `pet_species_traits`, `user_pet_state`, `theme_skins`, `user_theme_inventory`, `theme_draw_pools`, `theme_draw_history`, `user_theme_pity` 중심으로 재정렬한다.
 - 자세한 제품/데이터 계획은 `docs/superpowers/plans/2026-06-01-character-card-collection-economy.md`에 반영했다.
+
+## 2026-06-02 Economy Review Report Validation
+
+- 외부 리뷰 `C:\Users\petbl\.gemini\antigravity\brain\069a60aa-b05f-40e9-ba0a-53884ace658d\economy_review_report.md`를 검토했다.
+- 타당한 항목: 현재 schema/migration의 `profiles_update_own` broad policy는 `shell_balance`, streak, participation 같은 경제 필드 직접 update를 막지 못하므로 P0 위험이다.
+- 타당한 항목: 테마 뽑기 RPC는 비용 차감뿐 아니라 draw result 자체도 `p_request_id` 기준으로 멱등해야 한다. 같은 request id는 같은 `theme_draw_history` 결과를 반환해야 한다.
+- 타당한 항목: 확률 정보 화면은 하드코딩이 아니라 실제 `theme_draw_pool_items.weight`에서 계산해야 한다. 이를 위해 `get_theme_probability_disclosure` RPC와 `theme_probability_versions` 기록이 필요하다.
+- 수정 채택: 리뷰의 `WITH CHECK (OLD.shell_balance = shell_balance ...)` SQL은 PostgreSQL RLS policy에서 그대로 쓸 수 없으므로, 직접 UPDATE 제거, 안전 컬럼만 UPDATE grant, 또는 `update_profile_display` RPC 방식으로 계획에 반영했다.
+- 수정 채택: 리뷰의 `card_draw_*` 예시는 최신 방향에 맞춰 `theme_draw_*`, `theme_skins`, `user_theme_inventory` 명명으로 바꾸어 반영했다.
+- 보류: 10연차 RPC SQL 예시는 미완성 가상 루프가 포함되어 있어 그대로 구현 계획에 넣지 않고, 트랜잭션 순서와 멱등성 규칙만 채택했다.

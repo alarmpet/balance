@@ -141,3 +141,10 @@
 - 설계: BIPI trait vector와 품종/동물 성향 자료를 매칭해 `pet_species_traits` seed를 만들고, `assign_personality_pet` RPC가 유저 trait과 가장 가까운 펫을 배정하는 방향으로 잡았다.
 - 이유: 파츠형 아이템이나 캐릭터 교체형 가챠보다 화면과 개발 공수가 작고, 사용자는 “내 성향 펫이 자라고 세계를 꾸민다”는 하나의 문장으로 이해할 수 있다.
 - 검증: TICA/AKC/RSPCA 등 공개 품종/동물 행동 자료를 참고해 초기 매핑 기준을 세웠고, 구현 코드는 변경하지 않았다.
+
+## 2026-06-02 01:56 KST - Economy Review Report Validation
+- 작업: 외부 리뷰 `economy_review_report.md`를 검토하고 타당한 항목만 성향 펫/테마 가챠 계획서에 반영했다.
+- 범위: `docs/superpowers/plans/2026-06-01-character-card-collection-economy.md`, `research.md`, `timeline.md`.
+- 채택: `profiles_update_own` broad policy의 경제 필드 직접 수정 위험, `p_request_id` 기반 테마 뽑기 멱등성, 실제 weight 기반 확률 공시 RPC, 클라이언트 request id 로컬 보존 규칙.
+- 수정 채택: 리뷰의 RLS 예시 SQL은 `OLD` 참조 때문에 그대로 쓰지 않고, 직접 UPDATE 제거/안전 컬럼 grant/`update_profile_display` RPC 방향으로 바꿨다.
+- 보류: 미완성 10연차 RPC SQL 예시는 그대로 반영하지 않고 필요한 트랜잭션 순서만 계획에 남겼다.
