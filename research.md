@@ -506,3 +506,16 @@ UUID를 따옴표 없이 직접 이어 붙이면 PostgREST/PG 파서에서 하�
 - 피드 UI의 `votes`, `Option A/B`, 상단 `Balance Island`, 섬/프로필의 일부 영어 문구를 한국어로 교체했다.
 - 현재 seed 이미지는 여전히 Unsplash placeholder다. 상용 전환 전에는 앱 전용 이미지 또는 Supabase Storage 기반 자체 에셋으로 교체해야 한다.
 - Supabase live DB에 `replace_korean_seed.sql`이 성공 적용되었고, `fetch_feed_questions` RPC가 한국어 질문을 반환하는 것을 확인했다. 현재 앱 피드의 기본 데이터 경로는 한국어 seed 기준으로 동작한다.
+
+## 2026-06-01 Gamification Foundation Implementation Status
+
+- 읽기 전용 리뷰어 에이전트가 지적한 핵심 리스크는 `replace_korean_seed.sql`의 운영 재실행 위험, `submit_vote`의 승인 질문 검증 부족, profile 숫자 직접 증분 기반 경제 모델, gamification RPC/type 미정의, feed user state 동기화 부족이다.
+- 새 migration `supabase/migrations/202606012125_gamification_foundation.sql`은 `shell_ledger`, `user_avatar_state`, `user_personality_snapshots`를 추가하고, 보상 지급/차감은 `apply_shell_delta`의 `idempotency_key` 기반 원장 기록으로 처리한다.
+- `submit_vote` RPC는 승인된 질문(`status = 'approved'`)을 `FOR UPDATE`로 확인한 뒤 투표를 저장하고, 질문 카운트, 프로필 참여 수, 조개 원장, 아바타 성장, 성향 점수를 한 트랜잭션 경계 안에서 갱신하도록 교체했다.
+- `claim_daily_checkin`은 KST 날짜 기반 idempotency key로 하루 1회 조개 보상을 지급한다. 이미 받은 날에는 기존 ledger row를 반환하되, 아바타 mood/energy/bond가 반복 상승하지 않도록 `awarded` 조건을 추가했다.
+- `care_avatar`는 `snack`, `play`, `praise` 액션을 제공한다. `snack`과 `play`는 조개 차감 원장을 거치며, `praise`는 무료 친밀도 액션이다.
+- 클라이언트에는 `gamificationService`와 `gamificationStore`를 분리해 snapshot, 출석 보상, 아바타 케어, 로그아웃을 관리한다. `profile`과 `island` 화면은 같은 Zustand snapshot을 공유한다.
+- `database.types.ts`는 기존 17개 핵심 테이블과 새 게임화 테이블/RPC를 포함하도록 확장했다.
+- 검증됨: `npm.cmd run typecheck` 성공.
+- 검증됨: `supabase/migrations/202606012125_gamification_foundation.sql` quote/dollar quote scan 성공.
+- 제한: 새 migration은 아직 live Supabase SQL Editor에 적용되지 않았다. publishable key로 DDL을 실행할 수 없으므로 사용자가 SQL Editor에서 migration을 실행한 뒤 RPC smoke test를 진행해야 한다.

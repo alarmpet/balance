@@ -1,36 +1,32 @@
 import { supabase } from './questionService';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type {
+  CharacterRow,
+  IslandRow,
+  ProfileRow,
+  ShellLedgerRow,
+  UserAvatarStateRow,
+  UserTraitRow
+} from '../types/database.types';
 
-type ProfileRecord = GamificationSnapshot['profile'];
-type TraitRecord = GamificationSnapshot['traits'][number];
+export type CareType = 'snack' | 'play' | 'praise';
 
-type MasterIslandRecord = {
-  id: string;
-  name: string;
-  slug: string;
-  description: string;
-  image_url: string;
-};
-
-type MasterCharacterRecord = {
-  id: string;
-  name: string;
-  slug: string;
-  description: string;
-  image_url: string;
-  rarity: string;
-};
+const rpcClient = supabase as SupabaseClient | null;
 
 export type GamificationSnapshot = {
-  profile: {
-    id: string;
-    nickname: string;
-    avatar_url: string | null;
-    shell_balance: number;
-    streak_count: number;
-    total_participation_count: number;
-    today_participation_count: number;
-  };
-  traits: Array<{ trait_key: string; score: number }>;
+  profile: Pick<
+    ProfileRow,
+    | 'id'
+    | 'nickname'
+    | 'avatar_url'
+    | 'shell_balance'
+    | 'streak_count'
+    | 'total_participation_count'
+    | 'today_participation_count'
+  >;
+  traits: Array<Pick<UserTraitRow, 'trait_key' | 'score'>>;
+  avatarState: UserAvatarStateRow;
+  latestLedger: ShellLedgerRow | null;
   island: {
     id: string;
     island_level: number;
@@ -59,18 +55,28 @@ export async function fetchGamificationSnapshot(): Promise<GamificationSnapshot>
     return createGuestSnapshot();
   }
 
-  const [{ data: profile }, { data: traits }, { data: island }, { data: character }] = await Promise.all([
+  const [
+    { data: profile },
+    { data: traits },
+    { data: avatarState },
+    { data: latestLedger },
+    { data: island },
+    { data: character }
+  ] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
     supabase.from('user_traits').select('trait_key,score').eq('user_id', userId),
+    supabase.from('user_avatar_state').select('*').eq('user_id', userId).maybeSingle(),
+    supabase.from('shell_ledger').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('islands').select('id,name,slug,description,image_url').eq('is_active', true).order('sort_order').limit(1).maybeSingle(),
     supabase.from('characters').select('id,name,slug,description,image_url,rarity').eq('is_active', true).order('sort_order').limit(1).maybeSingle()
   ]);
 
-  const profileRecord = profile as ProfileRecord | null;
-  const traitRows = (traits ?? []) as TraitRecord[];
+  const profileRecord = profile as ProfileRow | null;
+  const traitRows = (traits ?? []) as Array<Pick<UserTraitRow, 'trait_key' | 'score'>>;
+  const avatarRecord = (avatarState as UserAvatarStateRow | null) ?? createDefaultAvatarState(userId);
   const participationCount = profileRecord?.total_participation_count ?? 0;
-  const islandRecord = island as MasterIslandRecord | null;
-  const characterRecord = character as MasterCharacterRecord | null;
+  const islandRecord = island as Pick<IslandRow, 'id' | 'name' | 'slug' | 'description' | 'image_url'> | null;
+  const characterRecord = character as Pick<CharacterRow, 'id' | 'name' | 'slug' | 'description' | 'image_url' | 'rarity'> | null;
 
   return {
     profile: {
@@ -83,6 +89,8 @@ export async function fetchGamificationSnapshot(): Promise<GamificationSnapshot>
       today_participation_count: profileRecord?.today_participation_count ?? 0
     },
     traits: traitRows,
+    avatarState: avatarRecord,
+    latestLedger: (latestLedger as ShellLedgerRow | null) ?? null,
     island: islandRecord ? {
       id: islandRecord.id,
       island_level: getIslandLevel(participationCount),
@@ -98,18 +106,43 @@ export async function fetchGamificationSnapshot(): Promise<GamificationSnapshot>
     },
     character: characterRecord ? {
       id: characterRecord.id,
-      character_type: characterRecord.slug,
-      character_level: getCharacterLevel(participationCount),
+      character_type: avatarRecord.evolution_stage || characterRecord.slug,
+      character_level: avatarRecord.level || getCharacterLevel(participationCount),
       nickname: characterRecord.name,
       image_url: characterRecord.image_url
     } : {
       id: 'new-character',
-      character_type: 'egg',
-      character_level: 1,
+      character_type: avatarRecord.evolution_stage,
+      character_level: avatarRecord.level,
       nickname: '성향 알',
       image_url: null
     }
   };
+}
+
+export async function claimDailyCheckin(): Promise<ShellLedgerRow> {
+  if (!supabase) {
+    throw new Error('Supabase 프로젝트 설정이 필요합니다.');
+  }
+
+  const { data, error } = await rpcClient!.rpc('claim_daily_checkin', {});
+  if (error) throw error;
+  if (!data) throw new Error('출석 보상 결과를 불러오지 못했습니다.');
+  return data as ShellLedgerRow;
+}
+
+export async function careAvatar(careType: CareType): Promise<UserAvatarStateRow> {
+  if (!supabase) {
+    throw new Error('Supabase 프로젝트 설정이 필요합니다.');
+  }
+
+  const { data, error } = await rpcClient!.rpc('care_avatar', {
+    p_care_type: careType
+  });
+
+  if (error) throw error;
+  if (!data) throw new Error('캐릭터 케어 결과를 불러오지 못했습니다.');
+  return data as UserAvatarStateRow;
 }
 
 export async function signOut(): Promise<void> {
@@ -129,6 +162,8 @@ function createGuestSnapshot(): GamificationSnapshot {
       today_participation_count: 0
     },
     traits: [],
+    avatarState: createDefaultAvatarState('guest'),
+    latestLedger: null,
     island: {
       id: 'guest-island',
       island_level: 1,
@@ -143,6 +178,20 @@ function createGuestSnapshot(): GamificationSnapshot {
       nickname: '게스트 성향 알',
       image_url: null
     }
+  };
+}
+
+function createDefaultAvatarState(userId: string): UserAvatarStateRow {
+  return {
+    user_id: userId,
+    evolution_stage: 'egg',
+    level: 1,
+    experience: 0,
+    mood: 80,
+    energy: 80,
+    bond: 0,
+    hatch_progress: 0,
+    updated_at: new Date().toISOString()
   };
 }
 

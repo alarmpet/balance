@@ -105,3 +105,12 @@
 - 검증: Supabase SQL Editor에서 `replace_korean_seed.sql` 실행이 `Success. No rows returned`로 완료되었다.
 - 검증: publishable key로 `fetch_feed_questions` RPC를 호출해 `새 취미를 시작한다면?`, `스트레스가 쌓인 날 회복법은?`, `방 정리는 어떤 스타일?` 등 한국어 질문 반환을 확인했다.
 - 검증: 로컬 Expo Web `http://localhost:8081` 응답 200, `npm.cmd run typecheck` 통과.
+
+## 2026-06-01 23:09 KST - Gamification Foundation
+- 작업: 조개 원장, 아바타 상태, 성향 스냅샷 기반의 게임화 DB/RPC 초안을 구현하고 클라이언트 상태관리와 화면을 연결했다.
+- 범위: `supabase/migrations/202606012125_gamification_foundation.sql`, `src/types/database.types.ts`, `src/services/gamificationService.ts`, `src/store/gamificationStore.ts`, `src/store/feedStore.ts`, `src/app/(tabs)/island.tsx`, `src/app/(tabs)/profile.tsx`, `research.md`, `timeline.md`.
+- 이유: 투표/출석/캐릭터 케어 보상을 profile 숫자 직접 증분이 아니라 idempotency 가능한 `shell_ledger` 중심으로 전환하고, 섬/프로필 UI가 같은 게임화 snapshot을 보도록 하기 위해서다.
+- 리뷰: 읽기 전용 리뷰어가 seed 재실행 위험, `submit_vote` 승인 가드 부족, 보상 원장 부재, RPC/type 미정의, feed 상태 동기화 리스크를 지적했다. 이 중 게임화 foundation 범위에 해당하는 승인 가드, ledger, RPC/type/store 항목을 반영했다.
+- 검증: `npm.cmd run typecheck` 성공.
+- 검증: `supabase/migrations/202606012125_gamification_foundation.sql` quote/dollar quote scan 성공.
+- 후속: live Supabase에는 새 migration을 SQL Editor에서 적용해야 한다. 적용 후 `claim_daily_checkin`, `care_avatar`, `submit_vote` RPC smoke test가 필요하다.

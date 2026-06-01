@@ -8,6 +8,7 @@ import {
   type OptionSide,
   type ReactionType
 } from '../services/questionService';
+import { useGamificationStore } from './gamificationStore';
 
 type FeedState = {
   questions: FeedQuestion[];
@@ -57,6 +58,7 @@ export const useFeedStore = create<FeedState>((set, get) => ({
 
     try {
       await submitVote(questionId, selectedOption);
+      void useGamificationStore.getState().loadSnapshot();
     } catch (error) {
       set({
         questions: previousQuestion
