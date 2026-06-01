@@ -102,4 +102,6 @@
 - 범위: `supabase/seed_clean.sql`, `supabase/schema.sql`, `supabase/apply_new_project.sql`, `supabase/replace_korean_seed.sql`, feed/island/profile UI 문구, `src/services/gamificationService.ts`, `src/types/database.types.ts`.
 - 이유: 임시 영어 seed와 일부 영어 UI가 국내 초기 사용 앱 톤과 맞지 않았고, 리뷰어가 지적한 `islands.user_id`/`characters.user_id` 타입 및 서비스 불일치가 실제 로그인 화면 오류로 이어질 수 있었다.
 - 검증: `replace_korean_seed.sql` quote 검사 통과, `npm.cmd run typecheck` 통과. SQL Editor 실행용 한국어 seed 교체 SQL을 클립보드에 복사했다.
-- 후속: 사용자가 Supabase SQL Editor에서 `replace_korean_seed.sql`을 실행하면 `fetch_feed_questions` RPC로 한국어 질문 반환을 smoke test한다.
+- 검증: Supabase SQL Editor에서 `replace_korean_seed.sql` 실행이 `Success. No rows returned`로 완료되었다.
+- 검증: publishable key로 `fetch_feed_questions` RPC를 호출해 `새 취미를 시작한다면?`, `스트레스가 쌓인 날 회복법은?`, `방 정리는 어떤 스타일?` 등 한국어 질문 반환을 확인했다.
+- 검증: 로컬 Expo Web `http://localhost:8081` 응답 200, `npm.cmd run typecheck` 통과.

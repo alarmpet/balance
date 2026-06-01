@@ -505,3 +505,4 @@ UUID를 따옴표 없이 직접 이어 붙이면 PostgREST/PG 파서에서 하�
 - 리뷰어 지적대로 `islands`와 `characters`는 사용자 소유 테이블이 아니라 마스터 데이터다. `src/services/gamificationService.ts`가 존재하지 않는 `user_id` 컬럼으로 조회하던 오류를 수정하고, `src/types/database.types.ts`도 실제 schema에 맞게 보정했다.
 - 피드 UI의 `votes`, `Option A/B`, 상단 `Balance Island`, 섬/프로필의 일부 영어 문구를 한국어로 교체했다.
 - 현재 seed 이미지는 여전히 Unsplash placeholder다. 상용 전환 전에는 앱 전용 이미지 또는 Supabase Storage 기반 자체 에셋으로 교체해야 한다.
+- Supabase live DB에 `replace_korean_seed.sql`이 성공 적용되었고, `fetch_feed_questions` RPC가 한국어 질문을 반환하는 것을 확인했다. 현재 앱 피드의 기본 데이터 경로는 한국어 seed 기준으로 동작한다.
