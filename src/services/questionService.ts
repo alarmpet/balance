@@ -44,14 +44,15 @@ export const supabase = supabaseUrl && supabaseAnonKey
 
 const rpcClient = supabase as SupabaseClient | null;
 
-export async function fetchFeedQuestions(_sort: FeedSort = 'popular', limit = 30): Promise<FeedQuestion[]> {
+export async function fetchFeedQuestions(sort: FeedSort = 'popular', limit = 30): Promise<FeedQuestion[]> {
   if (!supabase || !hasSupabaseConfig()) {
     throw new Error('Supabase 프로젝트 설정이 필요합니다. 브라우저에서 Supabase 인증을 완료한 뒤 .env를 채워 주세요.');
   }
 
   const { data, error } = await rpcClient!.rpc('fetch_feed_questions', {
     p_limit: limit,
-    p_cursor_created_at: null
+    p_cursor_created_at: null,
+    p_sort: sort
   });
 
   if (error) throw error;
@@ -77,8 +78,8 @@ export async function fetchFeedQuestions(_sort: FeedSort = 'popular', limit = 30
     reaction_fun_count: row.reaction_fun_count ?? 0,
     reaction_hard_count: row.reaction_hard_count ?? 0,
     comment_count: row.comment_count ?? 0,
-    userVote: null,
-    userReaction: null,
+    userVote: normalizeOptionSide(row.user_vote),
+    userReaction: normalizeReaction(row.user_reaction),
     created_at: row.created_at
   }));
 }
@@ -126,4 +127,12 @@ function normalizeCategory(value: Json | null): FeedQuestion['category'] {
     slug: String(category.slug),
     color: category.color ? String(category.color) : null
   };
+}
+
+function normalizeOptionSide(value: string | null): OptionSide | null {
+  return value === 'A' || value === 'B' ? value : null;
+}
+
+function normalizeReaction(value: string | null): ReactionType | null {
+  return value === 'like' || value === 'fun' || value === 'hard' ? value : null;
 }

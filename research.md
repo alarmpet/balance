@@ -519,3 +519,16 @@ UUID를 따옴표 없이 직접 이어 붙이면 PostgREST/PG 파서에서 하�
 - 검증됨: `npm.cmd run typecheck` 성공.
 - 검증됨: `supabase/migrations/202606012125_gamification_foundation.sql` quote/dollar quote scan 성공.
 - 제한: 새 migration은 아직 live Supabase SQL Editor에 적용되지 않았다. publishable key로 DDL을 실행할 수 없으므로 사용자가 SQL Editor에서 migration을 실행한 뒤 RPC smoke test를 진행해야 한다.
+
+## 2026-06-01 Live Gamification RPC and Feed State Follow-Up
+
+- 사용자가 live Supabase에 gamification foundation migration 적용 성공을 확인했다.
+- publishable key 기반 REST smoke test에서 `fetch_feed_questions`는 3개 한국어 질문을 반환했다. `claim_daily_checkin`과 `care_avatar`는 anon 호출에서 `Authentication required`를 반환해 함수 존재와 auth guard가 확인되었다.
+- 읽기 전용 리뷰어가 `fetchGamificationSnapshot` 쿼리 에러 무시, feed `userVote/userReaction` 미동기화, `fetchFeedQuestions` sort 파라미터 미사용, `apply_shell_delta` idempotency race 가능성을 지적했다.
+- 새 follow-up migration `supabase/migrations/202606012330_feed_state_and_ledger_hardening.sql`을 추가했다. 이 migration은 `apply_shell_delta`에 idempotency key 필수 검사와 `pg_advisory_xact_lock(hashtext(...))`를 넣어 같은 키의 동시 요청을 직렬화한다.
+- 같은 migration에서 `fetch_feed_questions`를 `p_sort` 지원 함수로 교체하고, `user_vote`, `user_reaction`을 반환하도록 확장했다. 서버 정렬은 투표하지 않은 질문을 먼저 보여주고, `latest`, `trending`, `popular` 조건을 반영한다.
+- 클라이언트 `questionService`는 `p_sort`를 RPC에 넘기고 `user_vote/user_reaction`을 `userVote/userReaction`으로 복원한다.
+- `gamificationService`는 profile/traits/avatar/ledger/island/character 쿼리 에러를 기본값으로 숨기지 않고 명시적으로 throw한다.
+- 검증됨: `npm.cmd run typecheck` 성공.
+- 검증됨: `supabase/migrations/202606012330_feed_state_and_ledger_hardening.sql` quote/dollar quote scan 성공.
+- 제한: follow-up migration은 클립보드에 복사되었으나, live DB에는 사용자가 SQL Editor에서 별도 실행해야 한다.

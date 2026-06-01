@@ -114,3 +114,13 @@
 - 검증: `npm.cmd run typecheck` 성공.
 - 검증: `supabase/migrations/202606012125_gamification_foundation.sql` quote/dollar quote scan 성공.
 - 후속: live Supabase에는 새 migration을 SQL Editor에서 적용해야 한다. 적용 후 `claim_daily_checkin`, `care_avatar`, `submit_vote` RPC smoke test가 필요하다.
+
+## 2026-06-01 23:25 KST - Feed State and Ledger Hardening
+- 작업: live DB 적용 성공 후 RPC smoke test를 진행하고, 리뷰어가 지적한 feed 상태 동기화와 ledger 동시성 리스크를 보강했다.
+- 범위: `supabase/migrations/202606012330_feed_state_and_ledger_hardening.sql`, `src/services/questionService.ts`, `src/services/gamificationService.ts`, `src/types/database.types.ts`, `research.md`, `timeline.md`.
+- 이유: 피드 새로고침 후 `userVote/userReaction`이 사라지고 sort 인자가 무시되는 문제를 막고, 같은 idempotency key의 동시 보상 요청을 직렬화하기 위해서다.
+- 리뷰: GPT-5.3-Codex-Spark 읽기 전용 리뷰어가 `fetchGamificationSnapshot` error 무시, feed user state 미동기화, sort 미사용, `apply_shell_delta` race 가능성을 P1/P2로 지적했다. 해당 항목을 반영했다.
+- 검증: live REST smoke test에서 `fetch_feed_questions` 3개 반환, anon `claim_daily_checkin`/`care_avatar`는 `Authentication required` 반환.
+- 검증: `npm.cmd run typecheck` 성공.
+- 검증: follow-up migration quote/dollar quote scan 성공, `git diff --check` 성공.
+- 후속: `supabase/migrations/202606012330_feed_state_and_ledger_hardening.sql`은 클립보드에 복사했으며, Supabase SQL Editor에서 실행 후 새 `fetch_feed_questions` 반환 필드 smoke test가 필요하다.

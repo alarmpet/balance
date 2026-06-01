@@ -1,5 +1,6 @@
 import { supabase } from './questionService';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { PostgrestError } from '@supabase/supabase-js';
 import type {
   CharacterRow,
   IslandRow,
@@ -55,14 +56,7 @@ export async function fetchGamificationSnapshot(): Promise<GamificationSnapshot>
     return createGuestSnapshot();
   }
 
-  const [
-    { data: profile },
-    { data: traits },
-    { data: avatarState },
-    { data: latestLedger },
-    { data: island },
-    { data: character }
-  ] = await Promise.all([
+  const [profileResult, traitsResult, avatarStateResult, latestLedgerResult, islandResult, characterResult] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
     supabase.from('user_traits').select('trait_key,score').eq('user_id', userId),
     supabase.from('user_avatar_state').select('*').eq('user_id', userId).maybeSingle(),
@@ -71,12 +65,19 @@ export async function fetchGamificationSnapshot(): Promise<GamificationSnapshot>
     supabase.from('characters').select('id,name,slug,description,image_url,rarity').eq('is_active', true).order('sort_order').limit(1).maybeSingle()
   ]);
 
-  const profileRecord = profile as ProfileRow | null;
-  const traitRows = (traits ?? []) as Array<Pick<UserTraitRow, 'trait_key' | 'score'>>;
-  const avatarRecord = (avatarState as UserAvatarStateRow | null) ?? createDefaultAvatarState(userId);
+  throwIfPostgrestError(profileResult.error, '프로필');
+  throwIfPostgrestError(traitsResult.error, '성향');
+  throwIfPostgrestError(avatarStateResult.error, '아바타');
+  throwIfPostgrestError(latestLedgerResult.error, '조개 원장');
+  throwIfPostgrestError(islandResult.error, '섬');
+  throwIfPostgrestError(characterResult.error, '캐릭터');
+
+  const profileRecord = profileResult.data as ProfileRow | null;
+  const traitRows = (traitsResult.data ?? []) as Array<Pick<UserTraitRow, 'trait_key' | 'score'>>;
+  const avatarRecord = (avatarStateResult.data as UserAvatarStateRow | null) ?? createDefaultAvatarState(userId);
   const participationCount = profileRecord?.total_participation_count ?? 0;
-  const islandRecord = island as Pick<IslandRow, 'id' | 'name' | 'slug' | 'description' | 'image_url'> | null;
-  const characterRecord = character as Pick<CharacterRow, 'id' | 'name' | 'slug' | 'description' | 'image_url' | 'rarity'> | null;
+  const islandRecord = islandResult.data as Pick<IslandRow, 'id' | 'name' | 'slug' | 'description' | 'image_url'> | null;
+  const characterRecord = characterResult.data as Pick<CharacterRow, 'id' | 'name' | 'slug' | 'description' | 'image_url' | 'rarity'> | null;
 
   return {
     profile: {
@@ -90,7 +91,7 @@ export async function fetchGamificationSnapshot(): Promise<GamificationSnapshot>
     },
     traits: traitRows,
     avatarState: avatarRecord,
-    latestLedger: (latestLedger as ShellLedgerRow | null) ?? null,
+    latestLedger: (latestLedgerResult.data as ShellLedgerRow | null) ?? null,
     island: islandRecord ? {
       id: islandRecord.id,
       island_level: getIslandLevel(participationCount),
@@ -193,6 +194,12 @@ function createDefaultAvatarState(userId: string): UserAvatarStateRow {
     hatch_progress: 0,
     updated_at: new Date().toISOString()
   };
+}
+
+function throwIfPostgrestError(error: PostgrestError | null, label: string) {
+  if (error) {
+    throw new Error(`${label} 정보를 불러오지 못했습니다: ${error.message}`);
+  }
 }
 
 function getIslandLevel(count: number) {

@@ -264,6 +264,8 @@ export type FeedQuestionRpcRow = {
   reaction_fun_count: number;
   reaction_hard_count: number;
   comment_count: number;
+  user_vote: string | null;
+  user_reaction: string | null;
   created_at: string;
 };
 
@@ -302,6 +304,7 @@ export type Database = {
         Args: {
           p_limit?: number;
           p_cursor_created_at?: string | null;
+          p_sort?: 'popular' | 'latest' | 'trending';
         };
         Returns: FeedQuestionRpcRow[];
       };
