@@ -491,3 +491,9 @@ UUID를 따옴표 없이 직접 이어 붙이면 PostgREST/PG 파서에서 하�
 - 보상과 조개 차감/지급은 클라이언트가 아니라 Supabase RPC에서 처리해야 한다. 출석, 투표, 리액션, 질문 작성, 아이템 구매는 모두 idempotency와 RLS를 고려해야 한다.
 - 현재 seed 이미지는 AI 생성 이미지가 아니라 Unsplash 원격 placeholder다. 장기적으로 캐릭터/섬/아이템은 앱 전용 에셋 또는 Supabase Storage 기반 자체 이미지로 교체해야 한다.
 - 상세 계획서는 `docs/superpowers/plans/2026-06-01-personality-avatar-island-gamification.md`에 작성했다.
+
+### Gamification Review Report Validation
+
+- 외부 리뷰 문서의 핵심 지적 중 `user_personality_snapshots`의 성능/이력 용도, `profiles` 현재 BIPI 캐시, 조개 ledger, RPC-only 경제 처리, egg 상태 예외 UI, daily mission progress 정의, Zustand store 분리, 섬 에셋 프리패치 제안은 현재 방향과 맞아 계획서에 반영했다.
+- 리뷰 문서의 `purchase_decor_item(p_user_id, p_item_id)` 예시는 클라이언트가 `user_id`를 넘기는 형태라 그대로 쓰면 소유권 위조 위험이 있다. 계획서에는 `auth.uid()`를 내부에서 사용하는 방식으로 수정 반영했다.
+- pg_cron 기반 매일 리셋은 운영상 유효하지만 MVP 1차에는 복잡도가 높다. 우선은 `submit_vote`와 `claim_daily_checkin`에서 KST 기준 날짜와 idempotency key로 lazy progress를 처리하는 방향이 더 안전하다.

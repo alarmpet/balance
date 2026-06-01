@@ -184,6 +184,14 @@ MVP에서는 실제 드래그 앤 드롭 꾸미기보다, 슬롯형 꾸미기를
 - 케어 행동을 하면 bond가 오른다.
 - 아이템 장착은 style_score를 올린다.
 
+알 상태 예외 처리:
+
+- 가입 직후부터 9번째 투표까지는 캐릭터가 아직 부화하지 않은 `egg` 상태다.
+- 이 구간에서는 캐릭터 이미지, 말풍선, 케어 버튼이 null 상태를 참조하지 않도록 별도 Egg UI를 렌더링한다.
+- 피드 하단에는 "부화까지 3개 남았어요" 같은 진행도만 표시한다.
+- 섬 화면에는 캐릭터 대신 알 오브젝트와 부화 progress를 표시한다.
+- 케어 행동은 `egg` 상태에서도 가능하지만, 보상은 bond보다 hatch_progress를 올리는 방식으로 제한한다.
+
 중요: 캐릭터가 사용자를 압박하면 안 된다. "방치해서 아프다" 같은 죄책감 UX는 피한다.
 
 권장 문구:
@@ -246,6 +254,21 @@ MVP에서는 실제 드래그 앤 드롭 꾸미기보다, 슬롯형 꾸미기를
 - MVP에서는 결제 없음
 - 아이템은 rarity와 unlock condition 표시
 
+상태 관리:
+
+- 피드 투표 상태는 기존 `feedStore`에 유지한다.
+- 캐릭터, 섬, 인벤토리, 조개 경제 상태는 별도 `gamificationStore`로 분리한다.
+- 이유는 피드 스크롤/투표 업데이트와 캐릭터/섬 화면 상태의 변경 주기가 다르기 때문이다.
+- `gamificationStore`는 `fetchGamificationSnapshot`, `claimDailyCheckin`, `careAvatar`, `purchaseDecorItem`, `equipIslandItem` 액션을 가진다.
+- 피드에서 투표 성공 후에는 필요한 최소 이벤트만 gamification store에 반영한다. 예: `incrementTodayParticipation`, `refreshRewardsSummary`.
+
+이미지 프리패치:
+
+- 피드 화면은 다음 카드 3개의 A/B 이미지를 계속 프리패치한다.
+- 섬 화면은 진입 전에 현재 레이아웃의 배경, 집, 식물, 장식, 캐릭터 이미지를 프리패치한다.
+- 상점 화면은 visible row 주변 아이템 썸네일만 프리패치한다.
+- 캐릭터/섬/아이템 전용 에셋은 가능하면 WebP 또는 최적화된 PNG를 사용하고, Supabase Storage 또는 앱 번들 asset으로 관리한다.
+
 ## 9. Data Model Additions
 
 현재 schema를 유지하면서 아래 테이블을 추가하는 방향이 좋다.
@@ -271,6 +294,14 @@ MVP에서는 실제 드래그 앤 드롭 꾸미기보다, 슬롯형 꾸미기를
 - `primary_trait_key`
 - `secondary_trait_key`
 - `computed_at`
+
+사용 방식:
+
+- `user_traits`는 원본 누적 점수 테이블로 유지한다.
+- `user_personality_snapshots`는 조회 최적화와 변화 이력 보존을 위한 파생 결과 테이블로 쓴다.
+- 매 투표마다 스냅샷을 만들지 않고, 첫 10회 부화 시점과 이후 10회 또는 20회 단위, 혹은 주요 성향 변화가 감지될 때만 생성한다.
+- `profiles`에는 현재 화면 조회용 캐시 필드 `bipi_type_code`, `primary_trait_key`, `secondary_trait_key`, `last_personality_computed_at`를 추가하는 방향을 검토한다.
+- 단, `profiles` 캐시는 진실의 원천이 아니라 최신 표시 최적화용이다. 재계산이 필요하면 `user_traits`와 최신 snapshot에서 복구 가능해야 한다.
 
 ### avatar_species
 
@@ -325,6 +356,24 @@ MVP에서는 실제 드래그 앤 드롭 꾸미기보다, 슬롯형 꾸미기를
 - `decor_slot_3_item_id`
 - `updated_at`
 
+### shell_ledger
+
+- `id`
+- `user_id`
+- `amount`
+- `reason`
+- `source_type`
+- `source_id`
+- `idempotency_key`
+- `created_at`
+
+사용 방식:
+
+- `profiles.shell_balance`는 빠른 조회용 현재 잔액으로 유지한다.
+- `shell_ledger`는 조개 획득/차감 이력을 보관하는 원장이다.
+- 출석, 투표, 미션, 구매, 케어 보상은 모두 ledger row를 남긴다.
+- `idempotency_key`로 같은 출석 보상이나 같은 미션 보상이 중복 지급되지 않게 한다.
+
 서버 RPC:
 
 - `submit_vote`: trait 점수 + 보상 + daily mission progress까지 함께 처리
@@ -333,6 +382,66 @@ MVP에서는 실제 드래그 앤 드롭 꾸미기보다, 슬롯형 꾸미기를
 - `purchase_item`: 조개 차감 + inventory 추가
 - `equip_island_item`: layout 업데이트
 - `compute_personality_snapshot`: trait 점수 정규화 후 BIPI 타입 계산
+
+일일 진행도 처리:
+
+- MVP에서는 pg_cron 기반 일괄 리셋보다 `submit_vote`와 `claim_daily_checkin`에서 KST 기준 날짜를 계산해 진행도를 갱신하는 방식이 더 단순하고 안전하다.
+- `daily_missions`는 날짜별 미션 정의 테이블로 유지하되, 사용자가 해당 날짜에 처음 행동할 때 필요한 progress row를 lazy-create한다.
+- `오늘 7/10` 보상은 `submit_vote` 내부에서 오늘의 고유 투표 수를 확인하고, 7회 또는 10회 달성 시 `shell_ledger.idempotency_key`로 중복 지급을 막는다.
+- 장기적으로 푸시 알림, streak 복구, 시즌 미션이 필요해질 때 Edge Function 스케줄러나 pg_cron을 도입한다.
+
+RPC 보안 원칙:
+
+- 클라이언트가 `user_id`를 넘기는 형태는 금지한다.
+- 모든 사용자 소유 작업은 RPC 내부에서 `auth.uid()`를 사용한다.
+- `purchase_item`, `care_avatar`, `claim_daily_checkin`, `submit_vote`는 `SECURITY DEFINER`를 쓰더라도 입력 검증, 소유권 검증, 잔액 검증, 중복 실행 방지를 포함해야 한다.
+- `profiles.shell_balance`, `user_inventory_items`, `user_avatar_state`, `user_island_layouts`는 클라이언트 직접 쓰기를 막고 RPC를 통한 변경만 허용한다.
+- 조개 차감은 잔액 조회와 UPDATE를 한 트랜잭션 안에서 처리하고, 부족하면 예외를 던진다.
+
+구매 RPC 의사코드:
+
+```sql
+CREATE OR REPLACE FUNCTION public.purchase_decor_item(p_item_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+  v_price integer;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Authentication required';
+  END IF;
+
+  SELECT price_shells INTO v_price
+  FROM public.island_decor_items
+  WHERE id = p_item_id;
+
+  IF v_price IS NULL THEN
+    RAISE EXCEPTION 'Item not found';
+  END IF;
+
+  UPDATE public.profiles
+  SET shell_balance = shell_balance - v_price
+  WHERE id = v_user_id
+    AND shell_balance >= v_price;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Insufficient shell balance';
+  END IF;
+
+  INSERT INTO public.user_inventory_items (user_id, item_id, quantity)
+  VALUES (v_user_id, p_item_id, 1)
+  ON CONFLICT (user_id, item_id)
+  DO UPDATE SET quantity = public.user_inventory_items.quantity + 1;
+
+  INSERT INTO public.shell_ledger (user_id, amount, reason, source_type, source_id, idempotency_key)
+  VALUES (v_user_id, -v_price, 'purchase_decor_item', 'decor_item', p_item_id, 'purchase:' || v_user_id::text || ':' || p_item_id::text || ':' || gen_random_uuid()::text);
+END;
+$$;
+```
 
 ## 10. Trait Mapping
 
@@ -547,3 +656,30 @@ MVP 이미지 단계:
 - 섬은 캐릭터의 집이자 성장/꾸미기 보드다.
 - MBTI는 직접 사용하지 않고, 자체 4축 BIPI 모델을 사용한다.
 - 심리진단이 아니라 게임형 성향 아바타로 포지셔닝한다.
+
+## 16. Review Report Incorporation
+
+검토 대상:
+
+- `C:\Users\petbl\.gemini\antigravity\brain\069a60aa-b05f-40e9-ba0a-53884ace658d\gamification_review_report.md`
+
+채택:
+
+- `user_personality_snapshots`를 단순 결과 테이블이 아니라 조회 최적화와 변화 이력 보존용 snapshot으로 명확히 정의했다.
+- `profiles`에 현재 BIPI 타입과 대표 trait 캐시 필드를 둘 수 있다는 제안을 반영했다.
+- 조개 지급/차감은 반드시 RPC와 ledger를 통해 처리해야 한다는 보안 원칙을 강화했다.
+- `daily_missions`는 lazy-create + KST 기준 동적 진행도 계산으로 MVP 구현 방향을 명확히 했다.
+- 최초 0~9개 투표 구간의 `egg` 상태 예외 UI를 명시했다.
+- 피드 상태와 게임화 상태를 분리해 `gamificationStore`를 도입하는 방향을 반영했다.
+- 섬/캐릭터/상점 에셋 프리패치 전략을 추가했다.
+
+수정 채택:
+
+- 리뷰 문서의 `purchase_decor_item(p_user_id, p_item_id)` 예시는 클라이언트가 `user_id`를 넘기므로 그대로 채택하지 않는다.
+- 실제 RPC는 `auth.uid()`를 내부에서 사용하고, 잔액 검증, 소유권 검증, ledger 기록, RLS 제한을 함께 적용한다.
+- pg_cron 일괄 리셋은 MVP 즉시 도입보다 복잡도가 크므로 보류하고, KST 기준 lazy progress 계산을 우선한다.
+
+보류:
+
+- 리뷰 문서의 DDL 전체를 즉시 스키마에 넣지는 않는다. 먼저 한국어 피드 복구와 깨진 UI 문구 복구가 선행되어야 한다.
+- 캐릭터/섬 에셋 전체 생성은 별도 asset plan으로 분리한다.

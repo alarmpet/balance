@@ -90,3 +90,9 @@
 - 결정: 앱의 감정적 주인공은 `내 성향 캐릭터`, 섬은 캐릭터의 집이자 성장/꾸미기 무대로 정의했다.
 - 결정: MBTI를 직접 복제하지 않고 자체 4축 `BIPI` 모델을 사용해 법적/기대치/정확도 리스크를 낮춘다.
 - 리뷰: GPT-5.3-Codex-Spark 읽기 전용 리뷰어 에이전트를 먼저 띄웠으나 컨텍스트 한도로 실패했다. 계획서에는 자체 위험 점검으로 개인정보/심리진단 과장, 경제 밸런스, RLS/RPC, 이미지 저작권, MVP 범위 리스크를 반영했다.
+
+## 2026-06-01 21:05 KST - Gamification Review Report Validation
+- 작업: 외부 `gamification_review_report.md`를 검토하고 타당한 항목만 게임화 계획서에 반영했다.
+- 채택: BIPI snapshot/캐시, 조개 ledger, RPC-only 경제 처리, egg 상태 null 가드, lazy daily mission progress, `gamificationStore` 분리, 섬/아이템 이미지 프리패치.
+- 수정 채택: 리뷰의 `purchase_decor_item(p_user_id, p_item_id)` 예시는 클라이언트 user_id 입력이 위험하므로 `auth.uid()` 내부 사용 방식으로 바꿔 반영했다.
+- 보류: pg_cron 일괄 리셋과 전체 신규 DDL 즉시 적용은 MVP 복잡도와 현재 우선순위상 계획서 단계에만 남기고 구현 적용은 보류했다.
