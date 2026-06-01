@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "Balance Island",
+    "slug": "balance-island",
+    "version": "1.0.0",
+    "scheme": "balanceisland",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

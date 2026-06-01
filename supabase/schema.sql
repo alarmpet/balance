@@ -1,3 +1,8 @@
+-- DEV RESET ONLY.
+-- Do not run this file against staging or production Supabase projects.
+-- It intentionally drops public tables with CASCADE for local rebuilds.
+-- Live projects must use files under supabase/migrations instead.
+
 -- Balance Island MVP Complete Supabase Schema
 -- Tables: 1 profiles, 2 categories, 3 islands, 4 characters, 5 user_characters,
 -- 6 questions, 7 question_traits, 8 votes, 9 user_traits, 10 comments,

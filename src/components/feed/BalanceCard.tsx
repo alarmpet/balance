@@ -1,518 +1,295 @@
-import React, { useEffect, useMemo, useRef } from 'react';
-import {
-  Animated,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  useWindowDimensions,
-} from 'react-native';
-import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import type { OptionSide, Question, QuestionReactionType } from '../../types/database.types';
+import { Image } from 'expo-image';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import type { FeedQuestion, OptionSide, ReactionType } from '../../services/questionService';
 
-interface BalanceCardProps {
-  question: Question;
-  hasVoted: boolean;
-  selectedOption?: OptionSide;
-  selectedReactions?: QuestionReactionType[];
-  onVote: (option: OptionSide) => void;
-  onReaction: (reactionType: QuestionReactionType) => void;
-  onOpenComments: () => void;
+type Props = {
+  question: FeedQuestion;
+  onVote: (questionId: string, option: OptionSide) => void;
+  onReaction: (questionId: string, reaction: ReactionType) => void;
+  onOpenComments?: (questionId: string) => void;
+};
+
+function percent(count: number, total: number) {
+  if (total <= 0) return 50;
+  return Math.round((count / total) * 100);
 }
 
-interface OptionCardProps {
-  side: OptionSide;
-  title: string;
-  description: string | null;
-  imageUrl: string;
-  percent: number;
-  hasVoted: boolean;
-  isSelected: boolean;
-  onPress: () => void;
-}
-
-const formatCount = (count: number) => {
-  if (count >= 10000) {
-    return `${(count / 10000).toFixed(1)}만`;
-  }
-
-  if (count >= 1000) {
-    return `${(count / 1000).toFixed(1)}천`;
-  }
-
+function formatCount(count: number) {
+  if (count >= 10000) return `${(count / 10000).toFixed(1)}만`;
+  if (count >= 1000) return `${(count / 1000).toFixed(1)}천`;
   return String(count);
-};
+}
 
-const OptionCard: React.FC<OptionCardProps> = ({
-  side,
-  title,
-  description,
-  imageUrl,
-  percent,
-  hasVoted,
-  isSelected,
-  onPress,
-}) => {
-  const animatedPercent = useRef(new Animated.Value(hasVoted ? percent : 0)).current;
-
-  useEffect(() => {
-    Animated.timing(animatedPercent, {
-      toValue: hasVoted ? percent : 0,
-      duration: 420,
-      useNativeDriver: false,
-    }).start();
-  }, [animatedPercent, hasVoted, percent]);
-
-  const barWidth = animatedPercent.interpolate({
-    inputRange: [0, 100],
-    outputRange: ['0%', '100%'],
-  });
+export default function BalanceCard({ question, onVote, onReaction, onOpenComments }: Props) {
+  const totalVotes = question.vote_count_a + question.vote_count_b;
+  const aPercent = percent(question.vote_count_a, totalVotes);
+  const bPercent = percent(question.vote_count_b, totalVotes);
+  const hasVoted = Boolean(question.userVote);
 
   return (
-    <Pressable
-      disabled={hasVoted}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.optionCard,
-        isSelected && styles.selectedCard,
-        pressed && !hasVoted && styles.pressedCard,
-      ]}
-    >
-      <Image
-        source={{ uri: imageUrl }}
-        style={styles.cardImage}
-        contentFit="cover"
-        transition={180}
-        cachePolicy="memory-disk"
-      />
-      <View style={[styles.optionTint, side === 'A' ? styles.optionATint : styles.optionBTint]} />
-      {!hasVoted && <View style={styles.optionIdleOverlay} />}
-
-      {hasVoted && (
-        <View style={styles.resultLayer}>
-          <Animated.View
-            style={[
-              styles.resultBar,
-              side === 'A' ? styles.resultBarA : styles.resultBarB,
-              { width: barWidth },
-            ]}
-          />
-        </View>
-      )}
-
-      <View style={styles.optionContent}>
-        <View style={styles.optionHeader}>
-          <View style={[styles.sideBadge, side === 'A' ? styles.sideBadgeA : styles.sideBadgeB]}>
-            <Text style={styles.sideBadgeText}>{side}</Text>
-          </View>
-          {hasVoted && (
-            <View style={styles.percentPill}>
-              <Text style={styles.percentText}>{percent}%</Text>
-            </View>
-          )}
-        </View>
-        <View>
-          <Text style={styles.optionTitle}>{title}</Text>
-          {description ? <Text style={styles.optionDescription}>{description}</Text> : null}
-        </View>
-      </View>
-
-      {isSelected && (
-        <View style={styles.choiceBadge}>
-          <Ionicons name="checkmark" size={16} color="#FFFFFF" />
-        </View>
-      )}
-    </Pressable>
-  );
-};
-
-export const BalanceCard: React.FC<BalanceCardProps> = ({
-  question,
-  hasVoted,
-  selectedOption,
-  selectedReactions = [],
-  onVote,
-  onReaction,
-  onOpenComments,
-}) => {
-  const { height } = useWindowDimensions();
-  const cardMinHeight = Math.max(620, height - 120);
-  const total = Math.max(question.option_a_votes + question.option_b_votes, 1);
-  const percentA = Math.round((question.option_a_votes / total) * 100);
-  const percentB = 100 - percentA;
-
-  const tags = useMemo(() => question.tags.slice(0, 3), [question.tags]);
-
-  const reactionItems: Array<{
-    type: QuestionReactionType;
-    label: string;
-    icon: keyof typeof Ionicons.glyphMap;
-    count: number;
-  }> = [
-    { type: 'like', label: '좋아요', icon: 'heart', count: question.like_count },
-    { type: 'fun', label: '재밌다', icon: 'sparkles', count: question.fun_count },
-    { type: 'hard', label: '어렵다', icon: 'help-circle', count: question.hard_count },
-  ];
-
-  return (
-    <View style={[styles.container, { minHeight: cardMinHeight }]}>
+    <View style={styles.card}>
       <View style={styles.header}>
-        <View style={styles.officialBadge}>
-          <Ionicons name="shield-checkmark" size={13} color="#0369A1" />
-          <Text style={styles.officialText}>{question.is_official ? '밸런스 공식' : '유저 질문'}</Text>
+        <View style={styles.headerText}>
+          <Text style={styles.category}>{question.category?.name ?? '밸런스'}</Text>
+          <Text style={styles.title}>{question.title}</Text>
         </View>
-        <Text style={styles.voteCount}>{formatCount(question.total_votes)} votes</Text>
+        <Text style={styles.voteTotal}>{formatCount(totalVotes)} votes</Text>
       </View>
 
-      <View style={styles.titleBlock}>
-        <Text style={styles.titleText}>{question.title}</Text>
-        {question.description ? <Text style={styles.descriptionText}>{question.description}</Text> : null}
-      </View>
+      {question.description ? <Text style={styles.description}>{question.description}</Text> : null}
 
-      <View style={styles.tagsRow}>
-        {tags.map((tag) => (
-          <View key={tag} style={styles.tagPill}>
-            <Text style={styles.tagText}>#{tag}</Text>
-          </View>
-        ))}
-      </View>
-
-      <View style={styles.cardsWrapper}>
-        <OptionCard
+      <View style={styles.options}>
+        <OptionPanel
           side="A"
           title={question.option_a_title}
           description={question.option_a_description}
           imageUrl={question.option_a_image_url}
-          percent={percentA}
-          hasVoted={hasVoted}
-          isSelected={selectedOption === 'A'}
-          onPress={() => onVote('A')}
+          selected={question.userVote === 'A'}
+          disabled={hasVoted}
+          percentValue={aPercent}
+          showResult={hasVoted}
+          onPress={() => onVote(question.id, 'A')}
         />
-
-        <View style={styles.vsBadge}>
-          <Text style={styles.vsText}>VS</Text>
-        </View>
-
-        <OptionCard
+        <OptionPanel
           side="B"
           title={question.option_b_title}
           description={question.option_b_description}
           imageUrl={question.option_b_image_url}
-          percent={percentB}
-          hasVoted={hasVoted}
-          isSelected={selectedOption === 'B'}
-          onPress={() => onVote('B')}
+          selected={question.userVote === 'B'}
+          disabled={hasVoted}
+          percentValue={bPercent}
+          showResult={hasVoted}
+          onPress={() => onVote(question.id, 'B')}
         />
       </View>
 
-      <View style={styles.actionsRow}>
-        {reactionItems.map((item) => {
-          const isActive = selectedReactions.includes(item.type);
-
-          return (
-            <Pressable
-              key={item.type}
-              onPress={() => onReaction(item.type)}
-              style={({ pressed }) => [
-                styles.actionButton,
-                isActive && styles.actionButtonActive,
-                pressed && styles.actionButtonPressed,
-              ]}
-            >
-              <Ionicons name={item.icon} size={18} color={isActive ? '#FFFFFF' : '#475569'} />
-              <Text style={[styles.actionText, isActive && styles.actionTextActive]}>{item.label}</Text>
-              <Text style={[styles.actionCount, isActive && styles.actionTextActive]}>
-                {formatCount(item.count)}
-              </Text>
-            </Pressable>
-          );
-        })}
-
-        <Pressable onPress={onOpenComments} style={({ pressed }) => [styles.commentButton, pressed && styles.actionButtonPressed]}>
-          <Ionicons name="chatbubble-ellipses" size={18} color="#0F172A" />
-          <Text style={styles.commentText}>댓글</Text>
-          <Text style={styles.commentCount}>{formatCount(question.comment_count)}</Text>
-        </Pressable>
+      <View style={styles.actions}>
+        <ActionButton
+          icon="heart"
+          label={formatCount(question.reaction_like_count)}
+          active={question.userReaction === 'like'}
+          onPress={() => onReaction(question.id, 'like')}
+        />
+        <ActionButton
+          icon="happy"
+          label={formatCount(question.reaction_fun_count)}
+          active={question.userReaction === 'fun'}
+          onPress={() => onReaction(question.id, 'fun')}
+        />
+        <ActionButton
+          icon="help-circle"
+          label={formatCount(question.reaction_hard_count)}
+          active={question.userReaction === 'hard'}
+          onPress={() => onReaction(question.id, 'hard')}
+        />
+        <ActionButton
+          icon="chatbubble-ellipses"
+          label={formatCount(question.comment_count)}
+          active={false}
+          onPress={() => onOpenComments?.(question.id)}
+        />
       </View>
     </View>
   );
+}
+
+type OptionPanelProps = {
+  side: OptionSide;
+  title: string;
+  description: string | null;
+  imageUrl: string | null;
+  selected: boolean;
+  disabled: boolean;
+  percentValue: number;
+  showResult: boolean;
+  onPress: () => void;
 };
 
+function OptionPanel({
+  side,
+  title,
+  description,
+  imageUrl,
+  selected,
+  disabled,
+  percentValue,
+  showResult,
+  onPress
+}: OptionPanelProps) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${side} 선택지 ${title}`}
+      disabled={disabled}
+      onPress={onPress}
+      style={[styles.option, selected && styles.optionSelected]}
+    >
+      {imageUrl ? <Image source={{ uri: imageUrl }} style={styles.optionImage} contentFit="cover" /> : null}
+      <View style={styles.optionOverlay} />
+      <View style={styles.optionContent}>
+        <Text style={styles.optionSide}>Option {side}</Text>
+        <Text style={styles.optionTitle}>{title}</Text>
+        {description ? <Text style={styles.optionDescription}>{description}</Text> : null}
+        {showResult ? (
+          <View style={styles.resultTrack}>
+            <View style={[styles.resultFill, { width: `${percentValue}%` }]} />
+            <Text style={styles.resultText}>{percentValue}%</Text>
+          </View>
+        ) : null}
+      </View>
+    </Pressable>
+  );
+}
+
+type ActionButtonProps = {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  active: boolean;
+  onPress: () => void;
+};
+
+function ActionButton({ icon, label, active, onPress }: ActionButtonProps) {
+  return (
+    <Pressable onPress={onPress} style={[styles.action, active && styles.actionActive]}>
+      <Ionicons name={icon} size={18} color={active ? '#0f766e' : '#5f7f7a'} />
+      <Text style={[styles.actionText, active && styles.actionTextActive]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: {
-    marginHorizontal: 16,
-    marginVertical: 10,
-    padding: 16,
+  action: {
+    alignItems: 'center',
+    backgroundColor: '#e8fbf7',
+    borderRadius: 14,
+    flex: 1,
+    flexDirection: 'row',
+    gap: 5,
+    justifyContent: 'center',
+    minHeight: 42
+  },
+  actionActive: {
+    backgroundColor: '#ccfbf1'
+  },
+  actionText: {
+    color: '#5f7f7a',
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  actionTextActive: {
+    color: '#0f766e'
+  },
+  actions: {
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'space-between',
+    marginTop: 14
+  },
+  card: {
+    backgroundColor: '#f8fffb',
     borderRadius: 24,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.1,
-    shadowRadius: 28,
-    elevation: 5,
+    elevation: 4,
+    margin: 16,
+    padding: 16,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18
+  },
+  category: {
+    color: '#0f766e',
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  description: {
+    color: '#52716d',
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 10
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 14,
-  },
-  officialBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 9,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: '#E0F2FE',
-  },
-  officialText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#0369A1',
-  },
-  voteCount: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-  titleBlock: {
-    gap: 8,
-    marginBottom: 12,
-  },
-  titleText: {
-    fontSize: 23,
-    lineHeight: 30,
-    fontWeight: '900',
-    color: '#0F172A',
-  },
-  descriptionText: {
-    fontSize: 14,
-    lineHeight: 21,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  tagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 7,
-    marginBottom: 14,
-  },
-  tagPill: {
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 999,
-    backgroundColor: '#F1F5F9',
-  },
-  tagText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#475569',
-  },
-  cardsWrapper: {
-    flex: 1,
-    minHeight: 420,
     gap: 12,
-    position: 'relative',
+    justifyContent: 'space-between'
   },
-  optionCard: {
-    flex: 1,
-    minHeight: 196,
+  headerText: {
+    flex: 1
+  },
+  option: {
+    backgroundColor: '#d7f4ef',
     borderRadius: 20,
-    overflow: 'hidden',
-    position: 'relative',
-    backgroundColor: '#E2E8F0',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.72)',
-  },
-  selectedCard: {
-    borderColor: '#38BDF8',
-  },
-  pressedCard: {
-    transform: [{ scale: 0.99 }],
-    opacity: 0.94,
-  },
-  cardImage: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  optionTint: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  optionATint: {
-    backgroundColor: 'rgba(14, 165, 233, 0.16)',
-  },
-  optionBTint: {
-    backgroundColor: 'rgba(244, 114, 182, 0.16)',
-  },
-  optionIdleOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15, 23, 42, 0.42)',
-  },
-  resultLayer: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15, 23, 42, 0.64)',
-  },
-  resultBar: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-  },
-  resultBarA: {
-    backgroundColor: 'rgba(14, 165, 233, 0.72)',
-  },
-  resultBarB: {
-    backgroundColor: 'rgba(236, 72, 153, 0.72)',
+    minHeight: 210,
+    overflow: 'hidden'
   },
   optionContent: {
     flex: 1,
-    justifyContent: 'space-between',
-    padding: 16,
-  },
-  optionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  sideBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  sideBadgeA: {
-    backgroundColor: '#0284C7',
-  },
-  sideBadgeB: {
-    backgroundColor: '#DB2777',
-  },
-  sideBadgeText: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#FFFFFF',
-  },
-  percentPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-  },
-  percentText: {
-    fontSize: 17,
-    fontWeight: '900',
-    color: '#0F172A',
-  },
-  optionTitle: {
-    fontSize: 20,
-    lineHeight: 26,
-    fontWeight: '900',
-    color: '#FFFFFF',
+    justifyContent: 'flex-end',
+    padding: 18
   },
   optionDescription: {
-    marginTop: 5,
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.86)',
+    color: '#e6fffb',
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 6
   },
-  choiceBadge: {
+  optionImage: {
+    ...StyleSheet.absoluteFillObject
+  },
+  optionOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(7, 39, 36, 0.38)'
+  },
+  optionSelected: {
+    borderColor: '#14b8a6',
+    borderWidth: 3
+  },
+  optionSide: {
+    color: '#ccfbf1',
+    fontSize: 12,
+    fontWeight: '900',
+    textTransform: 'uppercase'
+  },
+  optionTitle: {
+    color: '#ffffff',
+    fontSize: 24,
+    fontWeight: '900',
+    marginTop: 6
+  },
+  options: {
+    gap: 12,
+    marginTop: 16
+  },
+  resultFill: {
+    backgroundColor: '#5eead4',
+    borderRadius: 999,
+    height: '100%'
+  },
+  resultText: {
+    alignSelf: 'center',
+    color: '#073b35',
+    fontSize: 13,
+    fontWeight: '900',
     position: 'absolute',
-    right: 14,
-    bottom: 14,
-    width: 30,
+    top: 6
+  },
+  resultTrack: {
+    backgroundColor: 'rgba(255,255,255,0.32)',
+    borderRadius: 999,
     height: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#0EA5E9',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  vsBadge: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    width: 44,
-    height: 44,
-    marginLeft: -22,
-    marginTop: -22,
-    borderRadius: 22,
-    backgroundColor: '#0F172A',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-  },
-  vsText: {
-    color: '#FFFFFF',
-    fontWeight: '900',
-    fontSize: 13,
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
     marginTop: 14,
+    overflow: 'hidden'
   },
-  actionButton: {
-    flex: 1,
-    minHeight: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingHorizontal: 6,
-  },
-  actionButtonActive: {
-    backgroundColor: '#0F172A',
-    borderColor: '#0F172A',
-  },
-  actionButtonPressed: {
-    opacity: 0.76,
-  },
-  actionText: {
-    marginTop: 2,
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#475569',
-  },
-  actionCount: {
-    marginTop: 1,
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#94A3B8',
-  },
-  actionTextActive: {
-    color: '#FFFFFF',
-  },
-  commentButton: {
-    flex: 1.2,
-    minHeight: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#E0F2FE',
-    borderWidth: 1,
-    borderColor: '#BAE6FD',
-    paddingHorizontal: 6,
-  },
-  commentText: {
-    marginTop: 2,
-    fontSize: 10,
+  title: {
+    color: '#12312f',
+    fontSize: 22,
     fontWeight: '900',
-    color: '#0F172A',
+    lineHeight: 28,
+    marginTop: 4
   },
-  commentCount: {
-    marginTop: 1,
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#0369A1',
-  },
+  voteTotal: {
+    color: '#6b8b87',
+    fontSize: 12,
+    fontWeight: '800'
+  }
 });

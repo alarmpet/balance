@@ -440,3 +440,17 @@ UUID를 따옴표 없이 직접 이어 붙이면 PostgREST/PG 파서에서 하�
 하지만 현재 작업물은 “기능 완성”보다 “복구가 먼저 필요한 상태”에 가깝다. 특히 한글 인코딩 손상이 문법 파손까지 만든 것으로 보이며, 이 문제를 해결하지 않으면 어떤 기능도 신뢰성 있게 검증할 수 없다. 그 다음으로는 Supabase RLS/트랜잭션/RPC 경계가 핵심이다. 모바일 클라이언트에서 직접 여러 테이블을 순차 갱신하는 현재 방식은 MVP 데모에는 가까워도, 실제 사용자 데이터와 보상 시스템을 다루기에는 위험하다.
 
 즉시 다음 단계는 명확하다. UTF-8 코드 복구, Expo Router 앱 셸 추가, 타입체크 가능한 상태 만들기, Supabase 보안/트랜잭션 경계 정리 순서로 진행해야 한다.
+
+## 2026-06-01 Run-Ready Remediation Status
+
+- 해결됨: Expo Router root/tab layout, `app.json`, `babel.config.js`, `metro.config.js`, `tsconfig.json`, `.gitignore`, npm lockfile을 추가했다.
+- 해결됨: 주요 TSX 화면과 서비스 파일을 parser-safe UTF-8 코드로 교체해 TypeScript 컴파일이 통과하도록 했다.
+- 해결됨: `@supabase/supabase-js`의 Expo Web 번들링 문제를 위해 `@opentelemetry/api`를 명시 의존성으로 추가했다.
+- 해결됨: Expo doctor 지적에 따라 `expo-font`, `expo-constants`, `expo-linking`, `expo-status-bar`, Expo SDK 51 호환 `expo-image`, `react-native`, `react-native-safe-area-context` 버전을 맞췄다.
+- 해결됨: `supabase/schema.sql`을 dev reset only로 표시하고, live project용 비파괴 migration `supabase/migrations/202606011940_run_ready_security.sql`을 추가했다.
+- 해결됨: 클라이언트 투표/리액션 직접 다중 업데이트를 제거하고 `fetch_feed_questions`, `submit_vote`, `submit_reaction` RPC 호출 구조로 전환했다.
+- 검증됨: `npm.cmd run typecheck` 성공.
+- 검증됨: `npm.cmd run doctor` 17/17 성공.
+- 검증됨: `http://localhost:8081` HTML 200, Expo Router entry bundle 200.
+- 제한: Browser 플러그인은 런타임 오류로 사용하지 못했다. Chrome을 직접 열어 로컬 앱과 Supabase dashboard를 표시했다.
+- 남음: 사용자가 Supabase 로그인/2FA를 완료한 뒤 Project URL과 anon key를 로컬 `.env`에 입력하고, core schema와 run-ready migration을 실제 Supabase 프로젝트에 적용해야 한다.

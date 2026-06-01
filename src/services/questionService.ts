@@ -1,206 +1,129 @@
-import { createClient } from '@supabase/supabase-js';
-import type {
-  Database,
-  OptionSide,
-  Question,
-  QuestionReactionType,
-  TablesInsert,
-  TablesUpdate,
-} from '../types/database.types';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { getPublicEnv, hasSupabaseConfig } from '../lib/env';
+import type { Database, Json } from '../types/database.types';
 
-declare const process: {
-  env: {
-    EXPO_PUBLIC_SUPABASE_URL?: string;
-    EXPO_PUBLIC_SUPABASE_ANON_KEY?: string;
-  };
+export type OptionSide = 'A' | 'B';
+export type ReactionType = 'like' | 'fun' | 'hard';
+export type FeedSort = 'popular' | 'latest' | 'trending';
+
+export type FeedQuestion = {
+  id: string;
+  title: string;
+  description: string | null;
+  category_id: string | null;
+  category: {
+    id: string;
+    name: string;
+    slug: string;
+    color: string | null;
+  } | null;
+  tags: string[];
+  option_a_title: string;
+  option_a_description: string | null;
+  option_a_image_url: string | null;
+  option_b_title: string;
+  option_b_description: string | null;
+  option_b_image_url: string | null;
+  vote_count_a: number;
+  vote_count_b: number;
+  reaction_like_count: number;
+  reaction_fun_count: number;
+  reaction_hard_count: number;
+  comment_count: number;
+  userVote: OptionSide | null;
+  userReaction: ReactionType | null;
+  created_at: string;
 };
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = getPublicEnv('EXPO_PUBLIC_SUPABASE_URL');
+const supabaseAnonKey = getPublicEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY');
 
-export const supabase =
-  supabaseUrl && supabaseAnonKey ? createClient<Database>(supabaseUrl, supabaseAnonKey) : null;
+export const supabase = supabaseUrl && supabaseAnonKey
+  ? createClient<Database>(supabaseUrl, supabaseAnonKey)
+  : null;
 
-const getSupabaseClient = () => {
+const rpcClient = supabase as SupabaseClient | null;
+
+export async function fetchFeedQuestions(_sort: FeedSort = 'popular', limit = 30): Promise<FeedQuestion[]> {
+  if (!supabase || !hasSupabaseConfig()) {
+    throw new Error('Supabase 프로젝트 설정이 필요합니다. 브라우저에서 Supabase 인증을 완료한 뒤 .env를 채워 주세요.');
+  }
+
+  const { data, error } = await rpcClient!.rpc('fetch_feed_questions', {
+    p_limit: limit,
+    p_cursor_created_at: null
+  });
+
+  if (error) throw error;
+
+  const rows = (data ?? []) as Database['public']['Functions']['fetch_feed_questions']['Returns'];
+
+  return rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    category_id: row.category_id,
+    category: normalizeCategory(row.category),
+    tags: row.tags ?? [],
+    option_a_title: row.option_a_title,
+    option_a_description: row.option_a_description,
+    option_a_image_url: row.option_a_image_url,
+    option_b_title: row.option_b_title,
+    option_b_description: row.option_b_description,
+    option_b_image_url: row.option_b_image_url,
+    vote_count_a: row.vote_count_a ?? 0,
+    vote_count_b: row.vote_count_b ?? 0,
+    reaction_like_count: row.reaction_like_count ?? 0,
+    reaction_fun_count: row.reaction_fun_count ?? 0,
+    reaction_hard_count: row.reaction_hard_count ?? 0,
+    comment_count: row.comment_count ?? 0,
+    userVote: null,
+    userReaction: null,
+    created_at: row.created_at
+  }));
+}
+
+export async function submitVote(questionId: string, selectedOption: OptionSide): Promise<void> {
   if (!supabase) {
-    throw new Error('Missing EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_ANON_KEY.');
+    throw new Error('Supabase 프로젝트 설정이 필요합니다.');
   }
 
-  return supabase;
-};
+  const { error } = await rpcClient!.rpc('submit_vote', {
+    p_question_id: questionId,
+    p_selected_option: selectedOption,
+    p_response_time_ms: null
+  });
 
-export type FeedSort = 'hot' | 'popular' | 'new' | 'controversial';
-
-export interface FetchFeedQuestionsParams {
-  userId?: string | null;
-  sort?: FeedSort;
-  categoryId?: string | null;
-  limit?: number;
+  if (error) throw error;
 }
 
-export interface SubmitVoteParams {
-  userId: string;
-  questionId: string;
-  selectedOption: OptionSide;
-  responseTimeMs?: number | null;
+export async function submitReaction(questionId: string, reactionType: ReactionType): Promise<void> {
+  if (!supabase) {
+    throw new Error('Supabase 프로젝트 설정이 필요합니다.');
+  }
+
+  const { error } = await rpcClient!.rpc('submit_reaction', {
+    p_question_id: questionId,
+    p_reaction_type: reactionType
+  });
+
+  if (error) throw error;
 }
 
-export interface SubmitReactionParams {
-  userId: string;
-  questionId: string;
-  reactionType: QuestionReactionType;
+function normalizeCategory(value: Json | null): FeedQuestion['category'] {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const category = value as Record<string, Json | undefined>;
+  if (!category.id || !category.name || !category.slug) {
+    return null;
+  }
+
+  return {
+    id: String(category.id),
+    name: String(category.name),
+    slug: String(category.slug),
+    color: category.color ? String(category.color) : null
+  };
 }
-
-const DEFAULT_FEED_LIMIT = 20;
-
-const sortConfig: Record<FeedSort, { column: keyof Question; ascending: boolean }> = {
-  hot: { column: 'heat_score', ascending: false },
-  popular: { column: 'total_votes', ascending: false },
-  new: { column: 'created_at', ascending: false },
-  controversial: { column: 'controversy_score', ascending: false },
-};
-
-const reactionCountColumn: Record<QuestionReactionType, 'like_count' | 'fun_count' | 'hard_count'> = {
-  like: 'like_count',
-  fun: 'fun_count',
-  hard: 'hard_count',
-};
-
-const isDuplicateKeyError = (errorCode?: string) => errorCode === '23505';
-
-export const fetchFeedQuestions = async ({
-  userId,
-  sort = 'hot',
-  categoryId,
-  limit = DEFAULT_FEED_LIMIT,
-}: FetchFeedQuestionsParams = {}): Promise<Question[]> => {
-  const client = getSupabaseClient();
-  const safeLimit = Math.min(Math.max(limit, 1), 50);
-  const selectedSort = sortConfig[sort] ?? sortConfig.hot;
-
-  let votedQuestionIds: string[] = [];
-
-  if (userId) {
-    const { data: votes, error: votesError } = await client
-      .from('votes')
-      .select('question_id')
-      .eq('user_id', userId);
-
-    if (votesError) {
-      throw votesError;
-    }
-
-    votedQuestionIds = votes.map((vote) => vote.question_id);
-  }
-
-  let query = client
-    .from('questions')
-    .select('*')
-    .eq('status', 'approved')
-    .eq('visibility', 'public')
-    .order(selectedSort.column, { ascending: selectedSort.ascending })
-    .order('reward_score', { ascending: false })
-    .order('created_at', { ascending: false })
-    .limit(safeLimit);
-
-  if (categoryId) {
-    query = query.eq('category_id', categoryId);
-  }
-
-  if (votedQuestionIds.length > 0) {
-    query = query.not('id', 'in', `(${votedQuestionIds.join(',')})`);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    throw error;
-  }
-
-  return data ?? [];
-};
-
-export const submitVote = async ({
-  userId,
-  questionId,
-  selectedOption,
-  responseTimeMs = null,
-}: SubmitVoteParams) => {
-  const client = getSupabaseClient();
-  const votePayload: TablesInsert<'votes'> = {
-    user_id: userId,
-    question_id: questionId,
-    selected_option: selectedOption,
-    response_time_ms: responseTimeMs,
-  };
-
-  const { data, error } = await client
-    .from('votes')
-    .insert(votePayload)
-    .select('*')
-    .single();
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
-};
-
-export const submitReaction = async ({
-  userId,
-  questionId,
-  reactionType,
-}: SubmitReactionParams) => {
-  const client = getSupabaseClient();
-  const reactionPayload: TablesInsert<'question_reactions'> = {
-    user_id: userId,
-    question_id: questionId,
-    reaction_type: reactionType,
-  };
-
-  const { data: reaction, error: reactionError } = await client
-    .from('question_reactions')
-    .insert(reactionPayload)
-    .select('*')
-    .single();
-
-  if (reactionError) {
-    if (isDuplicateKeyError(reactionError.code)) {
-      return { reaction: null, question: null, alreadyReacted: true };
-    }
-
-    throw reactionError;
-  }
-
-  const countColumn = reactionCountColumn[reactionType];
-  const { data: question, error: questionFetchError } = await client
-    .from('questions')
-    .select('*')
-    .eq('id', questionId)
-    .single();
-
-  if (questionFetchError) {
-    await client.from('question_reactions').delete().eq('id', reaction.id);
-    throw questionFetchError;
-  }
-
-  const questionPatch: TablesUpdate<'questions'> = {
-    heat_score: question.heat_score + 0.25,
-  };
-  questionPatch[countColumn] = question[countColumn] + 1;
-
-  const { data: updatedQuestion, error: questionUpdateError } = await client
-    .from('questions')
-    .update(questionPatch)
-    .eq('id', questionId)
-    .select('*')
-    .single();
-
-  if (questionUpdateError) {
-    await client.from('question_reactions').delete().eq('id', reaction.id);
-    throw questionUpdateError;
-  }
-
-  return { reaction, question: updatedQuestion, alreadyReacted: false };
-};

@@ -1,101 +1,116 @@
-import type { Profile, UserTrait } from '../types/database.types';
 import { supabase } from './questionService';
 
-export interface GamificationSnapshot {
-  userId: string | null;
-  profile: Profile | null;
-  traits: UserTrait[];
-  todayParticipationCount: number;
-  isGuest: boolean;
-}
+type ProfileRecord = GamificationSnapshot['profile'];
+type IslandRecord = GamificationSnapshot['island'];
+type CharacterRecord = GamificationSnapshot['character'];
+type TraitRecord = GamificationSnapshot['traits'][number];
 
-export const DAILY_PARTICIPATION_TARGET = 10;
-
-const createGuestProfile = (): Profile => ({
-  id: 'guest',
-  nickname: '게스트 탐험가',
-  avatar_url: null,
-  gender: null,
-  age_range: null,
-  bio: null,
-  home_island_id: null,
-  selected_character_id: null,
-  streak_count: 0,
-  shell_balance: 0,
-  total_participation_count: 0,
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
-});
-
-export const getCurrentUserId = async () => {
-  if (!supabase) {
-    return null;
-  }
-
-  const { data, error } = await supabase.auth.getUser();
-
-  if (error) {
-    return null;
-  }
-
-  return data.user?.id ?? null;
-};
-
-export const fetchGamificationSnapshot = async (): Promise<GamificationSnapshot> => {
-  const userId = await getCurrentUserId();
-
-  if (!supabase || !userId) {
-    return {
-      userId: null,
-      profile: createGuestProfile(),
-      traits: [],
-      todayParticipationCount: 0,
-      isGuest: true,
-    };
-  }
-
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-
-  const [profileResult, traitsResult, votesResult] = await Promise.all([
-    supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
-    supabase.from('user_traits').select('*').eq('user_id', userId).order('score', { ascending: false }),
-    supabase
-      .from('votes')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .gte('created_at', todayStart.toISOString()),
-  ]);
-
-  if (profileResult.error) {
-    throw profileResult.error;
-  }
-
-  if (traitsResult.error) {
-    throw traitsResult.error;
-  }
-
-  if (votesResult.error) {
-    throw votesResult.error;
-  }
-
-  return {
-    userId,
-    profile: profileResult.data ?? createGuestProfile(),
-    traits: traitsResult.data ?? [],
-    todayParticipationCount: votesResult.count ?? 0,
-    isGuest: false,
+export type GamificationSnapshot = {
+  profile: {
+    id: string;
+    nickname: string;
+    avatar_url: string | null;
+    shell_balance: number;
+    streak_count: number;
+    total_participation_count: number;
+    today_participation_count: number;
+  };
+  traits: Array<{ trait_key: string; score: number }>;
+  island: {
+    id: string;
+    user_id: string;
+    island_level: number;
+    island_name: string;
+  };
+  character: {
+    id: string;
+    user_id: string;
+    character_type: string;
+    character_level: number;
+    nickname: string;
   };
 };
 
-export const signOut = async () => {
+export async function fetchGamificationSnapshot(): Promise<GamificationSnapshot> {
   if (!supabase) {
-    return;
+    throw new Error('Supabase 프로젝트 설정이 필요합니다. 브라우저에서 인증 후 .env를 채워 주세요.');
   }
 
-  const { error } = await supabase.auth.signOut();
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData.user?.id;
 
-  if (error) {
-    throw error;
+  if (!userId) {
+    return createGuestSnapshot();
   }
-};
+
+  const [{ data: profile }, { data: traits }, { data: island }, { data: character }] = await Promise.all([
+    supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+    supabase.from('user_traits').select('trait_key,score').eq('user_id', userId),
+    supabase.from('islands').select('*').eq('user_id', userId).maybeSingle(),
+    supabase.from('characters').select('*').eq('user_id', userId).maybeSingle()
+  ]);
+
+  const profileRecord = profile as ProfileRecord | null;
+  const traitRows = (traits ?? []) as TraitRecord[];
+  const islandRecord = island as IslandRecord | null;
+  const characterRecord = character as CharacterRecord | null;
+
+  return {
+    profile: {
+      id: profileRecord?.id ?? userId,
+      nickname: profileRecord?.nickname ?? '섬 탐험가',
+      avatar_url: profileRecord?.avatar_url ?? null,
+      shell_balance: profileRecord?.shell_balance ?? 0,
+      streak_count: profileRecord?.streak_count ?? 0,
+      total_participation_count: profileRecord?.total_participation_count ?? 0,
+      today_participation_count: profileRecord?.today_participation_count ?? 0
+    },
+    traits: traitRows,
+    island: islandRecord ?? {
+      id: 'new-island',
+      user_id: userId,
+      island_level: 1,
+      island_name: '새싹 섬'
+    },
+    character: characterRecord ?? {
+      id: 'new-character',
+      user_id: userId,
+      character_type: 'turtle',
+      character_level: 1,
+      nickname: '새싹 탐험가'
+    }
+  };
+}
+
+export async function signOut(): Promise<void> {
+  if (!supabase) return;
+  await supabase.auth.signOut();
+}
+
+function createGuestSnapshot(): GamificationSnapshot {
+  return {
+    profile: {
+      id: 'guest',
+      nickname: '게스트 탐험가',
+      avatar_url: null,
+      shell_balance: 0,
+      streak_count: 0,
+      total_participation_count: 0,
+      today_participation_count: 0
+    },
+    traits: [],
+    island: {
+      id: 'guest-island',
+      user_id: 'guest',
+      island_level: 1,
+      island_name: '게스트 섬'
+    },
+    character: {
+      id: 'guest-character',
+      user_id: 'guest',
+      character_type: 'turtle',
+      character_level: 1,
+      nickname: '게스트 탐험가'
+    }
+  };
+}
