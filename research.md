@@ -532,3 +532,14 @@ UUID를 따옴표 없이 직접 이어 붙이면 PostgREST/PG 파서에서 하�
 - 검증됨: `npm.cmd run typecheck` 성공.
 - 검증됨: `supabase/migrations/202606012330_feed_state_and_ledger_hardening.sql` quote/dollar quote scan 성공.
 - 제한: follow-up migration은 클립보드에 복사되었으나, live DB에는 사용자가 SQL Editor에서 별도 실행해야 한다.
+
+## 2026-06-01 Character Card Collection Economy Direction
+
+- 사용자가 제공한 과거 캐릭터 PNG 에셋은 common/rare/legendary 3단계 카드 수집 시스템에 활용할 수 있다. 일반 동물형 이미지는 밝은 앱 UI와 잘 맞고, rare 이미지는 상위 스킨/오라 카드로 적합하며, cosmic warrior 계열은 강한 전설 카드 연출용으로 제한 사용하는 편이 좋다.
+- 핵심 제품 결정: 대표 아바타는 BIPI 성향과 참여 기록으로 성장시키고, 확률형 카드는 대표 아바타를 대체하지 않는 스킨/동료/섬 장식 수집 시스템으로 분리한다.
+- 기본 확률 초안은 Common 90%, Rare 9%, Legendary 1%다. 10장 묶음은 마지막 카드 Rare 이상 보정, 장기 미획득 사용자를 위한 pity/천장 규칙을 포함한다.
+- 합성은 실패형보다 보장형으로 설계한다. Common 10장은 Rare 또는 Legendary 조각으로, Rare 5장은 Rare+ 또는 Legendary 조각/카드로 전환한다.
+- 법적/운영 가드레일: MVP에서는 현금 결제나 유료 조개 판매를 넣지 않는다. 무료 보상형으로 시작하더라도 확률표, 천장, 합성 확률, 변경 이력을 앱 안에서 공개한다.
+- P0 보안 전제: 카드 경제 구현 전 `profiles_update_own` 정책을 좁혀 `shell_balance`, streak, participation 같은 경제/진행 필드를 클라이언트가 직접 수정하지 못하게 해야 한다.
+- 모든 뽑기/합성 RPC는 `auth.uid()` 내부 사용, `p_request_id` 기반 idempotency, inventory row `FOR UPDATE`, 음수 수량 방지, draw/fusion history 보존을 필수로 한다.
+- 상세 계획서는 `docs/superpowers/plans/2026-06-01-character-card-collection-economy.md`에 작성했다.

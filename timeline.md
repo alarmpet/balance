@@ -124,3 +124,12 @@
 - 검증: `npm.cmd run typecheck` 성공.
 - 검증: follow-up migration quote/dollar quote scan 성공, `git diff --check` 성공.
 - 후속: `supabase/migrations/202606012330_feed_state_and_ledger_hardening.sql`은 클립보드에 복사했으며, Supabase SQL Editor에서 실행 후 새 `fetch_feed_questions` 반환 필드 smoke test가 필요하다.
+
+## 2026-06-01 23:50 KST - Character Card Collection Economy Plan
+- 작업: 사용자가 제공한 일반/레어/전설 캐릭터 PNG 에셋을 기반으로 확률형 카드 획득, 출석 카드, 조개 카드팩, 합성, 천장, 확률 공개 계획서를 작성했다.
+- 범위: `docs/superpowers/plans/2026-06-01-character-card-collection-economy.md`, `research.md`, `timeline.md`.
+- 이유: 기존 성향 아바타/섬 성장 루프를 해치지 않으면서, 카드 수집과 합성을 장기 리텐션 루프로 붙일 수 있는 안전한 방향이 필요했다.
+- 결정: 대표 아바타는 성향 기반으로 유지하고, 확률형 카드는 스킨/동료/섬 장식 수집으로 분리한다. MVP에서는 현금 결제 없이 무료/획득 조개 기반으로만 검증한다.
+- 리뷰: GPT-5.3-Codex-Spark 읽기 전용 리뷰어가 `profiles.shell_balance` 직접 수정 가능성, request id 기반 멱등성, 확률 공개/변경 이력, 미성년자 보호, 에셋 메타데이터 필요성을 지적했고 계획서에 반영했다.
+- 검증: 계획서 placeholder/핵심 키워드 스캔을 수행했다. 구현 코드는 변경하지 않았다.
+- 후속: 카드 시스템 구현 전에 `profiles_update_own` 정책을 먼저 좁히는 security migration을 작성해야 한다.
