@@ -1,7 +1,10 @@
 import { create } from 'zustand';
 import {
+  assignPersonalityPet,
   careAvatar,
   claimDailyCheckin,
+  claimDailyThemeDraw,
+  drawThemePack,
   fetchGamificationSnapshot,
   signOut,
   type CareType,
@@ -16,6 +19,9 @@ type GamificationState = {
   loadSnapshot: () => Promise<void>;
   claimCheckin: () => Promise<void>;
   careForAvatar: (careType: CareType) => Promise<void>;
+  assignPet: () => Promise<void>;
+  claimTheme: () => Promise<void>;
+  drawTheme: (poolSlug?: string, drawCount?: number) => Promise<void>;
   signOutUser: () => Promise<void>;
   clearError: () => void;
 };
@@ -71,6 +77,51 @@ export const useGamificationStore = create<GamificationState>((set, get) => ({
       set({
         isMutating: false,
         error: error instanceof Error ? error.message : '캐릭터를 돌볼 수 없습니다.'
+      });
+    }
+  },
+
+  async assignPet() {
+    set({ isMutating: true, error: null });
+
+    try {
+      await assignPersonalityPet();
+      const snapshot = await fetchGamificationSnapshot();
+      set({ snapshot, isMutating: false });
+    } catch (error) {
+      set({
+        isMutating: false,
+        error: error instanceof Error ? error.message : '성향 펫을 배정할 수 없습니다.'
+      });
+    }
+  },
+
+  async claimTheme() {
+    set({ isMutating: true, error: null });
+
+    try {
+      await claimDailyThemeDraw();
+      const snapshot = await fetchGamificationSnapshot();
+      set({ snapshot, isMutating: false });
+    } catch (error) {
+      set({
+        isMutating: false,
+        error: error instanceof Error ? error.message : '오늘의 테마를 받을 수 없습니다.'
+      });
+    }
+  },
+
+  async drawTheme(poolSlug = 'standard-theme', drawCount = 1) {
+    set({ isMutating: true, error: null });
+
+    try {
+      await drawThemePack(poolSlug, drawCount);
+      const snapshot = await fetchGamificationSnapshot();
+      set({ snapshot, isMutating: false });
+    } catch (error) {
+      set({
+        isMutating: false,
+        error: error instanceof Error ? error.message : '테마 뽑기를 진행할 수 없습니다.'
       });
     }
   },

@@ -245,6 +245,137 @@ export type UserPersonalitySnapshotRow = {
   computed_at: string;
 };
 
+export type PetSpeciesRow = {
+  id: string;
+  slug: string;
+  display_name: string;
+  description: string | null;
+  base_rarity: string;
+  common_asset_url: string;
+  rare_asset_url: string | null;
+  legendary_asset_url: string | null;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PetSpeciesTraitRow = {
+  id: string;
+  species_id: string;
+  trait_key: string;
+  affinity_score: number;
+  source_label: string | null;
+  source_url: string | null;
+  created_at: string;
+};
+
+export type UserPetStateRow = {
+  user_id: string;
+  species_id: string | null;
+  nickname: string | null;
+  level: number;
+  experience: number;
+  bond: number;
+  mood: number;
+  energy: number;
+  assigned_trait_snapshot: Json;
+  assigned_at: string;
+  updated_at: string;
+};
+
+export type ThemeSkinRow = {
+  id: string;
+  slug: string;
+  display_name: string;
+  rarity: 'common' | 'rare' | 'legendary';
+  background_asset_url: string;
+  preview_asset_url: string | null;
+  effect_key: string | null;
+  series_key: string;
+  is_limited: boolean;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ThemeDrawPoolRow = {
+  id: string;
+  slug: string;
+  display_name: string;
+  cost_shells: number;
+  draw_count: number;
+  guarantee_rule: Json;
+  starts_at: string | null;
+  ends_at: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ThemeDrawPoolItemRow = {
+  pool_id: string;
+  theme_skin_id: string;
+  weight: number;
+  is_guaranteed_candidate: boolean;
+};
+
+export type UserThemeInventoryRow = {
+  user_id: string;
+  theme_skin_id: string;
+  level: number;
+  duplicate_count: number;
+  is_equipped: boolean;
+  first_acquired_at: string;
+  updated_at: string;
+};
+
+export type ThemeDrawHistoryRow = {
+  id: string;
+  user_id: string;
+  pool_id: string | null;
+  theme_skin_id: string | null;
+  rarity: string;
+  cost_shells: number;
+  idempotency_key: string;
+  request_id: string;
+  draw_index: number;
+  was_duplicate: boolean;
+  inventory_level_after: number;
+  pity_before: number;
+  pity_after: number;
+  created_at: string;
+};
+
+export type UserThemePityRow = {
+  user_id: string;
+  pool_id: string;
+  legendary_miss_count: number;
+  updated_at: string;
+};
+
+export type ThemeProbabilityVersionRow = {
+  id: string;
+  pool_id: string;
+  version: number;
+  weight_snapshot: Json;
+  guarantee_rule_snapshot: Json;
+  change_reason: string;
+  effective_at: string;
+  created_at: string;
+};
+
+export type ThemeDrawResultRow = {
+  draw_index: number;
+  theme_skin_id: string;
+  slug: string;
+  display_name: string;
+  rarity: 'common' | 'rare' | 'legendary';
+  was_duplicate: boolean;
+  inventory_level_after: number;
+};
+
 export type FeedQuestionRpcRow = {
   id: string;
   title: string;
@@ -298,6 +429,16 @@ export type Database = {
       shell_ledger: TableDefinition<ShellLedgerRow>;
       user_avatar_state: TableDefinition<UserAvatarStateRow>;
       user_personality_snapshots: TableDefinition<UserPersonalitySnapshotRow>;
+      pet_species: TableDefinition<PetSpeciesRow>;
+      pet_species_traits: TableDefinition<PetSpeciesTraitRow>;
+      user_pet_state: TableDefinition<UserPetStateRow>;
+      theme_skins: TableDefinition<ThemeSkinRow>;
+      theme_draw_pools: TableDefinition<ThemeDrawPoolRow>;
+      theme_draw_pool_items: TableDefinition<ThemeDrawPoolItemRow>;
+      user_theme_inventory: TableDefinition<UserThemeInventoryRow>;
+      theme_draw_history: TableDefinition<ThemeDrawHistoryRow>;
+      user_theme_pity: TableDefinition<UserThemePityRow>;
+      theme_probability_versions: TableDefinition<ThemeProbabilityVersionRow>;
     };
     Functions: {
       fetch_feed_questions: {
@@ -330,8 +471,45 @@ export type Database = {
       care_avatar: {
         Args: {
           p_care_type?: 'snack' | 'play' | 'praise';
+          p_request_id?: string | null;
         };
         Returns: UserAvatarStateRow;
+      };
+      update_profile_display: {
+        Args: {
+          p_nickname?: string | null;
+          p_avatar_url?: string | null;
+          p_bio?: string | null;
+          p_gender?: string | null;
+          p_age_range?: string | null;
+          p_home_island_id?: string | null;
+          p_selected_character_id?: string | null;
+        };
+        Returns: ProfileRow;
+      };
+      assign_personality_pet: {
+        Args: Record<string, never>;
+        Returns: UserPetStateRow;
+      };
+      get_theme_probability_disclosure: {
+        Args: {
+          p_pool_slug?: string;
+        };
+        Returns: Json;
+      };
+      draw_theme_pack: {
+        Args: {
+          p_pool_slug?: string;
+          p_draw_count?: number;
+          p_request_id?: string | null;
+        };
+        Returns: ThemeDrawResultRow[];
+      };
+      claim_daily_theme_draw: {
+        Args: {
+          p_request_id?: string | null;
+        };
+        Returns: ThemeDrawResultRow[];
       };
     };
     Enums: Record<string, never>;

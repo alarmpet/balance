@@ -83,6 +83,30 @@ P0 전제 조건:
 
 - 10연차 RPC 전체 SQL 예시는 가상 로직과 미완성 루프가 많아 그대로 계획서 구현 단계로 넣지 않는다. 대신 필요한 트랜잭션 순서와 멱등성 규칙만 반영한다.
 
+## 2026-06-02 Implementation Status: Foundation Applied
+
+구현한 범위:
+
+- `supabase/migrations/202606020200_personality_pet_theme_economy.sql` 추가.
+- `profiles_update_own` broad update policy 제거 및 `profiles` 직접 UPDATE 권한 회수.
+- `update_profile_display` RPC 추가. 닉네임, 아바타 URL, bio, gender, age range, 선택 섬/캐릭터만 수정한다.
+- `pet_species`, `pet_species_traits`, `user_pet_state` 추가.
+- `theme_skins`, `theme_draw_pools`, `theme_draw_pool_items`, `user_theme_inventory`, `theme_draw_history`, `user_theme_pity`, `theme_probability_versions` 추가.
+- `assign_personality_pet`, `get_theme_probability_disclosure`, `draw_theme_pack`, `claim_daily_theme_draw` RPC 추가.
+- 기존 `care_avatar(text)`를 제거하고 `care_avatar(text, uuid)`로 교체해 유료 케어 액션은 request id 없이는 실패하게 했다.
+- 일일 무료 테마는 클라이언트 request id를 믿지 않고 `daily_theme:{user_id}:{KST date}` 기반 deterministic id로만 지급한다.
+- TypeScript DB 타입, `gamificationService`, `gamificationStore`, `island` 화면을 새 펫/테마 snapshot과 액션에 맞춰 확장했다.
+
+검증:
+
+- `npm.cmd run typecheck` 통과.
+- `git diff --check` 통과.
+
+남은 적용 단계:
+
+- live Supabase SQL Editor에서 새 migration을 적용해야 한다.
+- 적용 후 anon/auth smoke test가 필요하다: broad profile update 차단, `update_profile_display` 성공, `get_theme_probability_disclosure` 반환, `claim_daily_theme_draw` 같은 날 중복 호출 결과 동일, `draw_theme_pack` 같은 request id 결과 동일.
+
 ## 2. Personality Pet Matching
 
 펫 매칭은 "실제 품종 성격 진단"이 아니라 "동물/품종의 대표 인상을 게임 성향 태그로 번역하는 시스템"이다. 사용자의 BIPI 점수와 펫 후보의 태그 벡터를 비교해 가장 가까운 펫을 부화시킨다.

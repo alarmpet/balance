@@ -21,7 +21,7 @@ function getStageLabel(stage: string) {
 }
 
 export default function IslandScreen() {
-  const { snapshot, isLoading, isMutating, error, loadSnapshot, careForAvatar } = useGamificationStore();
+  const { snapshot, isLoading, isMutating, error, loadSnapshot, careForAvatar, assignPet, claimTheme, drawTheme } = useGamificationStore();
 
   useEffect(() => {
     if (!snapshot) {
@@ -63,7 +63,32 @@ export default function IslandScreen() {
         <Text style={styles.islandEmoji}>{snapshot.island.island_level >= 3 ? '🏝️' : '🌴'}</Text>
         <Text style={styles.level}>섬 레벨 {snapshot.island.island_level}</Text>
         <Text style={styles.title}>{title}</Text>
-        <Text style={styles.description}>총 참여 {snapshot.profile.total_participation_count}회로 섬과 캐릭터가 함께 자라고 있어요.</Text>
+        <Text style={styles.description}>총 참여 {snapshot.profile.total_participation_count}회로 섬과 성향 펫이 함께 자라고 있어요.</Text>
+      </View>
+
+      <View style={styles.avatarCard}>
+        <View style={styles.avatarHeader}>
+          <View>
+            <Text style={styles.cardLabel}>성향 펫</Text>
+            <Text style={styles.avatarName}>{snapshot.petSpecies?.display_name ?? '아직 부화 전'}</Text>
+          </View>
+          <Text style={styles.avatarLevel}>Lv.{snapshot.petState?.level ?? 1}</Text>
+        </View>
+        <Text style={styles.description}>
+          {snapshot.petSpecies?.description ?? '투표 성향이 쌓이면 나와 닮은 펫이 배정됩니다.'}
+        </Text>
+        <View style={styles.actionRow}>
+          <CareButton label="펫 부화" disabled={isMutating} onPress={() => assignPet()} />
+          <CareButton label="무료 테마" disabled={isMutating} onPress={() => claimTheme()} />
+          <CareButton label="테마 뽑기" disabled={isMutating} onPress={() => drawTheme()} />
+        </View>
+        {snapshot.equippedTheme ? (
+          <Text style={styles.bond}>
+            장착 테마 {snapshot.equippedTheme.skin.display_name} · LV.{snapshot.equippedTheme.inventory.level}
+          </Text>
+        ) : (
+          <Text style={styles.bond}>장착 테마 없음 · 무료 테마를 먼저 받아보세요.</Text>
+        )}
       </View>
 
       <View style={styles.avatarCard}>

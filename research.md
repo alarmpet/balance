@@ -564,3 +564,17 @@ UUID를 따옴표 없이 직접 이어 붙이면 PostgREST/PG 파서에서 하�
 - 수정 채택: 리뷰의 `WITH CHECK (OLD.shell_balance = shell_balance ...)` SQL은 PostgreSQL RLS policy에서 그대로 쓸 수 없으므로, 직접 UPDATE 제거, 안전 컬럼만 UPDATE grant, 또는 `update_profile_display` RPC 방식으로 계획에 반영했다.
 - 수정 채택: 리뷰의 `card_draw_*` 예시는 최신 방향에 맞춰 `theme_draw_*`, `theme_skins`, `user_theme_inventory` 명명으로 바꾸어 반영했다.
 - 보류: 10연차 RPC SQL 예시는 미완성 가상 루프가 포함되어 있어 그대로 구현 계획에 넣지 않고, 트랜잭션 순서와 멱등성 규칙만 채택했다.
+
+## 2026-06-02 Personality Pet Theme Economy Foundation Implementation
+
+- 새 migration `supabase/migrations/202606020200_personality_pet_theme_economy.sql`을 추가했다.
+- P0 보안 항목인 `profiles_update_own` broad policy를 제거하고 `profiles`에 대한 anon/authenticated 직접 UPDATE 권한을 회수했다.
+- 표시 프로필 수정은 `update_profile_display` SECURITY DEFINER RPC로 분리했다. 경제 필드(`shell_balance`, streak, participation)는 이 RPC에서 입력받지 않는다.
+- 성향 펫 기반 테이블 `pet_species`, `pet_species_traits`, `user_pet_state`와 테마 경제 테이블 `theme_skins`, `theme_draw_pools`, `theme_draw_pool_items`, `user_theme_inventory`, `theme_draw_history`, `user_theme_pity`, `theme_probability_versions`를 정의했다.
+- `assign_personality_pet`는 현재 사용자 `user_traits`와 `pet_species_traits` affinity를 비교해 첫 펫을 고정 배정한다.
+- `get_theme_probability_disclosure`는 실제 `theme_draw_pool_items.weight`에서 희귀도/개별 테마 확률을 계산한다.
+- `draw_theme_pack`은 `p_request_id` 기반 멱등성을 `theme_draw_history`에 기록하며, 같은 request id는 같은 결과를 반환한다.
+- `claim_daily_theme_draw`는 클라이언트가 넘긴 request id를 쓰지 않고 KST 날짜 기반 deterministic request id를 사용해 무료 일일 테마 무한 수령을 막는다.
+- 기존 `care_avatar(text)`는 제거하고 `care_avatar(text, uuid)`로 교체했다. 유료 케어 액션(`snack`, `play`)은 request id가 없으면 실패한다.
+- 클라이언트 타입/서비스/스토어/섬 화면에 성향 펫, 장착 테마, 무료 테마, 테마 뽑기 액션을 연결했다.
+- 검증됨: `npm.cmd run typecheck` 성공, `git diff --check` 성공.

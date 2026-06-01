@@ -148,3 +148,12 @@
 - 채택: `profiles_update_own` broad policy의 경제 필드 직접 수정 위험, `p_request_id` 기반 테마 뽑기 멱등성, 실제 weight 기반 확률 공시 RPC, 클라이언트 request id 로컬 보존 규칙.
 - 수정 채택: 리뷰의 RLS 예시 SQL은 `OLD` 참조 때문에 그대로 쓰지 않고, 직접 UPDATE 제거/안전 컬럼 grant/`update_profile_display` RPC 방향으로 바꿨다.
 - 보류: 미완성 10연차 RPC SQL 예시는 그대로 반영하지 않고 필요한 트랜잭션 순서만 계획에 남겼다.
+
+## 2026-06-02 02:15 KST - Personality Pet Theme Economy Foundation
+- 작업: 계획서의 P0/P1 항목을 기준으로 성향 펫 + 테마 가챠 기반 migration과 클라이언트 타입/서비스/스토어/섬 화면 연결을 구현했다.
+- 범위: `supabase/migrations/202606020200_personality_pet_theme_economy.sql`, `src/types/database.types.ts`, `src/services/gamificationService.ts`, `src/store/gamificationStore.ts`, `src/app/(tabs)/island.tsx`, 계획서, `research.md`, `timeline.md`.
+- 리뷰: GPT-5.3-Codex-Spark 읽기 전용 리뷰어가 `profiles_update_own` 권한 축소 미반영, `care_avatar` 멱등성 붕괴, `update_profile_display` 부재, `pet/theme` 테이블/RPC 부재, 확률 공시 RPC 부재를 P0/P1로 지적했다.
+- 반영: broad profile update 제거, `update_profile_display`, `pet_species/user_pet_state/theme_*` 테이블, `assign_personality_pet`, `draw_theme_pack`, `claim_daily_theme_draw`, `get_theme_probability_disclosure`, paid care request id를 추가했다.
+- 추가 방어: 일일 무료 테마는 클라이언트 request id를 무시하고 KST 날짜 기반 deterministic id로 처리해 무한 수령을 막았다.
+- 검증: `npm.cmd run typecheck` 성공, `git diff --check` 성공.
+- 후속: live Supabase SQL Editor에서 새 migration 적용 후 RPC smoke test가 필요하다.
