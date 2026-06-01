@@ -133,3 +133,11 @@
 - 리뷰: GPT-5.3-Codex-Spark 읽기 전용 리뷰어가 `profiles.shell_balance` 직접 수정 가능성, request id 기반 멱등성, 확률 공개/변경 이력, 미성년자 보호, 에셋 메타데이터 필요성을 지적했고 계획서에 반영했다.
 - 검증: 계획서 placeholder/핵심 키워드 스캔을 수행했다. 구현 코드는 변경하지 않았다.
 - 후속: 카드 시스템 구현 전에 `profiles_update_own` 정책을 먼저 좁히는 security migration을 작성해야 한다.
+
+## 2026-06-02 00:56 KST - Personality Pet Matching Plan Update
+- 작업: 사용자가 제공한 `C:\Users\petbl\Desktop\alarmpetgo_` 일반/희귀/전설 펫 이미지 구조를 기준으로 성향 펫 매칭 계획을 업데이트했다.
+- 범위: `docs/superpowers/plans/2026-06-01-character-card-collection-economy.md`, `research.md`, `timeline.md`.
+- 결정: 캐릭터와 펫을 동시에 운영하지 않고, 사용자의 성향 대표는 `펫 1마리`로 단순화한다. 보상 뽑기는 펫 자체가 아니라 펫이 사는 `배경/테마 스킨`으로 전환한다.
+- 설계: BIPI trait vector와 품종/동물 성향 자료를 매칭해 `pet_species_traits` seed를 만들고, `assign_personality_pet` RPC가 유저 trait과 가장 가까운 펫을 배정하는 방향으로 잡았다.
+- 이유: 파츠형 아이템이나 캐릭터 교체형 가챠보다 화면과 개발 공수가 작고, 사용자는 “내 성향 펫이 자라고 세계를 꾸민다”는 하나의 문장으로 이해할 수 있다.
+- 검증: TICA/AKC/RSPCA 등 공개 품종/동물 행동 자료를 참고해 초기 매핑 기준을 세웠고, 구현 코드는 변경하지 않았다.

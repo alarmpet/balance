@@ -1,10 +1,41 @@
-# Character Card Collection Economy Plan
+# Personality Pet and Theme Gacha Economy Plan
 
 작성 시각: 2026-06-01 23:45 KST
 
 ## 1. Executive Decision
 
 밸런스 아일랜드에 확률형 카드 시스템을 넣는 방향은 가능하다. 다만 앱의 핵심 정체성은 "내 선택으로 자라는 성향 아바타"이므로, 확률형 카드는 대표 캐릭터 자체를 결정하는 시스템이 아니라 `캐릭터 카드/스킨/동료/섬 장식 수집`으로 붙이는 것이 가장 안전하다.
+
+## 2026-06-02 Direction Update: Personality Pet + Theme Gacha
+
+최신 방향은 `성향 펫 1마리 + 배경/테마 가챠 1슬롯`으로 단순화한다.
+
+이전 카드 수집 설계에서 유지할 것:
+
+- 확률 공개
+- 조개 기반 보상 경제
+- 출석/질문 참여 루프
+- 중복 보상 처리
+- 서버 RPC 기반 멱등성
+
+변경할 것:
+
+- 뽑기 대상은 캐릭터/펫 자체가 아니라 `펫이 사는 세계 테마`로 바꾼다.
+- 펫은 사용자의 BIPI 성향과 로컬 이미지 에셋의 성향 태그를 매칭해 1마리만 생성한다.
+- 모자, 옷, 신발, 시계 같은 파츠형 아이템은 MVP에서 제외한다.
+- 중복 테마는 합성창을 열지 않고 자동 레벨업한다.
+
+최종 사용자 문장:
+
+> 질문을 풀면 내 성향과 닮은 펫이 태어나고, 보상으로 얻은 조개로 펫이 사는 세계 테마를 바꾼다.
+
+이 구조가 더 나은 이유:
+
+- 사용자는 "내 펫"과 "펫의 세계"만 이해하면 된다.
+- 장착 슬롯은 배경/테마 1개뿐이라 UI가 단순하다.
+- 펫마다 모자/옷 좌표를 맞출 필요가 없어 개발과 에셋 제작이 빠르다.
+- 전설 보상은 펫 자체보다 배경 전체 변화로 표현할 때 훨씬 강하게 체감된다.
+- 기존 `C:\Users\petbl\Desktop\alarmpetgo_`의 common/rare/legend 펫 이미지는 `초기 성향 펫 후보`와 `희귀도별 펫 초상화`로 쓸 수 있다.
 
 P0 전제 조건:
 
@@ -31,7 +62,139 @@ P0 전제 조건:
 
 - 대한민국 정책브리핑, "확률형 아이템 정보 22일부터 공개…위반 시 시정조치", 2024-03-22: https://www.korea.kr/news/policyNewsView.do?newsId=148927317
 
-## 2. Asset Direction
+## 2. Personality Pet Matching
+
+펫 매칭은 "실제 품종 성격 진단"이 아니라 "동물/품종의 대표 인상을 게임 성향 태그로 번역하는 시스템"이다. 사용자의 BIPI 점수와 펫 후보의 태그 벡터를 비교해 가장 가까운 펫을 부화시킨다.
+
+### Matching Inputs
+
+사용자 입력:
+
+- `solo/social`
+- `safe/adventure`
+- `plan/flow`
+- `calm/express`
+- 보조 trait: `comfort`, `curious`, `aesthetic`, `leader`, `focus`, `gentle`, `playful`
+
+펫 입력:
+
+- species slug
+- display name
+- BIPI affinity vector
+- primary trait tags
+- source notes
+- common image path
+- rare image path
+- legendary image path or legendary counterpart
+
+매칭 방식:
+
+1. 사용자의 `user_traits`를 BIPI 4축 점수로 정규화한다.
+2. 각 펫 후보의 affinity vector와 cosine similarity 또는 weighted distance를 계산한다.
+3. 가장 가까운 후보를 primary pet으로 부화시킨다.
+4. 동점이면 사용자가 2~3개 후보 중 직접 고른다.
+5. 부화 후 펫 species는 유지하고, 성향 변화는 말투/표정/테마 추천에 반영한다.
+
+왜 species를 유지하나:
+
+- 매일 성향이 조금 바뀔 때마다 펫이 바뀌면 애착이 끊긴다.
+- 첫 부화는 "요즘 내 선택 성향과 가장 닮은 펫"이고, 이후에는 "내 펫이 나와 함께 성장한다"가 된다.
+
+### Source-Grounded Trait Notes
+
+자료는 공식 품종 단체, 동물복지 단체, 수의/펫 케어 자료를 우선한다. 앱 안에서는 출처 문구를 직접 노출하기보다 내부 매핑 근거로만 사용한다.
+
+참고한 대표 근거:
+
+- TICA는 American Shorthair를 good-natured, easy-going, adaptable, calm/devoted/playful 성향으로 설명한다: https://tica.org/breed/american-shorthair/
+- AKC는 Bichon Frise를 peppy, curious, playful 성향으로 소개한다: https://www.akc.org/expert-advice/dog-breeds/bichon-frise/
+- AKC는 Chihuahua를 charming, graceful, sassy, loyal, big-dog attitude 성향으로 소개한다: https://www.akc.org/dog-breeds/chihuahua/
+- AKC Maltese 자료는 gentle, lively, playful 성향을 언급한다: https://www.akc.org/expert-advice/dog-breeds/glamor-charm-8-fun-facts-maltese/
+- TICA는 Russian Blue를 sweet-tempered, loyal, intelligent, reserved with strangers, structure/routine 선호로 설명한다: https://tica.org/breed/russian-blue/
+- RSPCA는 rabbits를 highly social, playful, inquisitive로 설명한다: https://www.rspca.org.uk/en/adviceandwelfare/pets/rabbits/behaviour
+- RSPCA/PetSmart 계열 햄스터 자료는 햄스터를 nocturnal, solitary 성향으로 설명한다: https://www.rspca.org.uk/documents/1494939/7712578/Hamster%2Bfactfile%2B%28PDF%2B48KB%29.pdf/20e42d48-3b3a-4673-3725-05db30daa766?t=1559134492091
+- chameleon care 자료는 chameleons를 solitary/territorial로 설명한다: https://static1.squarespace.com/static/5c8fbfe87d0c914f25ad6fa4/t/64d58f7c7781440451ebc97f/1691717504034/chameleon%281%29.pdf
+
+### Initial Pet Mapping Table
+
+아래 표는 `C:\Users\petbl\Desktop\alarmpetgo_\svg`와 `rare` 폴더의 펫 이미지명을 기준으로 한 1차 매핑이다. 실제 앱 seed에서는 영어 slug와 한국어 표시명을 함께 저장한다.
+
+| 펫 | 성향 키워드 | BIPI 매칭 | 앱 칭호 예시 |
+|---|---|---|---|
+| american shorthair | 안정적, 적응력, 균형, 다정함 | safe + calm + social | 느긋한 균형 탐험가 |
+| bichon | 밝음, 호기심, 장난기, 사교성 | social + express + flow | 햇살 가득 리액션 요정 |
+| chameleon | 관찰, 독립, 신중, 변화 적응 | solo + safe + calm | 조용한 색채 관찰자 |
+| chihuahua | 당당함, 충성, 자기표현, 민첩함 | express + adventure + social | 작은 몸의 대담한 항해사 |
+| maltese | 부드러움, 애정, 활기 | social + calm + express | 다정한 구름 동행자 |
+| pomeranian | 활발함, 자신감, 표현력 | express + social + adventure | 반짝이는 무대 스타 |
+| poodle | 영리함, 학습, 세련됨 | plan + social + aesthetic | 영리한 스타일 설계자 |
+| retriever | 친화력, 안정감, 협력 | social + safe + calm | 모두의 든든한 친구 |
+| ragdoll | 여유, 애정, 차분함 | calm + social + safe | 포근한 낮잠 수호자 |
+| russian blue | 지성, 신중함, 루틴, 충성 | plan + solo + calm | 은빛 루틴 전략가 |
+| siamese | 대화, 사회성, 호기심 | social + express + curious | 수다스러운 별빛 메신저 |
+| rabbit | 사회성, 놀이, 탐색 | social + flow + curious | 통통 튀는 호기심 정원사 |
+| hamster | 독립, 야행성, 저장, 은신 | solo + plan + safe | 밤의 조개 수집가 |
+| turtle | 느긋함, 안정, 장기전 | safe + calm + plan | 천천히 이기는 철학자 |
+| parrot | 표현, 소통, 화려함 | express + social + aesthetic | 컬러풀 토크 항해사 |
+| goldfish/nemo | 흐름, 감상, 평온 | flow + calm + aesthetic | 물결 따라 쉬는 몽상가 |
+| frog | 전환, 유연함, 장난기 | flow + adventure + curious | 점프하는 기분 탐험가 |
+| lion/tiger | 리더십, 도전, 힘 | adventure + express + leader | 대담한 정글 선장 |
+| deer/giraffe | 섬세함, 관찰, 우아함 | calm + safe + aesthetic | 고요한 숲의 감성가 |
+| elephant/hippo | 안정, 보호, 느긋함 | safe + social + calm | 든든한 섬 지킴이 |
+
+### Legendary Pet Handling
+
+`legend` 폴더의 cosmic warrior, dragon, phoenix, unicorn 같은 이미지는 일반적인 "내 첫 펫"으로 바로 쓰기보다 특별 상태로 쓰는 편이 좋다.
+
+권장 사용:
+
+- 첫 부화: common/rare 기반의 친근한 펫
+- 장기 성장: 같은 species의 rare 초상화 또는 aura 적용
+- Legendary: `각성 스킨`, `시즌 수호자`, `테마 배경의 특별 출현 연출`
+
+예:
+
+- chameleon 성향 사용자가 우주/전설 테마를 장착하면 cosmic warrior chameleon 연출을 보여준다.
+- bichon 성향 사용자가 별빛 테마를 장착하면 cosmic guardian bichon silhouette를 잠깐 등장시킨다.
+
+이렇게 하면 전설 이미지의 강한 판타지 톤을 살리면서도, 앱의 기본 귀여운 펫 정체성을 해치지 않는다.
+
+## 3. Theme Gacha Direction
+
+가챠 대상은 펫이 아니라 `theme_skin`이다.
+
+테마 예시:
+
+| 희귀도 | 테마 예시 | 효과 |
+|---|---|---|
+| Common | 맑은 해변, 아늑한 방, 작은 정원 | 배경 이미지 변경 |
+| Rare | 핑크빛 라군, 네온 카페, 비 오는 다락방 | 배경 + 작은 애니메이션 |
+| Legendary | 우주 정거장, 심해 궁전, 별빛 왕국 | 배경 + 오라 + 전용 사운드/입장 연출 |
+
+중복 처리:
+
+- 같은 테마가 나오면 자동으로 theme level이 오른다.
+- LV.1: 배경 획득
+- LV.2: 작은 움직임/반짝임 추가
+- LV.3: 펫 주변 오라 또는 배경 오브젝트 추가
+- LV.5: 프로필 배지 또는 공유 카드 프레임 획득
+
+테이블 용어도 기존 `card_*`에서 `pet_*`, `theme_*` 중심으로 점진적으로 바꾼다.
+
+MVP 핵심 테이블:
+
+- `pet_species`
+- `pet_species_traits`
+- `user_pet_state`
+- `theme_skins`
+- `user_theme_inventory`
+- `theme_draw_pools`
+- `theme_draw_history`
+- `user_theme_pity`
+
+카드라는 단어는 UI에서 최소화한다. 사용자는 `카드팩`보다 `테마 뽑기`, `새 세계 열기`, `펫의 방 바꾸기`를 더 직관적으로 이해한다.
+
+## 4. Asset Direction
 
 사용자가 제공한 에셋은 이미 3단계 희귀도 체계에 잘 맞는다.
 
@@ -83,7 +246,7 @@ P0 전제 조건:
 - Legendary는 멋있지만 어둡고 강한 판타지 톤이므로, 앱 전체 첫인상에는 바로 쓰지 않는다.
 - Legendary는 뽑기 결과 연출, 카드 상세, 특별 배치 화면에서만 강한 대비를 주는 "프리미엄 순간"으로 사용한다.
 
-## 3. Collection Model
+## 5. Collection Model
 
 카드는 세 가지로 분리한다.
 
@@ -109,7 +272,7 @@ P0 전제 조건:
 
 중복 카드가 손해로 느껴지지 않게 하는 것이 핵심이다.
 
-## 4. Draw Economy
+## 6. Draw Economy
 
 ### 기본 카드팩
 
@@ -152,7 +315,7 @@ MVP에서는 현금 결제 없음.
 - 1% 전설은 목표가 되지만, 천장 없이 운영하면 장기 사용자에게 박탈감이 크다.
 - 국내 사용자에게 확률형 아이템 불신이 강하므로, MVP부터 천장/기록/확률 공개를 넣는 것이 신뢰에 좋다.
 
-## 5. Fusion Economy
+## 7. Fusion Economy
 
 사용자 제안인 "일반 10장 합성"은 좋은 재방문 동기다. 다만 10장을 날렸는데 아무것도 체감되지 않으면 피로감이 크므로, 합성은 항상 무언가를 보장해야 한다.
 
@@ -199,7 +362,7 @@ MVP에서는 현금 결제 없음.
 - 합성 전 결과 확률과 소모 수량을 명확히 보여준다.
 - 합성 결과는 `card_fusion_history`에 기록한다.
 
-## 6. Retention Loop
+## 8. Retention Loop
 
 하루 루프:
 
@@ -223,7 +386,7 @@ MVP에서는 현금 결제 없음.
 - 시즌 종료 후에도 획득 카드는 유지
 - 시즌 복각은 2~3개월 후 이벤트로 제공
 
-## 7. UX Screens
+## 9. UX Screens
 
 ### 출석 카드 오픈 모달
 
@@ -284,7 +447,7 @@ MVP에서는 현금 결제 없음.
 - 시즌 카드 목록
 - 마지막 갱신일
 
-## 8. Data Model
+## 10. Data Model
 
 새 테이블:
 
@@ -393,7 +556,7 @@ MVP에서는 현금 결제 없음.
 - `updated_at timestamptz default now()`
 - primary key: `(user_id, fragment_key)`
 
-## 9. Server RPC
+## 11. Server RPC
 
 모든 확률/재화/인벤토리 변경은 서버 RPC에서 처리한다. 클라이언트는 결과 표시만 한다.
 
@@ -472,7 +635,7 @@ MVP에서는 현금 결제 없음.
 
 - 도감, 보유 수량, 합성 가능 상태, 천장 상태, 확률표를 한 번에 반환.
 
-## 10. Security and Fairness Rules
+## 12. Security and Fairness Rules
 
 필수:
 
@@ -493,7 +656,7 @@ MVP에서는 현금 결제 없음.
 - 단, 결과를 history에 즉시 기록하고, 확률표와 pool weights를 공개해 검증 가능하게 한다.
 - 장기적으로 법적/감사 요구가 커지면 서버 Edge Function에서 seedable audit log를 추가한다.
 
-## 11. Legal and Store Policy Guardrails
+## 13. Legal and Store Policy Guardrails
 
 MVP 정책:
 
@@ -525,7 +688,7 @@ MVP 정책:
 - "중복 카드는 합성 재료로 쓸 수 있어요."
 - "확률과 천장 규칙을 확인할 수 있어요."
 
-## 12. Balance Recommendations
+## 14. Balance Recommendations
 
 초기 수치:
 
@@ -545,7 +708,7 @@ MVP 정책:
 - Legendary는 희귀하되, 천장으로 신뢰를 준다.
 - 조개가 케어/섬꾸미기/카드팩 사이에서 선택지를 만들도록 한다.
 
-## 13. Asset Pipeline
+## 15. Asset Pipeline
 
 권장 위치:
 
@@ -567,7 +730,7 @@ MVP 정책:
 - `american_shorthair_rare_starlight_v001.png`
 - `cosmic_warrior_cat_legendary_s01_v001.png`
 
-## 14. MVP Phases
+## 16. MVP Phases
 
 ### Phase 1: Asset Catalog
 
@@ -602,7 +765,7 @@ MVP 정책:
 - Rare/Legendary는 섬 이펙트 또는 프로필 배지 제공.
 - 대표 아바타와 수집 카드의 역할을 UI에서 명확히 분리.
 
-## 15. Open Risks
+## 17. Open Risks
 
 ### P0
 
@@ -627,7 +790,7 @@ MVP 정책:
 - 도감/합성 UI가 많아지면 MVP 범위가 커진다.
 - 시즌제를 너무 빨리 넣으면 운영 부담이 생긴다.
 
-## 16. Reviewer Findings Incorporated
+## 18. Reviewer Findings Incorporated
 
 읽기 전용 리뷰어가 제시한 주요 지적과 반영 여부:
 
@@ -638,20 +801,22 @@ MVP 정책:
 - 반영: 미성년자 보호와 과몰입 억제를 유료화 전 체크가 아니라 기본 가드레일로 추가했다.
 - 반영: 에셋은 `asset_id`, version, hash, cdn path를 가진 메타데이터와 배포/롤백 파이프라인이 필요하다고 정리했다.
 
-## 17. Recommended Next Step
+## 19. Recommended Next Step
 
 바로 구현하지 말고, 다음 순서로 가는 것이 좋다.
 
 1. `profiles_update_own` 정책을 먼저 좁힌다.
-2. 제공된 에셋을 앱용 asset catalog로 정리한다.
-3. common/rare/legendary 각각 3종만 MVP 샘플로 넣는다.
-4. 무료 출석 카드 1장만 먼저 구현한다.
-5. 유저 인벤토리와 카드 오픈 모달을 검증한다.
-6. 그 다음 조개 카드팩과 합성을 추가한다.
+2. 제공된 에셋을 `pet_species` 후보로 정리하고, common/rare/legend 이미지를 매칭한다.
+3. 동물/품종 성향 자료를 `pet_species_traits` seed로 만든다.
+4. BIPI 사용자 점수와 펫 affinity vector를 비교해 첫 펫을 부화시키는 `assign_personality_pet` RPC를 만든다.
+5. 테마/배경 스킨을 1슬롯 구조로 설계한다.
+6. 무료 출석 테마 뽑기 1회만 먼저 구현한다.
+7. 중복 테마 자동 레벨업을 검증한다.
+8. 그 다음 조개 기반 테마 뽑기와 전설 천장을 추가한다.
 
 가장 중요한 원칙:
 
-- 카드 시스템은 밸런스 질문 참여를 강화해야 한다.
-- 대표 아바타는 성향 기반으로 유지한다.
+- 카드/테마 시스템은 밸런스 질문 참여를 강화해야 한다.
+- 대표 펫은 성향 기반으로 유지한다.
 - 확률은 숨기지 않고 보여준다.
 - 유료화는 법적/정책 체크 전에는 넣지 않는다.

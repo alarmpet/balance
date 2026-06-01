@@ -543,3 +543,14 @@ UUID를 따옴표 없이 직접 이어 붙이면 PostgREST/PG 파서에서 하�
 - P0 보안 전제: 카드 경제 구현 전 `profiles_update_own` 정책을 좁혀 `shell_balance`, streak, participation 같은 경제/진행 필드를 클라이언트가 직접 수정하지 못하게 해야 한다.
 - 모든 뽑기/합성 RPC는 `auth.uid()` 내부 사용, `p_request_id` 기반 idempotency, inventory row `FOR UPDATE`, 음수 수량 방지, draw/fusion history 보존을 필수로 한다.
 - 상세 계획서는 `docs/superpowers/plans/2026-06-01-character-card-collection-economy.md`에 작성했다.
+
+## 2026-06-02 Personality Pet Matching and Theme Gacha Direction
+
+- 최신 제품 방향은 `성향 펫 1마리 + 배경/테마 가챠 1슬롯`이다. 캐릭터와 펫을 둘 다 운영하지 않고, 사용자의 답변 성향을 대표하는 존재는 `펫` 하나로 고정한다.
+- 로컬 에셋 `C:\Users\petbl\Desktop\alarmpetgo_`에는 일반/희귀/전설 이미지가 나뉘어 있다. 일반/희귀 이미지는 성향 펫 후보와 등급 변형으로 쓰고, 전설 이미지는 펫 자체를 대체하기보다 각성 스킨, 시즌 수호자, 전설 테마 연출로 쓰는 편이 MVP 복잡도를 낮춘다.
+- 펫 매칭은 질문 응답으로 쌓인 BIPI 축(`solo/social`, `safe/adventure`, `plan/flow`, `calm/express`)과 보조 trait을 정규화한 뒤, `pet_species_traits`의 종별 affinity vector와 cosine similarity 또는 weighted distance로 비교한다. 가장 가까운 펫 1마리를 부화/배정하고, 동률이면 2~3개 후보를 보여준 뒤 사용자가 선택한다.
+- 품종/동물 성향 seed는 자료 기반으로 만든다. 예: TICA American Shorthair, TICA Russian Blue, AKC Bichon Frise, AKC Chihuahua, AKC Maltese, RSPCA rabbit/hamster care notes, chameleon care notes 등에서 관찰 가능한 성격 키워드를 앱 trait으로 번역한다.
+- 뽑기의 대상은 펫이 아니라 `theme_skin`이다. 사용자는 조개로 펫의 방/섬/세계 배경을 한 번에 바꾼다. 모자, 옷, 신발, 시계 같은 파츠 슬롯은 MVP에서 제외한다.
+- 중복 테마는 합성 UI로 보내지 않고 자동 레벨업한다. LV1은 배경 장착, LV2는 작은 반짝임/소품, LV3은 펫 오라나 배경 오브젝트, LV5는 프로필 배지/공유 카드 프레임처럼 단계별로 보상이 보이게 한다.
+- 다음 구현 계획은 기존 `card_*` 명명보다 `pet_species`, `pet_species_traits`, `user_pet_state`, `theme_skins`, `user_theme_inventory`, `theme_draw_pools`, `theme_draw_history`, `user_theme_pity` 중심으로 재정렬한다.
+- 자세한 제품/데이터 계획은 `docs/superpowers/plans/2026-06-01-character-card-collection-economy.md`에 반영했다.
