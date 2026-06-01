@@ -51,11 +51,11 @@ export default function IslandScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.kicker}>My Island</Text>
+      <Text style={styles.kicker}>나의 섬</Text>
       <Text style={styles.heading}>{snapshot.island.island_name}</Text>
       <View style={styles.hero}>
         <Text style={styles.islandEmoji}>{level >= 3 ? '🏝️' : '🌴'}</Text>
-        <Text style={styles.level}>Level {level}</Text>
+        <Text style={styles.level}>레벨 {level}</Text>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.description}>총 참여 {snapshot.profile.total_participation_count}회로 섬이 자라고 있어요.</Text>
       </View>

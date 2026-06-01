@@ -497,3 +497,11 @@ UUID를 따옴표 없이 직접 이어 붙이면 PostgREST/PG 파서에서 하�
 - 외부 리뷰 문서의 핵심 지적 중 `user_personality_snapshots`의 성능/이력 용도, `profiles` 현재 BIPI 캐시, 조개 ledger, RPC-only 경제 처리, egg 상태 예외 UI, daily mission progress 정의, Zustand store 분리, 섬 에셋 프리패치 제안은 현재 방향과 맞아 계획서에 반영했다.
 - 리뷰 문서의 `purchase_decor_item(p_user_id, p_item_id)` 예시는 클라이언트가 `user_id`를 넘기는 형태라 그대로 쓰면 소유권 위조 위험이 있다. 계획서에는 `auth.uid()`를 내부에서 사용하는 방식으로 수정 반영했다.
 - pg_cron 기반 매일 리셋은 운영상 유효하지만 MVP 1차에는 복잡도가 높다. 우선은 `submit_vote`와 `claim_daily_checkin`에서 KST 기준 날짜와 idempotency key로 lazy progress를 처리하는 방향이 더 안전하다.
+
+## 2026-06-01 Korean Feed Recovery Status
+
+- 기존 `supabase/seed_clean.sql`의 영어 categories/islands/characters/questions를 한국어 MVP seed로 교체했다. 질문은 푸드, 라이프, 연애, 커리어, 문화 각 6개씩 총 30개이며, 선택지마다 BIPI 기본축 trait key(`safe`, `adventure`, `plan`, `flow`, `solo`, `social`, `calm`, `express`)를 매핑했다.
+- live Supabase에는 전체 destructive reset 대신 `supabase/replace_korean_seed.sql`을 사용한다. 이 파일은 fresh project의 공식 seed 질문을 삭제하고 한국어 seed를 다시 넣는다. 실사용 투표가 쌓인 뒤에는 이 방식이 투표 데이터를 지울 수 있으므로 금지해야 한다.
+- 리뷰어 지적대로 `islands`와 `characters`는 사용자 소유 테이블이 아니라 마스터 데이터다. `src/services/gamificationService.ts`가 존재하지 않는 `user_id` 컬럼으로 조회하던 오류를 수정하고, `src/types/database.types.ts`도 실제 schema에 맞게 보정했다.
+- 피드 UI의 `votes`, `Option A/B`, 상단 `Balance Island`, 섬/프로필의 일부 영어 문구를 한국어로 교체했다.
+- 현재 seed 이미지는 여전히 Unsplash placeholder다. 상용 전환 전에는 앱 전용 이미지 또는 Supabase Storage 기반 자체 에셋으로 교체해야 한다.

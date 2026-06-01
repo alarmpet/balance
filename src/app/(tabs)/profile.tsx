@@ -37,7 +37,7 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.kicker}>Profile</Text>
+      <Text style={styles.kicker}>마이페이지</Text>
       <Text style={styles.heading}>{snapshot.profile.nickname}</Text>
       <View style={styles.stats}>
         <Stat label="연속 참여" value={`${snapshot.profile.streak_count}일`} />

@@ -4,7 +4,10 @@ export type CategoryRow = {
   id: string;
   name: string;
   slug: string;
-  color: string | null;
+  emoji: string | null;
+  description: string | null;
+  sort_order: number;
+  created_at: string;
 };
 
 export type QuestionRow = {
@@ -19,12 +22,12 @@ export type QuestionRow = {
   option_b_title: string;
   option_b_description: string | null;
   option_b_image_url: string | null;
-  vote_count_a: number;
-  vote_count_b: number;
+  option_a_votes: number;
+  option_b_votes: number;
   total_votes: number;
-  reaction_like_count: number;
-  reaction_fun_count: number;
-  reaction_hard_count: number;
+  like_count: number;
+  fun_count: number;
+  hard_count: number;
   comment_count: number;
   heat_score: number | null;
   status: string;
@@ -118,9 +121,18 @@ export type Database = {
       islands: {
         Row: {
           id: string;
-          user_id: string;
-          island_level: number;
-          island_name: string;
+          category_id: string | null;
+          name: string;
+          slug: string;
+          description: string;
+          image_url: string;
+          background_color: string;
+          required_trait_key: string | null;
+          min_trait_score: number;
+          sort_order: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
         };
         Insert: Record<string, unknown>;
         Update: Record<string, unknown>;
@@ -128,10 +140,18 @@ export type Database = {
       characters: {
         Row: {
           id: string;
-          user_id: string;
-          character_type: string;
-          character_level: number;
-          nickname: string;
+          island_id: string | null;
+          name: string;
+          slug: string;
+          description: string;
+          image_url: string;
+          rarity: string;
+          unlock_trait_key: string | null;
+          unlock_trait_score: number;
+          sort_order: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
         };
         Insert: Record<string, unknown>;
         Update: Record<string, unknown>;

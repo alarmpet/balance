@@ -34,7 +34,7 @@ export default function BalanceCard({ question, onVote, onReaction, onOpenCommen
           <Text style={styles.category}>{question.category?.name ?? '밸런스'}</Text>
           <Text style={styles.title}>{question.title}</Text>
         </View>
-        <Text style={styles.voteTotal}>{formatCount(totalVotes)} votes</Text>
+        <Text style={styles.voteTotal}>{formatCount(totalVotes)}명 참여</Text>
       </View>
 
       {question.description ? <Text style={styles.description}>{question.description}</Text> : null}
@@ -128,7 +128,7 @@ function OptionPanel({
       {imageUrl ? <Image source={{ uri: imageUrl }} style={styles.optionImage} contentFit="cover" /> : null}
       <View style={styles.optionOverlay} />
       <View style={styles.optionContent}>
-        <Text style={styles.optionSide}>Option {side}</Text>
+        <Text style={styles.optionSide}>{side} 선택</Text>
         <Text style={styles.optionTitle}>{title}</Text>
         {description ? <Text style={styles.optionDescription}>{description}</Text> : null}
         {showResult ? (

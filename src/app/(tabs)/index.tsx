@@ -50,8 +50,8 @@ export default function FeedScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.kicker}>Balance Island</Text>
-        <Text style={styles.heading}>오늘의 선택 카드</Text>
+        <Text style={styles.kicker}>밸런스 아일랜드</Text>
+        <Text style={styles.heading}>오늘의 밸런스</Text>
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </View>
       <FlatList

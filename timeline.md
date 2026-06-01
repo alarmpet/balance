@@ -96,3 +96,10 @@
 - 채택: BIPI snapshot/캐시, 조개 ledger, RPC-only 경제 처리, egg 상태 null 가드, lazy daily mission progress, `gamificationStore` 분리, 섬/아이템 이미지 프리패치.
 - 수정 채택: 리뷰의 `purchase_decor_item(p_user_id, p_item_id)` 예시는 클라이언트 user_id 입력이 위험하므로 `auth.uid()` 내부 사용 방식으로 바꿔 반영했다.
 - 보류: pg_cron 일괄 리셋과 전체 신규 DDL 즉시 적용은 MVP 복잡도와 현재 우선순위상 계획서 단계에만 남기고 구현 적용은 보류했다.
+
+## 2026-06-01 21:20 KST - Korean Feed Recovery
+- 작업: Phase 1 우선순위에 따라 영어 seed를 국내 사용자용 한국어 seed로 교체했다.
+- 범위: `supabase/seed_clean.sql`, `supabase/schema.sql`, `supabase/apply_new_project.sql`, `supabase/replace_korean_seed.sql`, feed/island/profile UI 문구, `src/services/gamificationService.ts`, `src/types/database.types.ts`.
+- 이유: 임시 영어 seed와 일부 영어 UI가 국내 초기 사용 앱 톤과 맞지 않았고, 리뷰어가 지적한 `islands.user_id`/`characters.user_id` 타입 및 서비스 불일치가 실제 로그인 화면 오류로 이어질 수 있었다.
+- 검증: `replace_korean_seed.sql` quote 검사 통과, `npm.cmd run typecheck` 통과. SQL Editor 실행용 한국어 seed 교체 SQL을 클립보드에 복사했다.
+- 후속: 사용자가 Supabase SQL Editor에서 `replace_korean_seed.sql`을 실행하면 `fetch_feed_questions` RPC로 한국어 질문 반환을 smoke test한다.
