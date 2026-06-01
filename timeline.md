@@ -83,3 +83,10 @@
 - Supabase SQL Editor에서 `apply_new_project.sql` 실행이 `Success. No rows returned`로 완료되었다.
 - publishable key와 REST RPC로 `fetch_feed_questions`를 직접 호출해 seed 질문 3개가 반환되는 것을 확인했다.
 - 로컬 Expo Web 서버 `http://localhost:8081` 응답 200과 `npm run typecheck` 통과를 재확인했다.
+
+## 2026-06-01 20:52 KST - Personality Avatar and Island Gamification Plan
+- 작업: MBTI풍 성향 캐릭터, 매일 케어, 섬 꾸미기, 출석/질문 보상 루프를 포함한 제품 계획서를 작성했다.
+- 범위: `docs/superpowers/plans/2026-06-01-personality-avatar-island-gamification.md`.
+- 결정: 앱의 감정적 주인공은 `내 성향 캐릭터`, 섬은 캐릭터의 집이자 성장/꾸미기 무대로 정의했다.
+- 결정: MBTI를 직접 복제하지 않고 자체 4축 `BIPI` 모델을 사용해 법적/기대치/정확도 리스크를 낮춘다.
+- 리뷰: GPT-5.3-Codex-Spark 읽기 전용 리뷰어 에이전트를 먼저 띄웠으나 컨텍스트 한도로 실패했다. 계획서에는 자체 위험 점검으로 개인정보/심리진단 과장, 경제 밸런스, RLS/RPC, 이미지 저작권, MVP 범위 리스크를 반영했다.

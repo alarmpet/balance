@@ -481,3 +481,13 @@ UUID를 따옴표 없이 직접 이어 붙이면 PostgREST/PG 파서에서 하�
 - Supabase SQL Editor에서 새 프로젝트 bootstrap SQL이 성공했다.
 - `fetch_feed_questions` RPC를 publishable key로 호출했을 때 seed 질문이 정상 반환되었다. 확인된 예시는 `New hobby entry`, `Stress recovery choice`, `Friday night battery`이다.
 - 이 검증은 앱이 사용하는 공개 환경변수와 같은 URL/key 조합으로 수행되었으므로, 피드 화면의 기본 데이터 로딩 경로가 DB까지 연결된 상태임을 의미한다.
+
+## 2026-06-01 Personality Avatar and Island Gamification Direction
+
+- 새 제품 방향은 "밸런스 질문 선택이 성향 점수로 쌓이고, 그 결과로 나와 닮은 캐릭터/아바타와 섬이 성장하는 게임형 성향 앱"이다.
+- 권장 중심축은 `캐릭터/아바타가 감정적 주인공`, `섬은 성장과 꾸미기 무대`다. 섬만 성장시키면 감정 이입이 약하고, 캐릭터만 두면 밸런스 아일랜드라는 세계관이 얇아진다.
+- MBTI라는 이름과 구조를 직접 복제하지 않고, 자체 4축 `BIPI` 모델을 사용한다. 축은 `solo/social`, `safe/adventure`, `plan/flow`, `calm/express`로 설계한다.
+- 결과 표현은 심리진단이 아니라 "게임형 성향 아바타", "요즘 내 선택 성향"으로 제한한다. 민감한 정신건강/성격 단정 표현은 피해야 한다.
+- 보상과 조개 차감/지급은 클라이언트가 아니라 Supabase RPC에서 처리해야 한다. 출석, 투표, 리액션, 질문 작성, 아이템 구매는 모두 idempotency와 RLS를 고려해야 한다.
+- 현재 seed 이미지는 AI 생성 이미지가 아니라 Unsplash 원격 placeholder다. 장기적으로 캐릭터/섬/아이템은 앱 전용 에셋 또는 Supabase Storage 기반 자체 이미지로 교체해야 한다.
+- 상세 계획서는 `docs/superpowers/plans/2026-06-01-personality-avatar-island-gamification.md`에 작성했다.
