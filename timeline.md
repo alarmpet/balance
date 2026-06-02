@@ -259,3 +259,12 @@
 - Scope: Vercel project `balance`, Supabase Auth URL Configuration, `src/lib/env.ts`, `timeline.md`.
 - Fix: `/login` initially rendered after deploy, but magic-link submission reported `Supabase config is required` because Expo Web did not inline dynamic `process.env[name]` access.
 - Change: `getPublicEnv()` now uses static `process.env.EXPO_PUBLIC_*` property access so Expo can inline public env values during web export.
+
+## 2026-06-02 22:19 KST - Auth Callback State Hardening
+
+- Work: Applied read-only reviewer feedback after the first real email magic-link verification.
+- Scope: `src/store/authStore.ts`, `src/app/auth/callback.tsx`, `src/app/login.tsx`, `timeline.md`.
+- Fix: Auth bootstrap no longer consumes the initial callback URL, preventing the callback screen from trying to exchange the same code twice.
+- Fix: Successful social/callback logout transitions now clear the gamification snapshot so profile/island screens reload authenticated data instead of keeping the old guest preview.
+- Fix: Callback navigation now happens only when session creation succeeds; failures stay on the callback screen and show the error.
+- Fix: Email resend cooldown now starts only after the magic-link request succeeds.

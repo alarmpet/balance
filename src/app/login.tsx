@@ -32,8 +32,10 @@ export default function LoginScreen() {
 
   async function handleMagicLink() {
     if (cooldown > 0) return;
-    await sendMagicLinkEmail(email);
-    setCooldown(60);
+    const sent = await sendMagicLinkEmail(email);
+    if (sent) {
+      setCooldown(60);
+    }
   }
 
   return (

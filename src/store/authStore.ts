@@ -4,13 +4,13 @@ import { supabase } from '../lib/supabaseClient';
 import {
   createSessionFromUrl,
   fetchCurrentProfile,
-  getInitialLinkingUrl,
   sendMagicLink,
   signInWithSocialProvider,
   signOutCurrentUser,
   type AuthProfile,
   type SocialProvider
 } from '../services/authService';
+import { useGamificationStore } from './gamificationStore';
 
 let authUnsubscribe: (() => void) | null = null;
 let didBootstrap = false;
@@ -24,13 +24,17 @@ type AuthState = {
   magicLinkSentTo: string | null;
   bootstrap: () => Promise<void>;
   signInSocial: (provider: SocialProvider) => Promise<void>;
-  sendMagicLinkEmail: (email: string) => Promise<void>;
-  handleAuthCallback: (url: string) => Promise<void>;
+  sendMagicLinkEmail: (email: string) => Promise<boolean>;
+  handleAuthCallback: (url: string) => Promise<boolean>;
   signOut: () => Promise<void>;
   clearError: () => void;
 };
 
-export const useAuthStore = create<AuthState>((set) => ({
+function resetGamificationSnapshot() {
+  void useGamificationStore.getState().signOutUser();
+}
+
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   profile: null,
   isLoading: false,
@@ -46,11 +50,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const initialUrl = await getInitialLinkingUrl();
-      if (initialUrl) {
-        await createSessionFromUrl(initialUrl);
-      }
-
       const { data } = await supabase.auth.getSession();
       const profile = data.session?.user ? await fetchCurrentProfile() : null;
       set({ user: data.session?.user ?? null, profile, isLoading: false });
@@ -62,7 +61,12 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session: Session | null) => {
         const profile = session?.user ? await fetchCurrentProfile() : null;
+        const previousUserId = get().user?.id ?? null;
+        const nextUserId = session?.user?.id ?? null;
         set({ user: session?.user ?? null, profile });
+        if (previousUserId !== nextUserId) {
+          resetGamificationSnapshot();
+        }
       });
       authUnsubscribe = () => listener.subscription.unsubscribe();
     } catch (error) {
@@ -87,6 +91,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       const profile = await fetchCurrentProfile();
       const { data } = await supabase!.auth.getUser();
       set({ user: data.user ?? null, profile, isMutating: false });
+      resetGamificationSnapshot();
     } catch (error) {
       set({
         isMutating: false,
@@ -101,11 +106,13 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       await sendMagicLink(email);
       set({ isMutating: false, magicLinkSentTo: email.trim().toLowerCase() });
+      return true;
     } catch (error) {
       set({
         isMutating: false,
         error: error instanceof Error ? error.message : 'Could not send email login link.'
       });
+      return false;
     }
   },
 
@@ -116,12 +123,18 @@ export const useAuthStore = create<AuthState>((set) => ({
       await createSessionFromUrl(url);
       const profile = await fetchCurrentProfile();
       const { data } = await supabase!.auth.getUser();
+      if (!data.user) {
+        throw new Error('Login link did not create a session.');
+      }
       set({ user: data.user ?? null, profile, isLoading: false });
+      resetGamificationSnapshot();
+      return true;
     } catch (error) {
       set({
         isLoading: false,
         error: error instanceof Error ? error.message : 'Could not complete login.'
       });
+      return false;
     }
   },
 
@@ -131,6 +144,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       await signOutCurrentUser();
       set({ user: null, profile: null, isMutating: false });
+      resetGamificationSnapshot();
     } catch (error) {
       set({
         isMutating: false,

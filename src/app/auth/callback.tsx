@@ -10,13 +10,23 @@ export default function AuthCallbackScreen() {
   const { error, handleAuthCallback } = useAuthStore();
 
   useEffect(() => {
-    const currentUrl = typeof window !== 'undefined'
-      ? window.location.href
-      : Linking.createURL('auth/callback');
+    let isMounted = true;
 
-    void handleAuthCallback(currentUrl).then(() => {
-      router.replace('/(tabs)/profile');
-    });
+    async function completeLogin() {
+      const currentUrl = typeof window !== 'undefined'
+        ? window.location.href
+        : (await Linking.getInitialURL()) ?? Linking.createURL('auth/callback');
+
+      const completed = await handleAuthCallback(currentUrl);
+      if (isMounted && completed) {
+        router.replace('/(tabs)/profile');
+      }
+    }
+
+    void completeLogin();
+    return () => {
+      isMounted = false;
+    };
   }, [handleAuthCallback]);
 
   return (
