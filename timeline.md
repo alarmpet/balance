@@ -252,3 +252,10 @@
 - Work: Applied `supabase/migrations/202606021900_auth_profile_metadata.sql` to Supabase project `ztcexgnelqtdzinfgoja` through the authenticated dashboard session.
 - Verification: Supabase SQL API returned status 201 for the migration.
 - Verification: `pg_get_functiondef('public.handle_new_user()')` now includes the nested `response,nickname` metadata lookup used for Naver-style provider payloads.
+
+## 2026-06-02 22:03 KST - Vercel Auth Smoke Fix
+
+- Work: Configured Vercel production/preview env variables and Supabase Auth URL settings for the deployed Balance Island app.
+- Scope: Vercel project `balance`, Supabase Auth URL Configuration, `src/lib/env.ts`, `timeline.md`.
+- Fix: `/login` initially rendered after deploy, but magic-link submission reported `Supabase config is required` because Expo Web did not inline dynamic `process.env[name]` access.
+- Change: `getPublicEnv()` now uses static `process.env.EXPO_PUBLIC_*` property access so Expo can inline public env values during web export.

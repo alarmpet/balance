@@ -12,7 +12,7 @@ declare const process: {
 };
 
 export function getPublicEnv(name: PublicEnvName): string | undefined {
-  const value = process.env[name];
+  const value = getRawPublicEnv(name);
 
   if (
     !value ||
@@ -25,6 +25,17 @@ export function getPublicEnv(name: PublicEnvName): string | undefined {
   }
 
   return value;
+}
+
+function getRawPublicEnv(name: PublicEnvName): string | undefined {
+  switch (name) {
+    case 'EXPO_PUBLIC_SUPABASE_URL':
+      return process.env.EXPO_PUBLIC_SUPABASE_URL;
+    case 'EXPO_PUBLIC_SUPABASE_ANON_KEY':
+      return process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+    case 'EXPO_PUBLIC_SITE_URL':
+      return process.env.EXPO_PUBLIC_SITE_URL;
+  }
 }
 
 export function hasSupabaseConfig(): boolean {
