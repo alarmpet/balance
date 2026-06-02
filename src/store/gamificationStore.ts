@@ -10,9 +10,11 @@ import {
   type CareType,
   type GamificationSnapshot
 } from '../services/gamificationService';
+import type { ThemeDrawResultRow } from '../types/database.types';
 
 type GamificationState = {
   snapshot: GamificationSnapshot | null;
+  lastThemeDrawResults: ThemeDrawResultRow[];
   isLoading: boolean;
   isMutating: boolean;
   error: string | null;
@@ -23,11 +25,13 @@ type GamificationState = {
   claimTheme: () => Promise<void>;
   drawTheme: (poolSlug?: string, drawCount?: number) => Promise<void>;
   signOutUser: () => Promise<void>;
+  clearThemeDrawResults: () => void;
   clearError: () => void;
 };
 
 export const useGamificationStore = create<GamificationState>((set, get) => ({
   snapshot: null,
+  lastThemeDrawResults: [],
   isLoading: false,
   isMutating: false,
   error: null,
@@ -76,7 +80,7 @@ export const useGamificationStore = create<GamificationState>((set, get) => ({
     } catch (error) {
       set({
         isMutating: false,
-        error: error instanceof Error ? error.message : '캐릭터를 돌볼 수 없습니다.'
+        error: error instanceof Error ? error.message : '펫을 케어할 수 없습니다.'
       });
     }
   },
@@ -100,13 +104,13 @@ export const useGamificationStore = create<GamificationState>((set, get) => ({
     set({ isMutating: true, error: null });
 
     try {
-      await claimDailyThemeDraw();
+      const lastThemeDrawResults = await claimDailyThemeDraw();
       const snapshot = await fetchGamificationSnapshot();
-      set({ snapshot, isMutating: false });
+      set({ snapshot, lastThemeDrawResults, isMutating: false });
     } catch (error) {
       set({
         isMutating: false,
-        error: error instanceof Error ? error.message : '오늘의 테마를 받을 수 없습니다.'
+        error: error instanceof Error ? error.message : '오늘의 무료 테마를 받을 수 없습니다.'
       });
     }
   },
@@ -115,9 +119,9 @@ export const useGamificationStore = create<GamificationState>((set, get) => ({
     set({ isMutating: true, error: null });
 
     try {
-      await drawThemePack(poolSlug, drawCount);
+      const lastThemeDrawResults = await drawThemePack(poolSlug, drawCount);
       const snapshot = await fetchGamificationSnapshot();
-      set({ snapshot, isMutating: false });
+      set({ snapshot, lastThemeDrawResults, isMutating: false });
     } catch (error) {
       set({
         isMutating: false,
@@ -128,7 +132,11 @@ export const useGamificationStore = create<GamificationState>((set, get) => ({
 
   async signOutUser() {
     await signOut();
-    set({ snapshot: null, error: null });
+    set({ snapshot: null, lastThemeDrawResults: [], error: null });
+  },
+
+  clearThemeDrawResults() {
+    set({ lastThemeDrawResults: [] });
   },
 
   clearError() {

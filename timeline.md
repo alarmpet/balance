@@ -157,3 +157,28 @@
 - 추가 방어: 일일 무료 테마는 클라이언트 request id를 무시하고 KST 날짜 기반 deterministic id로 처리해 무한 수령을 막았다.
 - 검증: `npm.cmd run typecheck` 성공, `git diff --check` 성공.
 - 후속: live Supabase SQL Editor에서 새 migration 적용 후 RPC smoke test가 필요하다.
+
+## 2026-06-02 03:35 KST - Live Supabase Pet Theme SQL Recovery
+- Work: Applied the missing live Supabase function chunk after confirming Chrome CDP access was available.
+- Root cause: the previous SQL run stopped behind Supabase's destructive-operation confirmation, so `claim_daily_theme_draw(uuid)` was missing and `care_avatar(text)` remained as the old one-argument function.
+- Fix: confirmed the Supabase modal, re-ran the daily draw/care function chunk, then re-ran the seed and GRANT chunk.
+- Verification: live DB now reports `claim_daily_theme_draw(p_request_id uuid)`, `care_avatar(p_care_type text, p_request_id uuid)`, `draw_theme_pack(text, integer, uuid)`, `assign_personality_pet()`, `get_theme_probability_disclosure(text)`, `update_profile_display(...)`, and `apply_shell_delta(...)`.
+- Verification: seed counts are `pet_species=3`, `pet_species_traits=9`, `theme_skins=5`, `theme_draw_pools=2`, `theme_draw_pool_items=10`, and `get_theme_probability_disclosure('daily-theme')` returns a JSON object.
+
+## 2026-06-02 03:50 KST - Island Pet Theme UI Wiring
+- Work: Connected the live pet/theme economy loop to the island screen.
+- Scope: `src/store/gamificationStore.ts`, `src/app/(tabs)/island.tsx`, `timeline.md`.
+- Change: theme draw results are now kept in Zustand as `lastThemeDrawResults` so the UI can immediately show the obtained theme and duplicate level-up result.
+- Change: rebuilt the island screen with a pastel island header, shell balance, personality pet panel, pet assignment action, daily free theme draw action, paid theme draw action, care actions, progress bars, top trait labels, loading state, error banner, and draw result modal.
+- Verification: `npm.cmd run typecheck` passed.
+- Verification: `git diff --check` passed; Git only reported CRLF conversion warnings.
+
+## 2026-06-02 04:05 KST - Island Theme Inventory and Guest UX
+- Work: Extended the island loop so owned theme skins are visible from the gamification snapshot.
+- Scope: `src/services/gamificationService.ts`, `src/app/(tabs)/island.tsx`, `timeline.md`.
+- Change: `fetchGamificationSnapshot` now fetches up to 12 owned theme inventory rows with joined `theme_skins`, while preserving the equipped theme query.
+- Change: the island screen now shows a theme inventory panel with rarity, level, duplicate count, and equipped badge.
+- Change: guest mode now shows a clear preview banner and disables mutation actions so auth-only RPCs do not produce avoidable server errors.
+- Verification: `npm.cmd run typecheck` passed.
+- Verification: Chrome smoke check at `http://localhost:8081/island` rendered the guest banner and empty theme inventory state.
+- Verification: `git diff --check` passed; Git only reported CRLF conversion warnings.

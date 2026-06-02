@@ -38,6 +38,10 @@ export type GamificationSnapshot = {
     inventory: UserThemeInventoryRow;
     skin: ThemeSkinRow;
   } | null;
+  themeInventory: Array<{
+    inventory: UserThemeInventoryRow;
+    skin: ThemeSkinRow;
+  }>;
   latestLedger: ShellLedgerRow | null;
   island: {
     id: string;
@@ -67,7 +71,7 @@ export async function fetchGamificationSnapshot(): Promise<GamificationSnapshot>
     return createGuestSnapshot();
   }
 
-  const [profileResult, traitsResult, avatarStateResult, petStateResult, latestLedgerResult, equippedThemeResult, islandResult, characterResult] = await Promise.all([
+  const [profileResult, traitsResult, avatarStateResult, petStateResult, latestLedgerResult, equippedThemeResult, themeInventoryResult, islandResult, characterResult] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
     supabase.from('user_traits').select('trait_key,score').eq('user_id', userId),
     supabase.from('user_avatar_state').select('*').eq('user_id', userId).maybeSingle(),
@@ -80,6 +84,12 @@ export async function fetchGamificationSnapshot(): Promise<GamificationSnapshot>
       .eq('is_equipped', true)
       .limit(1)
       .maybeSingle(),
+    supabase
+      .from('user_theme_inventory')
+      .select('*, theme_skins(*)')
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false })
+      .limit(12),
     supabase.from('islands').select('id,name,slug,description,image_url').eq('is_active', true).order('sort_order').limit(1).maybeSingle(),
     supabase.from('characters').select('id,name,slug,description,image_url,rarity').eq('is_active', true).order('sort_order').limit(1).maybeSingle()
   ]);
@@ -90,6 +100,7 @@ export async function fetchGamificationSnapshot(): Promise<GamificationSnapshot>
   throwIfOptionalFeatureError(petStateResult.error, '성향 펫');
   throwIfPostgrestError(latestLedgerResult.error, '조개 원장');
   throwIfOptionalFeatureError(equippedThemeResult.error, '장착 테마');
+  throwIfOptionalFeatureError(themeInventoryResult.error, '테마 보관함');
   throwIfPostgrestError(islandResult.error, '섬');
   throwIfPostgrestError(characterResult.error, '캐릭터');
 
@@ -99,6 +110,7 @@ export async function fetchGamificationSnapshot(): Promise<GamificationSnapshot>
   const petRecord = petStateResult.error ? null : ((petStateResult.data as UserPetStateRow | null) ?? null);
   const petSpeciesRecord = petRecord?.species_id ? await fetchPetSpecies(petRecord.species_id) : null;
   const equippedThemeRecord = equippedThemeResult.error ? null : normalizeEquippedTheme(equippedThemeResult.data);
+  const themeInventoryRecords = themeInventoryResult.error ? [] : normalizeThemeInventory(themeInventoryResult.data);
   const participationCount = profileRecord?.total_participation_count ?? 0;
   const islandRecord = islandResult.data as Pick<IslandRow, 'id' | 'name' | 'slug' | 'description' | 'image_url'> | null;
   const characterRecord = characterResult.data as Pick<CharacterRow, 'id' | 'name' | 'slug' | 'description' | 'image_url' | 'rarity'> | null;
@@ -118,6 +130,7 @@ export async function fetchGamificationSnapshot(): Promise<GamificationSnapshot>
     petState: petRecord,
     petSpecies: petSpeciesRecord,
     equippedTheme: equippedThemeRecord,
+    themeInventory: themeInventoryRecords,
     latestLedger: (latestLedgerResult.data as ShellLedgerRow | null) ?? null,
     island: islandRecord ? {
       id: islandRecord.id,
@@ -275,6 +288,7 @@ function createGuestSnapshot(): GamificationSnapshot {
     petState: null,
     petSpecies: null,
     equippedTheme: null,
+    themeInventory: [],
     latestLedger: null,
     island: {
       id: 'guest-island',
@@ -324,6 +338,14 @@ function normalizeEquippedTheme(data: unknown): GamificationSnapshot['equippedTh
     },
     skin: record.theme_skins
   };
+}
+
+function normalizeThemeInventory(data: unknown): GamificationSnapshot['themeInventory'] {
+  if (!Array.isArray(data)) return [];
+
+  return data
+    .map((item) => normalizeEquippedTheme(item))
+    .filter((item): item is NonNullable<GamificationSnapshot['equippedTheme']> => item !== null);
 }
 
 function createRequestId() {
