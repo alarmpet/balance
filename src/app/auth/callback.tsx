@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as Linking from 'expo-linking';
 import { router, type Href } from 'expo-router';
@@ -8,24 +8,39 @@ const LOGIN_ROUTE = '/login' as Href;
 
 export default function AuthCallbackScreen() {
   const { error, handleAuthCallback } = useAuthStore();
+  const handledUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
 
-    async function completeLogin() {
-      const currentUrl = typeof window !== 'undefined'
-        ? window.location.href
-        : (await Linking.getInitialURL()) ?? Linking.createURL('auth/callback');
+    async function completeLogin(url: string) {
+      if (handledUrlRef.current === url) return;
+      handledUrlRef.current = url;
 
-      const completed = await handleAuthCallback(currentUrl);
+      const completed = await handleAuthCallback(url);
       if (isMounted && completed) {
         router.replace('/(tabs)/profile');
       }
     }
 
-    void completeLogin();
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      void completeLogin(url);
+    });
+
+    async function completeInitialLogin() {
+      const currentUrl = typeof window !== 'undefined'
+        ? window.location.href
+        : await Linking.getInitialURL();
+
+      if (currentUrl) {
+        await completeLogin(currentUrl);
+      }
+    }
+
+    void completeInitialLogin();
     return () => {
       isMounted = false;
+      subscription.remove();
     };
   }, [handleAuthCallback]);
 

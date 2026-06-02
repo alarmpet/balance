@@ -18,6 +18,7 @@ let didBootstrap = false;
 type AuthState = {
   user: User | null;
   profile: AuthProfile | null;
+  profileError: string | null;
   isLoading: boolean;
   isMutating: boolean;
   error: string | null;
@@ -34,9 +35,28 @@ function resetGamificationSnapshot() {
   void useGamificationStore.getState().signOutUser();
 }
 
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
+async function fetchProfileSafely(): Promise<{ profile: AuthProfile | null; profileError: string | null }> {
+  try {
+    return {
+      profile: await fetchCurrentProfile(),
+      profileError: null
+    };
+  } catch (error) {
+    return {
+      profile: null,
+      profileError: getErrorMessage(error, 'Could not load profile.')
+    };
+  }
+}
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   profile: null,
+  profileError: null,
   isLoading: false,
   isMutating: false,
   error: null,
@@ -51,8 +71,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     try {
       const { data } = await supabase.auth.getSession();
-      const profile = data.session?.user ? await fetchCurrentProfile() : null;
-      set({ user: data.session?.user ?? null, profile, isLoading: false });
+      const user = data.session?.user ?? null;
+      const { profile, profileError } = user ? await fetchProfileSafely() : { profile: null, profileError: null };
+      set({ user, profile, profileError, isLoading: false });
 
       if (authUnsubscribe) {
         authUnsubscribe();
@@ -60,10 +81,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session: Session | null) => {
-        const profile = session?.user ? await fetchCurrentProfile() : null;
+        const { profile, profileError } = session?.user ? await fetchProfileSafely() : { profile: null, profileError: null };
         const previousUserId = get().user?.id ?? null;
         const nextUserId = session?.user?.id ?? null;
-        set({ user: session?.user ?? null, profile });
+        set({ user: session?.user ?? null, profile, profileError });
         if (previousUserId !== nextUserId) {
           resetGamificationSnapshot();
         }
@@ -73,7 +94,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       didBootstrap = false;
       set({
         isLoading: false,
-        error: error instanceof Error ? error.message : 'Could not check login state.'
+        error: getErrorMessage(error, 'Could not check login state.')
       });
     }
   },
@@ -88,14 +109,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return;
       }
 
-      const profile = await fetchCurrentProfile();
       const { data } = await supabase!.auth.getUser();
-      set({ user: data.user ?? null, profile, isMutating: false });
+      const user = data.user ?? null;
+      const { profile, profileError } = user ? await fetchProfileSafely() : { profile: null, profileError: null };
+      set({ user, profile, profileError, isMutating: false });
       resetGamificationSnapshot();
     } catch (error) {
       set({
         isMutating: false,
-        error: error instanceof Error ? error.message : 'Social login failed.'
+        error: getErrorMessage(error, 'Social login failed.')
       });
     }
   },
@@ -110,7 +132,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch (error) {
       set({
         isMutating: false,
-        error: error instanceof Error ? error.message : 'Could not send email login link.'
+        error: getErrorMessage(error, 'Could not send email login link.')
       });
       return false;
     }
@@ -121,18 +143,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     try {
       await createSessionFromUrl(url);
-      const profile = await fetchCurrentProfile();
       const { data } = await supabase!.auth.getUser();
       if (!data.user) {
         throw new Error('Login link did not create a session.');
       }
-      set({ user: data.user ?? null, profile, isLoading: false });
+      const { profile, profileError } = await fetchProfileSafely();
+      set({ user: data.user, profile, profileError, isLoading: false });
       resetGamificationSnapshot();
       return true;
     } catch (error) {
       set({
         isLoading: false,
-        error: error instanceof Error ? error.message : 'Could not complete login.'
+        error: getErrorMessage(error, 'Could not complete login.')
       });
       return false;
     }
@@ -143,12 +165,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     try {
       await signOutCurrentUser();
-      set({ user: null, profile: null, isMutating: false });
+      set({ user: null, profile: null, profileError: null, isMutating: false });
       resetGamificationSnapshot();
     } catch (error) {
       set({
         isMutating: false,
-        error: error instanceof Error ? error.message : 'Logout failed.'
+        error: getErrorMessage(error, 'Logout failed.')
       });
     }
   },

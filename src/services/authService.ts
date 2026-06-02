@@ -1,6 +1,5 @@
 import * as AuthSession from 'expo-auth-session';
 import * as QueryParams from 'expo-auth-session/build/QueryParams';
-import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 import type { Session, User } from '@supabase/supabase-js';
@@ -42,13 +41,22 @@ export async function signInWithSocialProvider(provider: SocialProvider): Promis
   if (error) throw error;
   if (!data.url) throw new Error('Could not create auth URL.');
 
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    window.location.assign(data.url);
+    return false;
+  }
+
   const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
   if (result.type === 'success') {
     await createSessionFromUrl(result.url);
     return true;
   }
 
-  return false;
+  if (result.type === 'cancel') {
+    throw new Error('Login was canceled.');
+  }
+
+  throw new Error('Login window closed before login completed.');
 }
 
 export async function sendMagicLink(email: string): Promise<void> {
@@ -124,8 +132,4 @@ export async function signOutCurrentUser(): Promise<void> {
   if (!supabase) return;
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
-}
-
-export function getInitialLinkingUrl() {
-  return Linking.getInitialURL();
 }

@@ -268,3 +268,96 @@
 - Fix: Successful social/callback logout transitions now clear the gamification snapshot so profile/island screens reload authenticated data instead of keeping the old guest preview.
 - Fix: Callback navigation now happens only when session creation succeeds; failures stay on the callback screen and show the error.
 - Fix: Email resend cooldown now starts only after the magic-link request succeeds.
+
+## 2026-06-03 00:00 KST - Codex Reinstall Handoff
+
+- Work: Created a reinstall handoff document so the project can resume cleanly after Codex app reinstall.
+- Scope: `docs/codex-reinstall-handoff.md`, `timeline.md`.
+- Reason: Browser/Chrome/Computer Use plugin entries disappeared from the Codex UI after reinstall troubleshooting, while local plugin cache files still existed.
+- Included: current project URLs, recent commits, Vercel/Supabase auth status, email magic-link smoke result, Chrome CDP fallback notes, verification commands, and next work queue.
+- Security: Magic-link tokens, secret keys, service role keys, and database passwords were intentionally excluded.
+
+## 2026-06-03 01:56 KST - Reinstall Handoff Resume Check
+
+- Work: Resumed from `docs/codex-reinstall-handoff.md` and verified the next queued auth/login checks.
+- Finding: `src/app/login.tsx` appears mojibake when read with PowerShell's default encoding, but `Get-Content -Encoding utf8` shows the Korean copy and JSX are intact.
+- Verification: `npm.cmd run typecheck` passed.
+- Verification: `npx.cmd expo export --platform web` passed.
+- Verification: `git diff --check` passed with only the existing CRLF warning for `timeline.md`.
+- Verification: Local Expo web required network access to fetch Expo SDK metadata, then `http://localhost:8081/login` returned HTTP 200.
+- Limitation: Browser/Chrome/Computer Use screen-control tools were still not exposed in this Codex session, so visual screenshot smoke testing was not completed here.
+
+## 2026-06-03 02:14 KST - Google Kakao OAuth Provider Smoke
+
+- Work: Continued the auth smoke test from the reinstall handoff queue.
+- Finding: `src/app/login.tsx` is valid UTF-8 and renders Korean correctly in Chrome at `http://localhost:8081/login`; the earlier mojibake is PowerShell default-decoding behavior.
+- Verification: Saved a local Chrome screenshot to `login-smoke.png` and confirmed visible Korean copy for the login heading, Google/Kakao/Naver buttons, and magic-link section.
+- Verification: The Google login button handler is wired; automated direct click surfaced a browser popup-blocking error rather than a missing app handler.
+- Verification: Supabase JS generated OAuth authorize URLs for both `google` and `kakao`, but Supabase returned `400 validation_failed` with `Unsupported provider: provider is not enabled` for both.
+- Conclusion: Google/Kakao cannot complete real login until the Supabase Dashboard providers are enabled and configured with their Client ID/Secret values.
+
+## 2026-06-03 02:23 KST - OAuth Web Redirect and Callback Hardening
+
+- Work: Continued as the main agent while a GPT-5.3-Codex-Spark read-only reviewer checked missed auth risks.
+- Review finding addressed: web social login was vulnerable to browser popup blocking because `openAuthSessionAsync` opened a separate auth session on web.
+- Change: `signInWithSocialProvider` now uses `window.location.assign(data.url)` on web, while keeping `WebBrowser.openAuthSessionAsync` for native.
+- Change: native social auth cancel/dismiss paths now surface explicit errors instead of silently returning `false`.
+- Review finding addressed: `auth/callback` now subscribes to `Linking.addEventListener('url', ...)` and deduplicates callback URLs, so native deep-link callbacks can be handled when the app is already running.
+- Verification: `npm.cmd run typecheck` passed.
+- Verification: `npx.cmd expo export --platform web` passed.
+- Verification: Chrome CDP smoke confirmed Google and Kakao buttons both navigate the current tab to Supabase `/auth/v1/authorize`; Supabase still returns provider-disabled until dashboard credentials are enabled.
+
+## 2026-06-03 02:30 KST - Auth Profile Resilience and Google Provider Setup
+
+- Work: Continued with GPT-5.3-Codex-Spark as a read-only reviewer and addressed the new highest-risk auth finding.
+- Review finding addressed: auth callback/session sync no longer depends on profile fetch success. `authStore` now sets the authenticated user first and stores profile load failure separately as `profileError`.
+- Change: bootstrap, auth state listener, social completion, and callback completion now use a safe profile fetch path so profile RLS/trigger lag does not fail a valid auth session.
+- Change: removed the unused `getInitialLinkingUrl` auth helper and its `expo-linking` import from `authService`.
+- Dashboard: opened Supabase Auth Providers for project `ztcexgnelqtdzinfgoja`; the dashboard confirmed Google and Kakao are currently `Disabled`.
+- Dashboard: opened the Google provider configuration panel and stopped at the user-owned Client ID/Client Secret entry step.
+- Verification: `npm.cmd run typecheck` passed.
+- Verification: `npx.cmd expo export --platform web` passed.
+- Verification: `git diff --check` passed with only existing CRLF conversion warnings.
+
+## 2026-06-03 02:36 KST - OAuth Provider Console Setup Plan
+
+- Work: Created an official-docs-based operational plan for Google and Kakao provider console setup.
+- Scope: `docs/superpowers/plans/2026-06-03-oauth-provider-console-setup.md`, `timeline.md`.
+- Sources: Supabase Google/Kakao provider docs, Supabase redirect URL docs, Google OAuth client console help, and Kakao Login prerequisite/REST API docs.
+- Decision: The agent can open dashboards, navigate screens, enter non-secret values, and run smoke checks; the user handles dashboard authentication and directly pastes provider secrets into browser fields.
+- Security: Client IDs, client secrets, Kakao REST API key, auth codes, tokens, and token-bearing callback URLs must not be written to git, docs, screenshots, terminal output, or chat.
+- Verification: Plan placeholder scan passed after replacing secret placeholders with direct browser-field paste instructions.
+
+## 2026-06-03 02:44 KST - OAuth Console Guide Validation
+
+- Work: Reviewed the user-provided Google/Kakao console setup guide against official Supabase, Google, and Kakao documentation.
+- Accepted: Google OAuth consent/testing user checks, Google web OAuth client origin/redirect URI setup, Supabase Google provider enablement, Kakao Login ON, Kakao redirect URI, consent items, REST API key as Client ID, Kakao Client Secret, and Supabase Kakao provider setup.
+- Adjusted: Google scope checklist now includes Supabase-required `openid` in addition to `userinfo.email` and `userinfo.profile`.
+- Adjusted: Supabase URL configuration verification now uses dashboard confirmation instead of relying on an unsupported public Auth settings endpoint.
+- Adjusted: Kakao redirect URI instructions now prefer `Product Settings > Kakao Login > General`, while allowing the REST API key edit page if the Kakao UI routes there.
+- Verification: Plan placeholder scan passed and Markdown code fence count is balanced.
+
+## 2026-06-03 03:08 KST - Supabase Auth URL Configuration Verified
+
+- Work: Began executing `docs/superpowers/plans/2026-06-03-oauth-provider-console-setup.md`.
+- Dashboard: Supabase Auth URL Configuration for project `ztcexgnelqtdzinfgoja` was opened and inspected.
+- Verification: Site URL is `https://balance-vert.vercel.app`.
+- Verification: Redirect URL allow-list contains `balanceisland://**`, `https://balance-vert.vercel.app/auth/callback`, `https://balance-vert.vercel.app/**`, `http://localhost:8081/**`, and `http://127.0.0.1:8081/**`.
+- Verification: `npm.cmd run typecheck` passed.
+
+## 2026-06-03 03:31 KST - Google OAuth Provider Enabled
+
+- Work: Created a new Google Web OAuth client for Balance Island and configured production plus local web origins and the Supabase OAuth callback URL.
+- Work: Added the Supabase-required `openid` Google data access scope alongside email and profile scopes.
+- Security: The downloaded Google client secret JSON was moved out of the git repository, and `client_secret_*.json` was added to `.gitignore`.
+- Dashboard: Supabase Google provider was enabled and saved with the Google OAuth credentials.
+- Verification: Supabase OAuth authorize smoke for `google` returned HTTP 302 to `accounts.google.com`.
+
+## 2026-06-03 03:58 KST - Kakao OAuth Provider Enabled
+
+- Work: Created and configured the Kakao Developers app for Balance Island.
+- Dashboard: Kakao Login was turned ON, and the Supabase OAuth callback URL was registered for the app's REST API key.
+- Dashboard: Kakao consent items for nickname and profile image were enabled as optional consent; account email remains unavailable because the app is not a Kakao Biz App.
+- Safety check: The current auth profile trigger derives profile fields from `raw_user_meta_data` and does not require `NEW.email`, so Supabase's Kakao email-less fallback is acceptable for MVP smoke testing.
+- Dashboard: Supabase Kakao provider was enabled and saved with `Allow users without an email` ON.
+- Verification: Supabase OAuth authorize smoke for `kakao` returned HTTP 302 to `kauth.kakao.com`.
