@@ -376,6 +376,69 @@ export type ThemeDrawResultRow = {
   inventory_level_after: number;
 };
 
+export type UserInsightCardRow = {
+  id: string;
+  user_id: string;
+  insight_key: string;
+  title: string;
+  body: string;
+  primary_trait_key: string | null;
+  secondary_trait_key: string | null;
+  category_slug: string | null;
+  confidence: number;
+  evidence: Json;
+  is_read: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type InsightGraphNodeKind = 'pet' | 'trait' | 'category' | 'question' | 'choice' | 'theme' | 'insight';
+
+export type InsightGraphEdgeKind =
+  | 'trait_score'
+  | 'category_affinity'
+  | 'question_evidence'
+  | 'choice_to_trait'
+  | 'pet_affinity'
+  | 'theme_match'
+  | 'balance'
+  | 'recent_change';
+
+export type InsightGraphNode = {
+  id: string;
+  kind: InsightGraphNodeKind;
+  label: string;
+  size: number;
+  color: string;
+  score: number;
+  meta: Record<string, Json | undefined>;
+};
+
+export type InsightGraphEdge = {
+  id: string;
+  source: string;
+  target: string;
+  kind: InsightGraphEdgeKind;
+  weight: number;
+  label: string | null;
+};
+
+export type InsightGraphSnapshot = {
+  nodes: InsightGraphNode[];
+  edges: InsightGraphEdge[];
+  summary: {
+    title: string;
+    body: string;
+    completion: number;
+  };
+  meta: {
+    focus_node_id: string | null;
+    depth: number;
+    node_limit: number;
+    window_days: number;
+  };
+};
+
 export type FeedQuestionRpcRow = {
   id: string;
   title: string;
@@ -439,6 +502,7 @@ export type Database = {
       theme_draw_history: TableDefinition<ThemeDrawHistoryRow>;
       user_theme_pity: TableDefinition<UserThemePityRow>;
       theme_probability_versions: TableDefinition<ThemeProbabilityVersionRow>;
+      user_insight_cards: TableDefinition<UserInsightCardRow>;
     };
     Functions: {
       fetch_feed_questions: {
@@ -510,6 +574,23 @@ export type Database = {
           p_request_id?: string | null;
         };
         Returns: ThemeDrawResultRow[];
+      };
+      get_personality_insight_graph: {
+        Args: {
+          p_focus_node_id?: string | null;
+          p_depth?: number;
+        };
+        Returns: Json;
+      };
+      refresh_user_insight_cards: {
+        Args: Record<string, never>;
+        Returns: UserInsightCardRow[];
+      };
+      mark_insight_card_read: {
+        Args: {
+          p_insight_id: string;
+        };
+        Returns: UserInsightCardRow;
       };
     };
     Enums: Record<string, never>;

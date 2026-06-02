@@ -1,10 +1,14 @@
 import { useEffect } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, type DimensionValue } from 'react-native';
+import { router, type Href } from 'expo-router';
+import { useAuthStore } from '../../store/authStore';
 import { useGamificationStore } from '../../store/gamificationStore';
 
 const DAILY_GOAL = 10;
+const LOGIN_ROUTE = '/login' as Href;
 
 export default function ProfileScreen() {
+  const authSignOut = useAuthStore((state) => state.signOut);
   const {
     snapshot,
     isLoading,
@@ -40,11 +44,17 @@ export default function ProfileScreen() {
     );
   }
 
+  const isGuest = snapshot.profile.id === 'guest';
   const today = Math.min(snapshot.profile.today_participation_count, DAILY_GOAL);
   const progress = `${Math.round((today / DAILY_GOAL) * 100)}%` as DimensionValue;
   const latestReward = snapshot.latestLedger?.amount && snapshot.latestLedger.amount > 0
     ? `최근 +${snapshot.latestLedger.amount} 조개`
-    : '오늘도 섬을 돌볼 준비 완료';
+    : '오늘의 섬 보상 준비 완료';
+
+  async function handleSignOut() {
+    await authSignOut();
+    await signOutUser();
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -54,14 +64,14 @@ export default function ProfileScreen() {
           <Text style={styles.heading}>{snapshot.profile.nickname}</Text>
         </View>
         <View style={styles.shellBadge}>
-          <Text style={styles.shellIcon}>🐚</Text>
+          <Text style={styles.shellIcon}>조개</Text>
           <Text style={styles.shellText}>{snapshot.profile.shell_balance}</Text>
         </View>
       </View>
 
       <View style={styles.stats}>
         <Stat label="연속 참여" value={`${snapshot.profile.streak_count}일`} />
-        <Stat label="총 참여" value={`${snapshot.profile.total_participation_count}회`} />
+        <Stat label="총 참여" value={`${snapshot.profile.total_participation_count}개`} />
       </View>
 
       <View style={styles.progressCard}>
@@ -77,15 +87,27 @@ export default function ProfileScreen() {
         </View>
       </View>
 
+      {isGuest ? (
+        <View style={styles.guestCard}>
+          <Text style={styles.guestTitle}>게스트 미리보기 모드</Text>
+          <Text style={styles.guestText}>로그인하면 출석, 조개, 성향 펫, 테마 보상이 내 계정에 저장됩니다.</Text>
+          <Pressable style={styles.checkinButton} onPress={() => router.push(LOGIN_ROUTE)}>
+            <Text style={styles.checkinText}>로그인하고 보상 저장하기</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <Pressable style={[styles.checkinButton, isMutating ? styles.disabledButton : null]} disabled={isMutating} onPress={() => claimCheckin()}>
+          <Text style={styles.checkinText}>{isMutating ? '처리 중...' : '출석 보상 받기'}</Text>
+        </Pressable>
+      )}
+
       {error ? <Text style={styles.inlineError}>{error}</Text> : null}
 
-      <Pressable style={[styles.checkinButton, isMutating ? styles.disabledButton : null]} disabled={isMutating} onPress={() => claimCheckin()}>
-        <Text style={styles.checkinText}>{isMutating ? '처리 중...' : '출석 보상 받기'}</Text>
-      </Pressable>
-
-      <Pressable style={styles.logoutButton} onPress={() => signOutUser()}>
-        <Text style={styles.logoutText}>로그아웃</Text>
-      </Pressable>
+      {!isGuest ? (
+        <Pressable style={styles.logoutButton} onPress={handleSignOut}>
+          <Text style={styles.logoutText}>로그아웃</Text>
+        </Pressable>
+      ) : null}
     </ScrollView>
   );
 }
@@ -139,6 +161,25 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     textAlign: 'center'
+  },
+  guestCard: {
+    backgroundColor: '#ffffff',
+    borderColor: '#bae6fd',
+    borderRadius: 22,
+    borderWidth: 1,
+    marginTop: 16,
+    padding: 18
+  },
+  guestText: {
+    color: '#64748b',
+    fontWeight: '700',
+    lineHeight: 20,
+    marginTop: 8
+  },
+  guestTitle: {
+    color: '#0f766e',
+    fontSize: 16,
+    fontWeight: '900'
   },
   header: {
     alignItems: 'center',
@@ -236,7 +277,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10
   },
   shellIcon: {
-    fontSize: 18
+    color: '#be185d',
+    fontSize: 13,
+    fontWeight: '900'
   },
   shellText: {
     color: '#be185d',

@@ -6,7 +6,6 @@ import {
   claimDailyThemeDraw,
   drawThemePack,
   fetchGamificationSnapshot,
-  signOut,
   type CareType,
   type GamificationSnapshot
 } from '../services/gamificationService';
@@ -131,7 +130,6 @@ export const useGamificationStore = create<GamificationState>((set, get) => ({
   },
 
   async signOutUser() {
-    await signOut();
     set({ snapshot: null, lastThemeDrawResults: [], error: null });
   },
 

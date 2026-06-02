@@ -1,5 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { router, type Href } from 'expo-router';
 import { useEffect, useMemo } from 'react';
 import {
   ActivityIndicator,
@@ -11,6 +12,7 @@ import {
   View,
   type DimensionValue
 } from 'react-native';
+import { InsightMapPreview } from '../../components/insight/InsightMapPreview';
 import { useGamificationStore } from '../../store/gamificationStore';
 import type { GamificationSnapshot } from '../../services/gamificationService';
 import type { ThemeDrawResultRow } from '../../types/database.types';
@@ -40,6 +42,8 @@ const RARITY_COPY: Record<ThemeDrawResultRow['rarity'], { label: string; color: 
   rare: { label: '희귀', color: '#7c3aed', tint: '#ede9fe' },
   legendary: { label: '전설', color: '#d97706', tint: '#fef3c7' }
 };
+
+const LOGIN_ROUTE = '/login' as Href;
 
 function getTopTraits(traits: GamificationSnapshot['traits']) {
   return [...traits].sort((a, b) => b.score - a.score).slice(0, 2);
@@ -136,7 +140,16 @@ export default function IslandScreen() {
   const petEnergy = `${Math.min(100, snapshot.petState?.energy ?? snapshot.avatarState.energy)}%` as DimensionValue;
   const evolutionProgress = `${stage.progress}%` as DimensionValue;
   const isGuest = snapshot.profile.id === 'guest';
-  const actionDisabled = isMutating || isGuest;
+  const actionDisabled = isMutating;
+
+  function runAuthAction(action: () => void) {
+    if (isGuest) {
+      router.push(LOGIN_ROUTE);
+      return;
+    }
+
+    action();
+  }
 
   return (
     <>
@@ -225,9 +238,9 @@ export default function IslandScreen() {
           </View>
 
           <View style={styles.actionGrid}>
-            <ActionButton icon="account-heart" label="펫 배정" disabled={actionDisabled} onPress={() => assignPet()} />
-            <ActionButton icon="gift" label="무료 테마" disabled={actionDisabled} onPress={() => claimTheme()} />
-            <ActionButton icon="treasure-chest" label="테마 뽑기" disabled={actionDisabled} onPress={() => drawTheme()} />
+            <ActionButton icon="account-heart" label="펫 배정" disabled={actionDisabled} onPress={() => runAuthAction(assignPet)} />
+            <ActionButton icon="gift" label="무료 테마" disabled={actionDisabled} onPress={() => runAuthAction(claimTheme)} />
+            <ActionButton icon="treasure-chest" label="테마 뽑기" disabled={actionDisabled} onPress={() => runAuthAction(drawTheme)} />
           </View>
         </View>
 
@@ -241,13 +254,15 @@ export default function IslandScreen() {
           </View>
           <ProgressRow label="일일 보상" value={`${todayProgress}%`} width={`${todayProgress}%` as DimensionValue} color="#60a5fa" />
           <View style={styles.careRow}>
-            <ActionButton icon="food-apple" label="간식" disabled={actionDisabled} onPress={() => careForAvatar('snack')} />
-            <ActionButton icon="gamepad-variant" label="놀아주기" disabled={actionDisabled} onPress={() => careForAvatar('play')} />
-            <ActionButton icon="heart" label="칭찬" disabled={actionDisabled} onPress={() => careForAvatar('praise')} />
+            <ActionButton icon="food-apple" label="간식" disabled={actionDisabled} onPress={() => runAuthAction(() => careForAvatar('snack'))} />
+            <ActionButton icon="gamepad-variant" label="놀아주기" disabled={actionDisabled} onPress={() => runAuthAction(() => careForAvatar('play'))} />
+            <ActionButton icon="heart" label="칭찬" disabled={actionDisabled} onPress={() => runAuthAction(() => careForAvatar('praise'))} />
           </View>
         </View>
 
         <ThemeInventorySection snapshot={snapshot} />
+
+        <InsightMapPreview snapshot={snapshot} onOpen={() => router.push('/insight-map')} />
 
         <View style={styles.traitPanel}>
           <View style={styles.panelHeader}>

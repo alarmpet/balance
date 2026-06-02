@@ -1,4 +1,4 @@
-import { supabase } from './questionService';
+import { supabase } from '../lib/supabaseClient';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { PostgrestError } from '@supabase/supabase-js';
 import type {
@@ -265,11 +265,6 @@ export async function updateProfileDisplay(input: {
   if (error) throw error;
   if (!data) throw new Error('프로필을 수정하지 못했습니다.');
   return data as ProfileRow;
-}
-
-export async function signOut(): Promise<void> {
-  if (!supabase) return;
-  await supabase.auth.signOut();
 }
 
 function createGuestSnapshot(): GamificationSnapshot {

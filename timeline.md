@@ -182,3 +182,73 @@
 - Verification: `npm.cmd run typecheck` passed.
 - Verification: Chrome smoke check at `http://localhost:8081/island` rendered the guest banner and empty theme inventory state.
 - Verification: `git diff --check` passed; Git only reported CRLF conversion warnings.
+## 2026-06-02 14:45 KST - Personality Insight Map Plan
+
+- 작업: Obsidian Graph/Canvas, mind map, personal informatics, React/React Native graph visualization 자료를 조사하고 `나의 선택 지도` 계획서를 작성했다.
+- 범위: `docs/superpowers/plans/2026-06-02-personality-insight-map.md`, `timeline.md`.
+- 이유: 질문 답변으로 누적된 성향 데이터를 섬 화면에서 직관적으로 탐색하게 만들기 위해, 전체 그래프와 마인드맵을 그대로 복제하지 않고 모바일 MVP에 맞는 하이브리드 인사이트 지도 방향을 정했다.
+- 결정: 기본 화면은 성향 펫 중심 radial mindmap, 탐색은 Obsidian Local Graph식 주변 연결, 해석은 AI/규칙 기반 인사이트 카드로 분리한다.
+- 검증: 공식 Obsidian 문서, React Flow GitHub 예제, personal informatics 연구, React Native SVG/D3 관련 자료를 비교했다. 구현 코드는 변경하지 않았다.
+- 후속: implementation plan 작성 전 현재 UI 문자열 인코딩 복구와 `get_personality_insight_graph` RPC 설계를 세부화해야 한다.
+
+## 2026-06-02 15:30 KST - Insight Map Review Validation
+
+- 작업: 외부 리뷰 문서 `insight_map_review_report.md`를 코드베이스와 기존 계획서에 대조해 검증하고, 타당한 항목만 인사이트 맵 계획서에 반영했다.
+- 범위: `docs/superpowers/plans/2026-06-02-personality-insight-map.md`, `timeline.md`.
+- 채택: 그래프 RPC lazy loading, SQL 레벨 최근 30일/상위 trait 10개/노드 40개 제한, migration 순서 명시, SECURITY DEFINER + `auth.uid()` 제한, confidence check constraint, guest 정적 JSON, `균형 연결` 프레이밍, recent change P1 이동, store 경계, 접근성 label.
+- 보류: `react-native-reanimated` 필수 도입은 현재 package.json에 의존성이 없어 보류했다. MVP에서는 애니메이션을 최소화하고 필요 시 별도 검증 후 추가한다.
+- 검증: 현재 `fetchGamificationSnapshot()` 병렬 쿼리 구조, pet/theme migration 테이블, broad profile update 제거, Edge Function JWT/rate limit 리스크, package.json 의존성을 확인했다.
+
+## 2026-06-02 16:10 KST - Personality Insight Map P0 Implementation
+
+- 작업: `나의 선택 지도` P0 구현을 진행했다.
+- 범위: `supabase/migrations/202606021500_personality_insight_map.sql`, `src/types/database.types.ts`, `src/services/insightMapService.ts`, `src/store/insightMapStore.ts`, `src/data/guestInsightGraph.ts`, `src/components/insight/*`, `src/app/insight-map.tsx`, `src/app/(tabs)/island.tsx`, `src/app/_layout.tsx`, `src/app/(tabs)/_layout.tsx`, `package.json`, `package-lock.json`.
+- 변경: `user_insight_cards` 테이블, RLS, 읽음 처리 RPC, 인사이트 카드 갱신 RPC, 성향 그래프 RPC를 추가했다. 그래프 RPC는 authenticated 사용자만 실행되고 최근 30일, 상위 trait 10개, 노드 40개 제한을 적용한다.
+- 변경: `react-native-svg`, `d3-hierarchy` 의존성을 추가하고, 게스트 정적 그래프, Supabase 서비스, Zustand 스토어, radial graph canvas, 노드 상세 sheet, 인사이트 상세 화면을 추가했다.
+- 변경: 섬 화면에 `InsightMapPreview`를 붙이고 `/insight-map` 라우트로 진입하도록 연결했다. 깨져 있던 탭 title 문자열도 한국어로 복구했다.
+- 리뷰: GPT-5.3-Codex-Spark 읽기 전용 리뷰어가 누락 파일, 타입/RPC 누락, guest fallback, SQL 성능 인덱스, store 경계, 라우팅 위험을 지적했고, 구현 중 해당 항목을 반영했다.
+- 검증: `npm.cmd run typecheck` 통과.
+- 검증: `npx.cmd expo export --platform web` 통과.
+- 제한: 이 세션의 Windows sandbox 문제로 로컬 정적 서버를 Chrome에서 유지하지 못해 브라우저 스모크는 완료하지 못했다.
+
+## 2026-06-02 16:50 KST - Insight Map Supabase Apply and RPC Smoke
+
+- Work: Applied `supabase/migrations/202606021500_personality_insight_map.sql` to Supabase project `ztcexgnelqtdzinfgoja` through the authenticated dashboard session.
+- Fix: Adjusted the migration before apply so visible insight copy and graph labels are Korean, and corrected the `max(count(*))` cast expression in `category_counts`.
+- Verification: Supabase SQL API `select 1 as ok` returned status 201 before applying the migration.
+- Verification: Post-apply SQL confirmed `public.user_insight_cards`, `get_personality_insight_graph`, `refresh_user_insight_cards`, and `mark_insight_card_read` exist.
+- Verification: Transactional smoke test created a temporary auth/profile/trait/vote context and rolled it back; `get_personality_insight_graph` returned 5 nodes and 4 edges, and `refresh_user_insight_cards` returned 1 card.
+- Verification: `npm.cmd run typecheck` passed.
+- Verification: `npx.cmd expo export --platform web` passed.
+- Note: The live app tab currently has no Supabase Auth session and the new project has 0 profiles, so a real logged-in app-user RPC smoke test must wait until a user logs in and creates a profile.
+
+## 2026-06-02 18:39 KST - Social Auth and Magic Link Plan
+
+- Work: Created a full implementation plan for Kakao, Naver, Google, and email magic-link login.
+- Scope: `docs/superpowers/plans/2026-06-02-social-auth-magic-link.md`, `timeline.md`.
+- Decision: Use Supabase Auth as the only session source; Google and Kakao use built-in providers, email uses `signInWithOtp`, and Naver is gated behind a Custom OAuth compatibility smoke test before the button is enabled.
+- Review: GPT-5.3-Codex-Spark read-only reviewer flagged redirect URI drift, SecureStore/session persistence, missing provider email, identity linking, CSRF/PKCE, and environment separation risks; accepted items were reflected in the plan.
+- Sources: Supabase Auth redirect/deep-link/social/magic-link/custom OAuth docs, Expo AuthSession docs, and Naver developer OAuth docs.
+
+## 2026-06-02 19:05 KST - Social Auth External Review Validation
+
+- Work: Reviewed `social_auth_review_report.md` and updated the social auth implementation plan with validated items only.
+- Scope: `docs/superpowers/plans/2026-06-02-social-auth-magic-link.md`, `timeline.md`.
+- Accepted: single-owner signout, OAuth profile metadata hardening, native SecureStore chunking for large sessions, `EXPO_PUBLIC_SITE_URL` env typing, auth listener duplicate prevention, OAuth cancel routing guard, magic-link resend cooldown, provider setup warnings, and Vercel callback rewrite verification.
+- Rejected: plain native AsyncStorage fallback for auth tokens, because it weakens token storage; the plan now uses SecureStore chunking on native and AsyncStorage only on web.
+- Verification: Plan placeholder scan found only React Native `TextInput` placeholder props, and `git diff --check` reported no whitespace errors beyond existing CRLF warnings.
+
+## 2026-06-02 19:42 KST - Social Auth Implementation
+
+- Work: Implemented Supabase-backed Google/Kakao OAuth, email magic-link login, gated Naver provider wiring, shared auth storage, and callback routing.
+- Scope: `.env.example`, `src/lib/env.ts`, `src/lib/supabaseClient.ts`, `src/services/authService.ts`, `src/store/authStore.ts`, `src/app/login.tsx`, `src/app/auth/callback.tsx`, `src/app/_layout.tsx`, `src/app/(tabs)/profile.tsx`, `src/app/(tabs)/island.tsx`, `src/store/gamificationStore.ts`, `src/services/*Service.ts`, `supabase/migrations/202606021900_auth_profile_metadata.sql`, `docs/auth-provider-setup.md`.
+- Change: Supabase client creation now lives in one shared module with SecureStore chunking on native and AsyncStorage on web.
+- Change: Guest profile/island flows now route auth-only actions to `/login`; logout is owned by `authStore`, while gamification signout only clears local state.
+- Change: OAuth profile creation migration now reads provider metadata from common Google/Kakao/Naver shapes and creates a profile fallback safely.
+- Verification: `npm.cmd run typecheck` passed after route typing and guest-action fixes.
+
+## 2026-06-02 19:50 KST - Social Auth Supabase Apply
+
+- Work: Applied `supabase/migrations/202606021900_auth_profile_metadata.sql` to Supabase project `ztcexgnelqtdzinfgoja` through the authenticated dashboard session.
+- Verification: Supabase SQL API returned status 201 for the migration.
+- Verification: `pg_get_functiondef('public.handle_new_user()')` now includes the nested `response,nickname` metadata lookup used for Naver-style provider payloads.

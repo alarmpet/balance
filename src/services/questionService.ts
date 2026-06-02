@@ -1,5 +1,6 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { getPublicEnv, hasSupabaseConfig } from '../lib/env';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { hasSupabaseConfig } from '../lib/env';
+import { supabase } from '../lib/supabaseClient';
 import type { Database, Json } from '../types/database.types';
 
 export type OptionSide = 'A' | 'B';
@@ -34,13 +35,6 @@ export type FeedQuestion = {
   userReaction: ReactionType | null;
   created_at: string;
 };
-
-const supabaseUrl = getPublicEnv('EXPO_PUBLIC_SUPABASE_URL');
-const supabaseAnonKey = getPublicEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY');
-
-export const supabase = supabaseUrl && supabaseAnonKey
-  ? createClient<Database>(supabaseUrl, supabaseAnonKey)
-  : null;
 
 const rpcClient = supabase as SupabaseClient | null;
 
