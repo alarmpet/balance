@@ -1,17 +1,70 @@
-import { useCallback, useEffect, useRef } from 'react';
-import { ActivityIndicator, Alert, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, RefreshControl, StyleSheet, Text, View, Animated } from 'react-native';
 import { Image } from 'expo-image';
 import BalanceCard from '../../components/feed/BalanceCard';
+import ChoiceEchoSheet from '../../components/feed/ChoiceEchoSheet';
 import { useFeedStore } from '../../store/feedStore';
-import type { FeedQuestion } from '../../services/questionService';
+import { generateChoiceEcho, type ChoiceEchoResult } from '../../utils/choiceEcho';
+import { analyticsService } from '../../services/analyticsService';
+import type { FeedQuestion, OptionSide, ReactionType } from '../../services/questionService';
+import { THEME } from '../../theme/styles';
+
+type Particle = {
+  id: string;
+  emoji: string;
+  x: number;
+  translateY: Animated.Value;
+  opacity: Animated.Value;
+};
 
 export default function FeedScreen() {
   const { questions, isLoading, error, loadFeedQuestions, voteOnQuestion, reactToQuestion } = useFeedStore();
   const prefetched = useRef(new Set<string>());
+  const [isEchoVisible, setIsEchoVisible] = useState(false);
+  const [echoData, setEchoData] = useState<ChoiceEchoResult | null>(null);
+  const [particles, setParticles] = useState<Particle[]>([]);
 
   useEffect(() => {
     loadFeedQuestions();
+    analyticsService.track('feed_impression');
   }, [loadFeedQuestions]);
+
+  const spawnParticles = useCallback((emoji: string, startX: number) => {
+    const id = Math.random().toString();
+    const animY = new Animated.Value(0);
+    const animOpacity = new Animated.Value(1);
+
+    const newParticle: Particle = {
+      id,
+      emoji,
+      x: startX,
+      translateY: animY,
+      opacity: animOpacity
+    };
+
+    setParticles((prev) => {
+      const next = [...prev.slice(-11), newParticle];
+      return next;
+    });
+
+    const rise = THEME.motion.particle.riseMin + Math.random() * (THEME.motion.particle.riseMax - THEME.motion.particle.riseMin);
+    const duration = THEME.motion.duration.particle + Math.random() * 240;
+
+    Animated.parallel([
+      Animated.timing(animY, {
+        toValue: -rise,
+        duration: duration,
+        useNativeDriver: true
+      }),
+      Animated.timing(animOpacity, {
+        toValue: 0,
+        duration: duration,
+        useNativeDriver: true
+      })
+    ]).start(() => {
+      setParticles((prev) => prev.filter((p) => p.id !== id));
+    });
+  }, []);
 
   const prefetchNextImages = useCallback((index: number) => {
     const urls = questions
@@ -27,16 +80,48 @@ export default function FeedScreen() {
     });
   }, [questions]);
 
+  const handleVote = useCallback((questionId: string, option: OptionSide) => {
+    const question = questions.find((q) => q.id === questionId);
+    if (!question) return;
+
+    // Background call
+    void voteOnQuestion(questionId, option);
+
+    // Immediate UI reaction
+    const result = generateChoiceEcho(question, option);
+    setEchoData(result);
+    setIsEchoVisible(true);
+
+    analyticsService.track('vote_submit', {
+      questionId,
+      category: question.category?.slug,
+      option
+    });
+  }, [questions, voteOnQuestion]);
+
+  const handleReaction = useCallback((questionId: string, reactionType: ReactionType) => {
+    void reactToQuestion(questionId, reactionType);
+
+    let emoji = '❤️';
+    if (reactionType === 'fun') emoji = '😆';
+    if (reactionType === 'hard') emoji = '🤔';
+
+    const baseCol = Math.random() * 160 + 80;
+    spawnParticles(emoji, baseCol);
+    setTimeout(() => spawnParticles(emoji, baseCol - 30), 120);
+    setTimeout(() => spawnParticles(emoji, baseCol + 30), 240);
+  }, [reactToQuestion, spawnParticles]);
+
   const renderItem = useCallback(({ item }: { item: FeedQuestion; index: number }) => {
     return (
       <BalanceCard
         question={item}
-        onVote={voteOnQuestion}
-        onReaction={reactToQuestion}
-        onOpenComments={(questionId) => Alert.alert('댓글', `${questionId} 댓글 화면은 다음 단계에서 연결합니다.`)}
+        onVote={handleVote}
+        onReaction={handleReaction}
+        onOpenComments={() => Alert.alert('댓글', '댓글 화면은 다음 단계에서 연결합니다.')}
       />
     );
-  }, [reactToQuestion, voteOnQuestion]);
+  }, [handleReaction, handleVote]);
 
   if (isLoading && questions.length === 0) {
     return (
@@ -67,6 +152,26 @@ export default function FeedScreen() {
         renderItem={renderItem}
         viewabilityConfig={{ itemVisiblePercentThreshold: 60 }}
       />
+      <ChoiceEchoSheet
+        visible={isEchoVisible}
+        onClose={() => setIsEchoVisible(false)}
+        echoData={echoData}
+      />
+      {particles.map((p) => (
+        <Animated.Text
+          key={p.id}
+          style={[
+            styles.particle,
+            {
+              left: p.x,
+              opacity: p.opacity,
+              transform: [{ translateY: p.translateY }]
+            }
+          ]}
+        >
+          {p.emoji}
+        </Animated.Text>
+      ))}
     </View>
   );
 }
@@ -117,5 +222,12 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 32
+  },
+  particle: {
+    fontSize: 28,
+    position: 'absolute',
+    bottom: 120,
+    zIndex: 9999,
+    pointerEvents: 'none'
   }
 });

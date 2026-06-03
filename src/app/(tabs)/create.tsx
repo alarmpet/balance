@@ -32,7 +32,7 @@ export default function CreateScreen() {
 
       <Pressable
         style={styles.primaryButton}
-        onPress={() => Alert.alert('준비 중', 'AI 다듬기는 앱 실행 안정화 후 연결합니다.')}
+        onPress={() => Alert.alert('준비 중', 'AI 다듬기와 중복 검사는 실제 Edge Function 연결 후 다시 열 예정입니다.')}
       >
         <Text style={styles.primaryButtonText}>AI로 다듬기</Text>
       </Pressable>

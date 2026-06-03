@@ -426,3 +426,43 @@
 - Validation: `npm run validate:wiki` 명령으로 전체 위키 데이터 검증을 수행하여 정상 통과(`Wiki validation passed.`) 확인 완료.
 - Refactor: 580줄에 이르던 비대한 `research.md` 리스크 문서를 과거 이력 아카이브(`docs/research-history.md`)와 현재 활성 리스크로 완전 이원화하여 슬림화 완료.
 
+## 2026-06-03 21:40 KST - P1 핵심 제품 고도화 기능 구현 완료
+
+- 작업: `2026-06-03-deep-research-product-upgrade.md` 기획서에 명시된 P1 핵심 기능들을 실제 React Native 코드베이스에 구현 완료.
+- 범위:
+  - `src/constants/categories.ts`, `src/constants/productCopy.ts`
+  - `src/services/analyticsService.ts`, `src/utils/choiceEcho.ts`
+  - `src/components/feed/ChoiceEchoSheet.tsx`, `src/components/island/TodayDiscoveryCard.tsx`
+  - `src/components/island/IslandModeTabs.tsx`, `src/components/island/ThemeProbabilitySheet.tsx`
+  - `src/app/(tabs)/index.tsx`, `src/app/(tabs)/island.tsx`
+- 이유: 단순 A/B 투표 앱을 감성적이고 몰입감 있는 자기 성찰/발견 서비스로 고도화하기 위함.
+- 검증: `npm run typecheck`, `npm run validate:pet-assets`, `npm run validate:wiki`를 차례로 실행하여 모든 검증 및 타입 에러 정정 완료.
+
+## 2026-06-03 21:50 KST - Visual UI/UX 고도화 기능 구현 완료
+
+- 작업: `2026-06-03-visual-ui-upgrade-plan.md` 기획서에 명시된 비주얼 고도화 기능들을 구현 완료.
+- 범위:
+  - `src/theme/styles.ts` (공통 스타일 및 그라데이션 상수 신규 정의)
+  - `src/app/(tabs)/index.tsx` (리액션 클릭 시 위로 솟아오르는 이모지 파티클 애니메이션 추가)
+  - `generate_image` 스킬로 화면별 프리미엄 디자인 시안 3건 도출 및 아티팩트 보존.
+- 이유: 앱의 미감을 향상시켜 프리미엄 모바일 프로덕트로서의 Wow 효과를 확보하기 위함.
+- 검증: `npm run typecheck`, `npm run validate:pet-assets`, `npm run validate:wiki`를 차례로 실행하여 정상 빌드 및 린트 정합성 유지 확인 완료.
+
+## 2026-06-03 22:10 KST - Visual UI/UX 리팩토링 및 디자인 가이드라인 위키 연동
+
+- 작업: Visual UI/UX 계획서(`2026-06-03-visual-ui-upgrade-plan.md`)를 위키 표준에 맞춰 디자인 가이드 문서로 정리하고, 세부 컴포넌트들의 테마/성능 제약을 실 코드베이스에 최종 리팩토링하여 반영함.
+- 범위:
+  - `src/theme/motion.ts`, `src/theme/surfaces.ts` (모션 템포 및 표면 깊이 토큰 모듈화 분리)
+  - `src/theme/styles.ts` (신규 토큰들을 사용하도록 전면 리팩토링)
+  - `src/app/(tabs)/index.tsx` (파티클 최대 활성 개수 12개 제한 및 모션 토큰 적용)
+  - `src/components/feed/ChoiceEchoSheet.tsx` (글래스 표면 위계 및 그림자 연동)
+  - `src/app/(tabs)/island.tsx` (시간대별 하늘 그라데이션 토큰 헬퍼 연동)
+  - `src/components/insight/InsightGraphCanvas.tsx` (그래프 노드 강조 및 점선 애니메이션 보류 등 모션 절제 정책 적용)
+  - `src/app/(tabs)/create.tsx` (AI 다듬기 경고 메시지 구체화로 마법 콘셉트 상태 명확화)
+  - `AI-Sessions/wiki/design/visual-ui-guidelines.md` (디자인 가이드 위키 문서 생성)
+  - `index.md`, `log.md` (위키 문서 링크 추가 및 작업 로그 추가)
+- 이유: 과도한 애니메이션 남발을 억제하고 성능 가이드라인을 유지하면서 비주얼 디자인을 고도화하여 앱의 사용성을 보장하기 위함.
+- 검증: `npm run typecheck`, `npm run validate:pet-assets`, `npm run validate:wiki`를 순차 실행하여 전체 빌드 정합성과 위키 린트 검증 정상 통과 확인.
+
+
+

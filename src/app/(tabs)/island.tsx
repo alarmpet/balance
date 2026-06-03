@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, type Href } from 'expo-router';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -13,6 +13,10 @@ import {
   type DimensionValue
 } from 'react-native';
 import { InsightMapPreview } from '../../components/insight/InsightMapPreview';
+import TodayDiscoveryCard from '../../components/island/TodayDiscoveryCard';
+import IslandModeTabs, { type IslandMode } from '../../components/island/IslandModeTabs';
+import ThemeProbabilitySheet from '../../components/island/ThemeProbabilitySheet';
+import { analyticsService } from '../../services/analyticsService';
 import { useGamificationStore } from '../../store/gamificationStore';
 import type { GamificationSnapshot } from '../../services/gamificationService';
 import type { ThemeDrawResultRow } from '../../types/database.types';
@@ -119,6 +123,13 @@ function canRenderPetAsset(source: PetImageSource) {
   return source ? source.startsWith('http://') || source.startsWith('https://') || source.startsWith('file://') : false;
 }
 
+function getSkyPhase(hour = new Date().getHours()) {
+  if (hour >= 5 && hour < 11) return { top: '#ffedd5', mid: '#bae6fd', sun: '#fde68a' };
+  if (hour >= 11 && hour < 17) return { top: '#bae6fd', mid: '#e0f2fe', sun: '#fef3c7' };
+  if (hour >= 17 && hour < 21) return { top: '#fda4af', mid: '#c4b5fd', sun: '#fb7185' };
+  return { top: '#172554', mid: '#312e81', sun: '#f8fafc' };
+}
+
 export default function IslandScreen() {
   const {
     snapshot,
@@ -134,6 +145,10 @@ export default function IslandScreen() {
     clearThemeDrawResults,
     clearError
   } = useGamificationStore();
+
+  const [activeMode, setActiveMode] = useState<IslandMode>('discover');
+  const [isProbabilityVisible, setIsProbabilityVisible] = useState(false);
+  const skyPhase = useMemo(() => getSkyPhase(), []);
 
   useEffect(() => {
     if (!snapshot) {
@@ -218,111 +233,177 @@ export default function IslandScreen() {
           </View>
         ) : null}
 
-        <View style={styles.hero}>
-          <View style={styles.sky}>
-            <View style={styles.sun} />
-            <View style={styles.cloudSmall} />
-            <View style={styles.cloudLarge} />
-          </View>
-          <View style={styles.islandBase}>
-            <MaterialCommunityIcons name="island" size={86} color="#0ea5e9" />
-          </View>
-          <Text style={styles.levelBadge}>섬 Lv.{snapshot.island.island_level}</Text>
-          <Text style={styles.title}>{islandTitle}</Text>
-          <Text style={styles.description}>
-            지금까지 {snapshot.profile.total_participation_count}개의 선택이 이 섬의 성격을 만들었어요.
-          </Text>
-          {snapshot.equippedTheme ? (
-            <View style={styles.equippedTheme}>
-              <MaterialCommunityIcons name="palette-swatch" size={18} color="#7c3aed" />
-              <Text style={styles.equippedThemeText}>
-                {snapshot.equippedTheme.skin.display_name} LV.{snapshot.equippedTheme.inventory.level}
+        <IslandModeTabs activeMode={activeMode} onChangeMode={setActiveMode} />
+
+        {activeMode === 'discover' && (
+          <View style={styles.modeContainer}>
+            <View style={styles.hero}>
+              <View style={[styles.sky, { backgroundColor: skyPhase.top }]}>
+                <View style={[styles.skyBand, { backgroundColor: skyPhase.mid }]} />
+                <View style={[styles.sun, { backgroundColor: skyPhase.sun }]} />
+                <View style={styles.cloudSmall} />
+                <View style={styles.cloudLarge} />
+              </View>
+              <View style={styles.islandBase}>
+                <MaterialCommunityIcons name="island" size={86} color="#0ea5e9" />
+              </View>
+              <Text style={styles.levelBadge}>섬 Lv.{snapshot.island.island_level}</Text>
+              <Text style={styles.title}>{islandTitle}</Text>
+              <Text style={styles.description}>
+                지금까지 {snapshot.profile.total_participation_count}개의 선택이 이 섬의 성격을 만들었어요.
               </Text>
+              {snapshot.equippedTheme ? (
+                <View style={styles.equippedTheme}>
+                  <MaterialCommunityIcons name="palette-swatch" size={18} color="#7c3aed" />
+                  <Text style={styles.equippedThemeText}>
+                    {snapshot.equippedTheme.skin.display_name} LV.{snapshot.equippedTheme.inventory.level}
+                  </Text>
+                </View>
+              ) : null}
             </View>
-          ) : null}
-        </View>
 
-        <View style={styles.petPanel}>
-          <View style={styles.panelHeader}>
-            <View>
-              <Text style={styles.cardLabel}>성향 펫</Text>
-              <Text style={styles.cardTitle}>{snapshot.petSpecies?.display_name ?? '아직 만나지 못했어요'}</Text>
-            </View>
-            <View style={styles.stagePill}>
-              <Text style={styles.stagePillText}>{stage.label}</Text>
-            </View>
-          </View>
+            <TodayDiscoveryCard />
 
-          <View style={styles.petBody}>
-            <View style={styles.petPortrait}>
-              {canRenderPetAsset(petImage) ? (
-                <Image source={typeof petImage === 'number' ? petImage : { uri: petImage ?? undefined }} style={styles.petImage} contentFit="contain" />
+            <InsightMapPreview snapshot={snapshot} onOpen={() => router.push('/insight-map')} />
+
+            <View style={styles.traitPanel}>
+              <View style={styles.panelHeader}>
+                <View>
+                  <Text style={styles.cardLabel}>성향 조각</Text>
+                  <Text style={styles.cardTitle}>상위 성향</Text>
+                </View>
+                <MaterialCommunityIcons name="chart-donut" size={34} color="#14b8a6" />
+              </View>
+              {topTraits.length === 0 ? (
+                <Text style={styles.emptyText}>투표를 시작하면 이곳에 나의 선택 성향이 쌓입니다.</Text>
               ) : (
-                <MaterialCommunityIcons name={snapshot.petSpecies ? 'paw' : 'egg-easter'} size={72} color="#0ea5e9" />
+                topTraits.map((trait) => {
+                  const copy = TRAIT_COPY[trait.trait_key];
+                  return (
+                    <View key={trait.trait_key} style={styles.traitRow}>
+                      <Text style={styles.traitName}>{copy?.label ?? trait.trait_key}</Text>
+                      <Text style={styles.traitScore}>{trait.score}</Text>
+                    </View>
+                  );
+                })
               )}
             </View>
-            <View style={styles.petInfo}>
-              <Text style={styles.petDescription}>
-                {snapshot.petSpecies?.description ?? '질문을 더 풀면 내 선택 패턴과 닮은 펫이 자동으로 배정됩니다.'}
-              </Text>
-              <ProgressRow label="진화" value={stage.next} width={evolutionProgress} color="#38bdf8" />
-              <ProgressRow label="기분" value={`${snapshot.petState?.mood ?? snapshot.avatarState.mood}`} width={petMood} color="#fb7185" />
-              <ProgressRow label="에너지" value={`${snapshot.petState?.energy ?? snapshot.avatarState.energy}`} width={petEnergy} color="#34d399" />
-            </View>
           </View>
+        )}
 
-          <View style={styles.actionGrid}>
-            <ActionButton icon="account-heart" label="펫 배정" disabled={actionDisabled} onPress={() => runAuthAction(assignPet)} />
-            <ActionButton icon="gift" label="무료 테마" disabled={actionDisabled} onPress={() => runAuthAction(claimTheme)} />
-            <ActionButton icon="treasure-chest" label="테마 뽑기" disabled={actionDisabled} onPress={() => runAuthAction(drawTheme)} />
-          </View>
-        </View>
-
-        <View style={styles.rewardPanel}>
-          <View style={styles.panelHeader}>
-            <View>
-              <Text style={styles.cardLabel}>오늘 참여</Text>
-              <Text style={styles.cardTitle}>{snapshot.profile.today_participation_count}/10 완료</Text>
-            </View>
-            <MaterialCommunityIcons name="calendar-check" size={34} color="#0ea5e9" />
-          </View>
-          <ProgressRow label="일일 보상" value={`${todayProgress}%`} width={`${todayProgress}%` as DimensionValue} color="#60a5fa" />
-          <View style={styles.careRow}>
-            <ActionButton icon="food-apple" label="간식" disabled={actionDisabled} onPress={() => runAuthAction(() => careForAvatar('snack'))} />
-            <ActionButton icon="gamepad-variant" label="놀아주기" disabled={actionDisabled} onPress={() => runAuthAction(() => careForAvatar('play'))} />
-            <ActionButton icon="heart" label="칭찬" disabled={actionDisabled} onPress={() => runAuthAction(() => careForAvatar('praise'))} />
-          </View>
-        </View>
-
-        <ThemeInventorySection snapshot={snapshot} />
-
-        <InsightMapPreview snapshot={snapshot} onOpen={() => router.push('/insight-map')} />
-
-        <View style={styles.traitPanel}>
-          <View style={styles.panelHeader}>
-            <View>
-              <Text style={styles.cardLabel}>성향 조각</Text>
-              <Text style={styles.cardTitle}>상위 성향</Text>
-            </View>
-            <MaterialCommunityIcons name="chart-donut" size={34} color="#14b8a6" />
-          </View>
-          {topTraits.length === 0 ? (
-            <Text style={styles.emptyText}>투표를 시작하면 이곳에 나의 선택 성향이 쌓입니다.</Text>
-          ) : (
-            topTraits.map((trait) => {
-              const copy = TRAIT_COPY[trait.trait_key];
-              return (
-                <View key={trait.trait_key} style={styles.traitRow}>
-                  <Text style={styles.traitName}>{copy?.label ?? trait.trait_key}</Text>
-                  <Text style={styles.traitScore}>{trait.score}</Text>
+        {activeMode === 'branch_map' && (
+          <View style={styles.modeContainer}>
+            <View style={styles.traitPanel}>
+              <View style={styles.panelHeader}>
+                <View>
+                  <Text style={styles.cardLabel}>성향 가지</Text>
+                  <Text style={styles.cardTitle}>나의 취향/가치관 성장도</Text>
                 </View>
-              );
-            })
-          )}
-        </View>
+                <MaterialCommunityIcons name="sitemap-outline" size={34} color="#0ea5e9" />
+              </View>
+              <Text style={styles.summaryText}>
+                선택이 모여 단단하고 풍성하게 뻗어 나가는 성향 가지들의 상태입니다.
+              </Text>
+              {snapshot.traits.length === 0 ? (
+                <Text style={styles.emptyText}>아직 발견된 성향 가지가 없습니다. 질문을 더 선택해 보세요!</Text>
+              ) : (
+                snapshot.traits.map((trait) => {
+                  const copy = TRAIT_COPY[trait.trait_key];
+                  const barWidth = `${Math.min(100, Math.max(8, trait.score * 5))}%` as DimensionValue;
+                  return (
+                    <View key={trait.trait_key} style={styles.progressBlock}>
+                      <View style={styles.progressTextRow}>
+                        <Text style={styles.progressLabel}>{copy?.label ?? trait.trait_key}</Text>
+                        <Text style={styles.progressValue}>{trait.score}점</Text>
+                      </View>
+                      <View style={styles.progressTrack}>
+                        <View style={[styles.progressFill, { width: barWidth, backgroundColor: '#0ea5e9' }]} />
+                      </View>
+                    </View>
+                  );
+                })
+              )}
+            </View>
+
+            <InsightMapPreview snapshot={snapshot} onOpen={() => router.push('/insight-map')} />
+          </View>
+        )}
+
+        {activeMode === 'decorate' && (
+          <View style={styles.modeContainer}>
+            <View style={styles.petPanel}>
+              <View style={styles.panelHeader}>
+                <View>
+                  <Text style={styles.cardLabel}>성향 펫</Text>
+                  <Text style={styles.cardTitle}>{snapshot.petSpecies?.display_name ?? '아직 만나지 못했어요'}</Text>
+                </View>
+                <View style={styles.stagePill}>
+                  <Text style={styles.stagePillText}>{stage.label}</Text>
+                </View>
+              </View>
+
+              <View style={styles.petBody}>
+                <View style={styles.petPortrait}>
+                  {canRenderPetAsset(petImage) ? (
+                    <Image source={typeof petImage === 'number' ? petImage : { uri: petImage ?? undefined }} style={styles.petImage} contentFit="contain" />
+                  ) : (
+                    <MaterialCommunityIcons name={snapshot.petSpecies ? 'paw' : 'egg-easter'} size={72} color="#0ea5e9" />
+                  )}
+                </View>
+                <View style={styles.petInfo}>
+                  <Text style={styles.petDescription}>
+                    {snapshot.petSpecies?.description ?? '질문을 더 풀면 내 선택 패턴과 닮은 펫이 자동으로 배정됩니다.'}
+                  </Text>
+                  <ProgressRow label="진화" value={stage.next} width={evolutionProgress} color="#38bdf8" />
+                  <ProgressRow label="기분" value={`${snapshot.petState?.mood ?? snapshot.avatarState.mood}%`} width={petMood} color="#fb7185" />
+                  <ProgressRow label="에너지" value={`${snapshot.petState?.energy ?? snapshot.avatarState.energy}%`} width={petEnergy} color="#34d399" />
+                </View>
+              </View>
+
+              <View style={styles.actionGrid}>
+                <ActionButton icon="account-heart" label="펫 배정" disabled={actionDisabled} onPress={() => runAuthAction(assignPet)} />
+                <ActionButton icon="gift" label="무료 테마" disabled={actionDisabled} onPress={() => runAuthAction(claimTheme)} />
+                <ActionButton icon="treasure-chest" label="테마 뽑기" disabled={actionDisabled} onPress={() => runAuthAction(() => {
+                  void drawTheme();
+                  analyticsService.track('theme_draw_submit', { pool: 'standard-theme', count: 1 });
+                })} />
+              </View>
+
+              <Pressable
+                style={styles.probabilityLink}
+                onPress={() => {
+                  analyticsService.track('theme_draw_probability_open', { pool: 'standard-theme' });
+                  setIsProbabilityVisible(true);
+                }}
+              >
+                <MaterialCommunityIcons name="information-outline" size={15} color="#0f766e" />
+                <Text style={styles.probabilityLinkText}>획득 확률 및 피티 규칙 보기</Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.rewardPanel}>
+              <View style={styles.panelHeader}>
+                <View>
+                  <Text style={styles.cardLabel}>오늘 참여</Text>
+                  <Text style={styles.cardTitle}>{snapshot.profile.today_participation_count}/10 완료</Text>
+                </View>
+                <MaterialCommunityIcons name="calendar-check" size={34} color="#0ea5e9" />
+              </View>
+              <ProgressRow label="일일 보상" value={`${todayProgress}%`} width={`${todayProgress}%` as DimensionValue} color="#60a5fa" />
+              <View style={styles.careRow}>
+                <ActionButton icon="food-apple" label="간식" disabled={actionDisabled} onPress={() => runAuthAction(() => careForAvatar('snack'))} />
+                <ActionButton icon="gamepad-variant" label="놀아주기" disabled={actionDisabled} onPress={() => runAuthAction(() => careForAvatar('play'))} />
+                <ActionButton icon="heart" label="칭찬" disabled={actionDisabled} onPress={() => runAuthAction(() => careForAvatar('praise'))} />
+              </View>
+            </View>
+
+            <ThemeInventorySection snapshot={snapshot} />
+          </View>
+        )}
       </ScrollView>
 
       <ThemeDrawModal results={lastThemeDrawResults} onClose={clearThemeDrawResults} />
+      <ThemeProbabilitySheet visible={isProbabilityVisible} onClose={() => setIsProbabilityVisible(false)} poolSlug="standard-theme" />
 
       {isMutating ? (
         <View style={styles.mutatingOverlay}>
@@ -860,6 +941,14 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0
   },
+  skyBand: {
+    bottom: 0,
+    height: 44,
+    left: 0,
+    opacity: 0.72,
+    position: 'absolute',
+    right: 0
+  },
   stagePill: {
     backgroundColor: '#ecfeff',
     borderColor: '#99f6e4',
@@ -970,5 +1059,29 @@ const styles = StyleSheet.create({
   walletText: {
     color: '#92400e',
     fontWeight: '900'
+  },
+  modeContainer: {
+    width: '100%'
+  },
+  probabilityLink: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 4,
+    justifyContent: 'center',
+    marginTop: 14,
+    paddingVertical: 4
+  },
+  probabilityLinkText: {
+    color: '#0f766e',
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  summaryText: {
+    color: '#64748b',
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 20,
+    marginBottom: 14,
+    marginTop: 8
   }
 });

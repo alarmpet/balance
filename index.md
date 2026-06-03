@@ -47,6 +47,11 @@
 - [[AI-Sessions/wiki/decisions/bipi-model-adoption|BIPI Model Adoption]] — 자체 4축 성향 모델(BIPI) 채택 의사결정
 
 
+## Design
+
+- [[AI-Sessions/wiki/design/visual-ui-guidelines|Visual UI Guidelines]] — 비주얼 UI/UX 고도화 가이드 및 모션 제한 원칙
+
+
 ## Sources
 
 - [[AI-Sessions/wiki/sources/2026-06-03-comprehensive-review|2026-06-03 Comprehensive Review]]

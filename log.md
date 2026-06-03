@@ -19,5 +19,10 @@ YYYY-MM-DD HH:mm | command | summary | linked files
 2026-06-03 19:10 | lint | validate:wiki 자동 점검 명령 추가 | [[scripts/validate-wiki]], [[prompts/lint]], [[package]]
 2026-06-03 19:15 | lint | wiki source frontmatter 표준화 | [[AI-Sessions/wiki/sources/2026-06-03-comprehensive-review]], [[AI-Sessions/wiki/sources/2026-06-03-pet-island-liveops-upgrade-review]]
 2026-06-03 19:20 | lint | 위키 하드닝 누락 사항과 재발 방지 규칙 기록 | [[AI-Sessions/wiki/errors/wiki-hardening-gaps]]
-2026-06-03 19:30 | save | validate-wiki.mjs 오탐 방지 가드 코딩 및 research.md 리스크 슬림화/아카이브 완료 | [[scripts/validate-wiki]], [[research]], [[docs/research-history]]
+2026-06-03 19:30 | save | validate-wiki.mjs 오탐 방지 가드 코딩 및 research.md 리스크 슬림화/아카이브 완료 | [[research]], [[docs/research-history]]
+2026-06-03 21:40 | save | P1 핵심 제품 고도화 기능 구현 완료 및 타입/펫/위키 검증 완료 | [[src/constants/categories]], [[src/constants/productCopy]], [[src/services/analyticsService]], [[src/utils/choiceEcho]], [[src/components/feed/ChoiceEchoSheet]], [[src/components/island/TodayDiscoveryCard]], [[src/components/island/IslandModeTabs]], [[src/components/island/ThemeProbabilitySheet]], [[src/app/(tabs)/index]], [[src/app/(tabs)/island]]
+2026-06-03 21:50 | save | Visual UI/UX 고도화 계획 수립 및 이모지 파티클 애니메이션 등 구현 완료 | [[docs/superpowers/plans/2026-06-03-visual-ui-upgrade-plan]], [[src/theme/styles]], [[src/app/(tabs)/index]]
+2026-06-03 22:10 | save | Visual UI 계획을 wiki 기준에 맞게 재검토하고 디자인 가이드로 정리 | [[docs/superpowers/plans/2026-06-03-visual-ui-upgrade-plan]], [[AI-Sessions/wiki/design/visual-ui-guidelines]]
+
+
 
