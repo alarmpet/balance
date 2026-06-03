@@ -5,6 +5,8 @@ web-build/
 .env
 .env.local
 .env.*.local
+.supabase-access-token
+.supabase-access-token.txt
 client_secret_*.json
 npm-debug.log*
 supabase/.temp/
