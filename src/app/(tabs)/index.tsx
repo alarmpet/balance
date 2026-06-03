@@ -134,6 +134,10 @@ export default function FeedScreen() {
 
   return (
     <View style={styles.container}>
+      <View pointerEvents="none" style={styles.backdrop}>
+        <View style={styles.skyBand} />
+        <View style={styles.seaBand} />
+      </View>
       <View style={styles.header}>
         <Text style={styles.kicker}>밸런스 아일랜드</Text>
         <Text style={styles.heading}>오늘의 밸런스</Text>
@@ -189,8 +193,30 @@ const styles = StyleSheet.create({
     fontWeight: '700'
   },
   container: {
-    backgroundColor: '#e9fbf6',
+    backgroundColor: '#f4fbf8',
     flex: 1
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject
+  },
+  seaBand: {
+    backgroundColor: '#dff7ed',
+    bottom: 0,
+    left: 0,
+    opacity: 0.72,
+    position: 'absolute',
+    right: 0,
+    top: 250
+  },
+  skyBand: {
+    backgroundColor: '#0f3d3a',
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    height: 250,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0
   },
   empty: {
     color: '#52716d',
@@ -199,29 +225,32 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
   error: {
-    color: '#be123c',
+    color: '#fecdd3',
     fontSize: 13,
     fontWeight: '700',
     marginTop: 8
   },
   header: {
-    paddingBottom: 8,
+    paddingBottom: 18,
     paddingHorizontal: 20,
-    paddingTop: 56
+    paddingTop: 58
   },
   heading: {
-    color: '#12312f',
-    fontSize: 28,
+    color: '#ffffff',
+    fontSize: 32,
     fontWeight: '900',
-    marginTop: 4
+    lineHeight: 38,
+    marginTop: 6
   },
   kicker: {
-    color: '#0f766e',
-    fontSize: 13,
-    fontWeight: '900'
+    color: '#99f6e4',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 0
   },
   listContent: {
-    paddingBottom: 32
+    paddingBottom: 32,
+    paddingTop: 2
   },
   particle: {
     fontSize: 28,

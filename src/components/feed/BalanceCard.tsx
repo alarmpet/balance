@@ -161,7 +161,9 @@ function ActionButton({ icon, label, active, onPress }: ActionButtonProps) {
 const styles = StyleSheet.create({
   action: {
     alignItems: 'center',
-    backgroundColor: '#e8fbf7',
+    backgroundColor: 'rgba(255,255,255,0.74)',
+    borderColor: 'rgba(15, 118, 110, 0.12)',
+    borderWidth: 1,
     borderRadius: 14,
     flex: 1,
     flexDirection: 'row',
@@ -187,15 +189,17 @@ const styles = StyleSheet.create({
     marginTop: 14
   },
   card: {
-    backgroundColor: '#f8fffb',
-    borderRadius: 24,
-    elevation: 4,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderColor: 'rgba(255,255,255,0.78)',
+    borderRadius: 26,
+    borderWidth: 1,
+    elevation: 7,
     margin: 16,
-    padding: 16,
+    padding: 14,
     shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.12,
-    shadowRadius: 18
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.16,
+    shadowRadius: 24
   },
   category: {
     color: '#0f766e',
@@ -218,7 +222,9 @@ const styles = StyleSheet.create({
   },
   option: {
     backgroundColor: '#d7f4ef',
-    borderRadius: 20,
+    borderColor: 'rgba(255,255,255,0.28)',
+    borderRadius: 22,
+    borderWidth: 1,
     minHeight: 210,
     overflow: 'hidden'
   },
@@ -238,10 +244,10 @@ const styles = StyleSheet.create({
   },
   optionOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(7, 39, 36, 0.38)'
+    backgroundColor: 'rgba(7, 39, 36, 0.46)'
   },
   optionSelected: {
-    borderColor: '#14b8a6',
+    borderColor: '#facc15',
     borderWidth: 3
   },
   optionSide: {
@@ -275,6 +281,8 @@ const styles = StyleSheet.create({
   },
   resultTrack: {
     backgroundColor: 'rgba(255,255,255,0.32)',
+    borderColor: 'rgba(255,255,255,0.5)',
+    borderWidth: 1,
     borderRadius: 999,
     height: 30,
     marginTop: 14,
