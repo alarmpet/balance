@@ -9,6 +9,7 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "validate:pet-assets": "node scripts/validate-pet-assets.mjs",
+    "validate:wiki": "node scripts/validate-wiki.mjs",
     "doctor": "expo-doctor"
   },
   "dependencies": {
