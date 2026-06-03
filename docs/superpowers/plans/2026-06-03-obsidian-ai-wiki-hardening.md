@@ -23,6 +23,16 @@
 - Risk: `/docs` and `AI-Sessions/raw` duplicate similar materials. For now, do not delete `/docs`; document canonical lookup rules and let lint detect duplicated source-like content.
 - Risk: most wiki files are untracked. A future agent will not see them after clone unless they are committed.
 
+## Review Validation Notes
+
+The review document `docs/2026-06-03-obsidian-ai-wiki-hardening-review.md` was checked against the current repo state.
+
+- Accepted: `.obsidian/workspace.json` is a local Obsidian workspace cache and should not be committed.
+- Accepted: secret lint must avoid false positives from policy text such as "Client Secret을 노출하지 마라" in docs and prompts.
+- Accepted: the 5-filter check should allow Korean and English wording, not only the exact Korean string `5가지`.
+- Accepted: `log.md` and `timeline.md` need a clear role split in agent rules.
+- Deferred: shrinking `research.md` is a valid token-efficiency idea, but it is a separate archival/refactor task and should not block this wiki hardening plan.
+
 ## File Structure
 
 ### Create
@@ -39,6 +49,7 @@
 
 - `CLAUDE.md`: add `reference` alias and explicit lint enforcement rule.
 - `AGENTS.md`: add `reference` alias and explicit lint enforcement rule.
+- `.gitignore`: ignore Obsidian local workspace cache files.
 - `index.md`: add missing root artifacts and `prompts/reference`.
 - `log.md`: append a hardening implementation entry.
 - `package.json`: add `validate:wiki`.
@@ -48,6 +59,7 @@
 ### Do Not Modify
 
 - `AI-Sessions/raw/**`: read-only source material.
+- `.obsidian/workspace.json`, `.obsidian/workspace-mobile.json`: local Obsidian workspace cache.
 - `.supabase-access-token.txt`: local ignored secret.
 - `login-smoke.png`, `supabase-url-config-smoke.png`: local smoke evidence, leave untracked unless the user explicitly asks to preserve them.
 - `docs/codex-reinstall-handoff.md`, `docs/2026-06-03-pet-island-liveops-upgrade-review.md`: currently local/untracked docs with prior encoding concerns; do not commit in this plan.
@@ -309,7 +321,18 @@ Create:
 ```
 ```
 
-- [ ] **Step 4: Update `index.md` prompt library**
+- [ ] **Step 4: Clarify `log.md` and `timeline.md` roles in agent rules**
+
+Add a short rule to both `CLAUDE.md` and `AGENTS.md`:
+
+```markdown
+## log.md and timeline.md
+
+- `log.md`: append-only one-line record for wiki commands such as `save`, `ingest`, `query`, `reference`, and `lint`.
+- `timeline.md`: human-readable development timeline for code changes, Supabase deployments, verification results, product decisions, and release notes.
+```
+
+- [ ] **Step 5: Update `index.md` prompt library**
 
 Ensure:
 
@@ -317,7 +340,7 @@ Ensure:
 - [[prompts/reference]]
 ```
 
-- [ ] **Step 5: Update `log.md`**
+- [ ] **Step 6: Update `log.md`**
 
 Append:
 
@@ -325,17 +348,18 @@ Append:
 2026-06-03 19:05 | save | reference 명령 alias를 CLAUDE/AGENTS 규칙과 prompt library에 추가 | [[CLAUDE]], [[AGENTS]], [[prompts/reference]], [[index]]
 ```
 
-- [ ] **Step 6: Verify Task 2**
+- [ ] **Step 7: Verify Task 2**
 
 Run:
 
 ```powershell
 rg -n "reference|옵시디언 참조|위키 참조" CLAUDE.md AGENTS.md prompts/reference.md index.md
+rg -n "timeline.md|log.md" CLAUDE.md AGENTS.md
 ```
 
 Expected: matches in all four files.
 
-- [ ] **Step 7: Commit Task 2**
+- [ ] **Step 8: Commit Task 2**
 
 ```powershell
 git add CLAUDE.md AGENTS.md prompts/reference.md index.md log.md
@@ -394,13 +418,12 @@ const requiredDirs = [
 const secretPatterns = [
   /sk-[A-Za-z0-9_-]{20,}/,
   /sbp_[A-Za-z0-9_-]{20,}/,
-  /eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}/,
-  /service[_-]?role/i,
-  /client[_-]?secret/i,
-  /api[_-]?key\s*[:=]/i,
-  /password\s*[:=]/i
+  /sb_secret_[A-Za-z0-9_-]{20,}/,
+  /eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}/,
+  /(?:api[_-]?key|client[_-]?secret|password|token)\s*[:=]\s*["'][^"']{16,}["']/i
 ];
 
+const fiveFilterPattern = /5가지|5[ -]?Filter/i;
 const failures = [];
 
 for (const file of requiredFiles) {
@@ -413,8 +436,10 @@ for (const dir of requiredDirs) {
 
 assertIncludes('CLAUDE.md', ['save', 'ingest', 'query', 'reference', 'lint']);
 assertIncludes('AGENTS.md', ['save', 'ingest', 'query', 'reference', 'lint']);
-assertIncludes('CLAUDE.md', ['AI-Sessions/raw/', 'AI-Sessions/wiki/', '5가지']);
-assertIncludes('AGENTS.md', ['AI-Sessions/raw/', 'AI-Sessions/wiki/', '5가지']);
+assertIncludes('CLAUDE.md', ['AI-Sessions/raw/', 'AI-Sessions/wiki/']);
+assertIncludes('AGENTS.md', ['AI-Sessions/raw/', 'AI-Sessions/wiki/']);
+assertAnyMatch('CLAUDE.md', fiveFilterPattern, '5-filter rule');
+assertAnyMatch('AGENTS.md', fiveFilterPattern, '5-filter rule');
 assertIncludes('index.md', ['[[prompts/save]]', '[[prompts/ingest]]', '[[prompts/query]]', '[[prompts/reference]]', '[[prompts/lint]]']);
 
 for (const file of listMarkdownFiles('AI-Sessions/wiki')) {
@@ -425,8 +450,7 @@ for (const file of listMarkdownFiles('AI-Sessions/wiki')) {
 }
 
 for (const file of listMarkdownFiles('.')) {
-  if (file.includes('node_modules') || file.includes('.git')) continue;
-  if (file.includes('AI-Sessions/raw')) continue;
+  if (!isSecretScanTarget(file)) continue;
   const content = readFileSync(file, 'utf8');
   for (const pattern of secretPatterns) {
     if (pattern.test(content)) {
@@ -453,6 +477,24 @@ function assertIncludes(path, needles) {
   }
 }
 
+function assertAnyMatch(path, pattern, label) {
+  if (!existsSync(path)) return;
+  const content = readFileSync(path, 'utf8');
+  if (!pattern.test(content)) {
+    failures.push(`${path} missing required pattern: ${label}`);
+  }
+}
+
+function isSecretScanTarget(file) {
+  const rel = file.replaceAll('\\', '/');
+  if (rel.startsWith('node_modules/') || rel.startsWith('.git/') || rel.startsWith('dist/')) return false;
+  if (rel.startsWith('AI-Sessions/raw/')) return false;
+  if (rel === 'CLAUDE.md' || rel === 'AGENTS.md') return false;
+  if (rel.startsWith('prompts/') || rel.startsWith('docs/')) return false;
+  if (['README.md', 'START_HERE.md', 'TEMPLATE_MANIFEST.md', 'LICENSE.md'].includes(rel)) return false;
+  return true;
+}
+
 function listMarkdownFiles(root) {
   const results = [];
   walk(root);
@@ -462,7 +504,7 @@ function listMarkdownFiles(root) {
     if (!existsSync(dir)) return;
     for (const name of readdirSync(dir)) {
       const path = join(dir, name);
-      const rel = relative('.', path).replaceAll('\\\\', '/');
+      const rel = relative('.', path).replaceAll('\\', '/');
       if (rel.startsWith('node_modules/') || rel.startsWith('.git/') || rel.startsWith('dist/')) continue;
       const stat = statSync(path);
       if (stat.isDirectory()) {
@@ -492,6 +534,8 @@ Append:
 ```markdown
 ## Executable Check
 
+자동 secret 검사는 실제 값이 붙은 토큰/키 형태만 실패로 본다. 정책 문서의 `Client Secret`, `API Key`, `token` 같은 보안 용어 자체는 유출로 보지 않는다.
+
 가능하면 먼저 아래 명령을 실행해 구조/규칙 위반을 확인한다.
 
 ```powershell
@@ -517,7 +561,7 @@ Run:
 npm.cmd run validate:wiki
 ```
 
-Expected before Task 4: FAIL if any existing wiki page lacks YAML frontmatter.
+Expected before Task 4: FAIL if any existing wiki page lacks YAML frontmatter. It must not fail merely because policy docs or prompts mention terms such as `Client Secret`, `API Key`, or `token` without actual secret values.
 
 - [ ] **Step 6: Commit Task 3**
 
@@ -611,7 +655,7 @@ git commit -m "Standardize wiki frontmatter"
 - Add: `.obsidian/appearance.json`
 - Add: `.obsidian/core-plugins.json`
 - Add: `.obsidian/graph.json`
-- Add: `.obsidian/workspace.json`
+- Modify: `.gitignore`
 - Add: `AGENTS.md`
 - Add: `CLAUDE.md`
 - Add: `AI-Sessions/**`
@@ -623,19 +667,32 @@ git commit -m "Standardize wiki frontmatter"
 - Add: `TEMPLATE_MANIFEST.md`
 - Add: `VERSION`
 - Add: `LICENSE.md`
-- Do not add: `.supabase-access-token.txt`, `login-smoke.png`, `supabase-url-config-smoke.png`, untracked `docs/*.md` with encoding concerns.
+- Do not add: `.obsidian/workspace.json`, `.obsidian/workspace-mobile.json`, `.supabase-access-token.txt`, `login-smoke.png`, `supabase-url-config-smoke.png`, untracked `docs/*.md` with encoding concerns.
 
-- [ ] **Step 1: Check ignored secrets**
+- [ ] **Step 1: Ignore Obsidian local workspace cache**
+
+Add to `.gitignore`:
+
+```gitignore
+# Obsidian local workspace cache
+.obsidian/workspace
+.obsidian/workspace-mobile
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+```
+
+- [ ] **Step 2: Check ignored secrets and workspace cache**
 
 Run:
 
 ```powershell
 git check-ignore -v .supabase-access-token.txt
+git check-ignore -v .obsidian/workspace.json
 ```
 
-Expected: `.gitignore` rule is printed.
+Expected: `.gitignore` rules are printed.
 
-- [ ] **Step 2: Review untracked files**
+- [ ] **Step 3: Review untracked files**
 
 Run:
 
@@ -645,15 +702,15 @@ git status --short --branch
 
 Expected: wiki files are visible as untracked or staged. `.supabase-access-token.txt` must not appear.
 
-- [ ] **Step 3: Stage safe wiki files**
+- [ ] **Step 4: Stage safe wiki files**
 
 Run:
 
 ```powershell
-git add .obsidian AGENTS.md CLAUDE.md AI-Sessions index.md log.md prompts README.md START_HERE.md TEMPLATE_MANIFEST.md VERSION LICENSE.md scripts/validate-wiki.mjs package.json
+git add .gitignore .obsidian/app.json .obsidian/appearance.json .obsidian/core-plugins.json .obsidian/graph.json AGENTS.md CLAUDE.md AI-Sessions index.md log.md prompts README.md START_HERE.md TEMPLATE_MANIFEST.md VERSION LICENSE.md scripts/validate-wiki.mjs package.json
 ```
 
-- [ ] **Step 4: Confirm no local evidence/secrets are staged**
+- [ ] **Step 5: Confirm no local evidence/secrets/cache files are staged**
 
 Run:
 
@@ -665,13 +722,15 @@ Expected: output does not include:
 
 ```text
 .supabase-access-token.txt
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
 login-smoke.png
 supabase-url-config-smoke.png
 docs/codex-reinstall-handoff.md
 docs/2026-06-03-pet-island-liveops-upgrade-review.md
 ```
 
-- [ ] **Step 5: Run final validation**
+- [ ] **Step 6: Run final validation**
 
 Run:
 
@@ -689,13 +748,13 @@ Expected:
 - `tsc --noEmit` exits 0.
 - `git diff --cached --check` exits 0.
 
-- [ ] **Step 6: Commit Task 5**
+- [ ] **Step 7: Commit Task 5**
 
 ```powershell
 git commit -m "Harden Obsidian AI wiki setup"
 ```
 
-- [ ] **Step 7: Push**
+- [ ] **Step 8: Push**
 
 Run only after user has allowed push or current thread policy already allows `git push origin main`:
 
@@ -739,6 +798,9 @@ The initial Obsidian AI 업무 위키 setup was structurally present but incompl
 - Wiki lint existed as a prompt but not as an executable check.
 - Some source pages lacked YAML frontmatter.
 - Several wiki files were local-only and untracked.
+- `.obsidian/workspace.json` is a local workspace cache and should stay ignored.
+- Secret lint needed path-aware false-positive guards for policy documents and prompts.
+- `log.md` and `timeline.md` needed a clearer role split for agents.
 
 ## Prevention
 
@@ -796,4 +858,5 @@ This plan contains no placeholder markers or unspecified implementation steps. E
 
 - This plan does not delete duplicated `/docs` materials. Deletion would be destructive and should be a later cleanup task after canonical wiki/raw references are proven.
 - This plan does not automate semantic contradiction detection. It documents semantic lint in `prompts/lint.md` and adds structural lint in `scripts/validate-wiki.mjs`.
+- This plan does not shrink or archive `research.md`. Create a separate research-history archival plan after wiki validation is stable.
 - This plan does not commit local screenshots or token files.
