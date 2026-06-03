@@ -38,9 +38,10 @@
 - Supabase Google provider has been enabled; authorize smoke returned HTTP 302 to `accounts.google.com`.
 - Kakao Developers app has been created, Kakao Login is ON, and the Supabase callback URI is registered on the REST API key.
 - Kakao nickname and profile image consent are enabled as optional consent.
-- Kakao account email is unavailable because the app is not a Kakao Biz App, so Supabase Kakao provider is enabled with `Allow users without an email` ON for MVP smoke.
+- Kakao account email is now enabled as required consent after registering an app icon and converting the Kakao app to a personal developer Biz App. This is required because Supabase's built-in Kakao provider includes `account_email` in the authorize request.
 - Supabase Kakao provider has been enabled; authorize smoke returned HTTP 302 to `kauth.kakao.com`.
-- Remaining work: production real login smoke for Google and Kakao, then profile/pet/avatar side-effect verification.
+- Production Kakao button now reaches the Kakao consent screen instead of `KOE205`.
+- Remaining work: user completes the Kakao consent screen, then profile/pet/avatar side-effect verification. Repeat Google real login smoke if a fresh account-level verification is needed.
 
 ## Security Rules
 

@@ -361,3 +361,11 @@
 - Safety check: The current auth profile trigger derives profile fields from `raw_user_meta_data` and does not require `NEW.email`, so Supabase's Kakao email-less fallback is acceptable for MVP smoke testing.
 - Dashboard: Supabase Kakao provider was enabled and saved with `Allow users without an email` ON.
 - Verification: Supabase OAuth authorize smoke for `kakao` returned HTTP 302 to `kauth.kakao.com`.
+
+## 2026-06-03 04:33 KST - Kakao KOE205 Resolved
+
+- Finding: Production Kakao login initially reached Kakao but failed with `KOE205` because Supabase's built-in Kakao provider includes the `account_email` scope.
+- Work: Registered a small app icon in Kakao Developers, converted the Kakao app to a personal developer Biz App, and changed `account_email` from `사용 안 함` to `필수 동의`.
+- Verification: Supabase authorize for `kakao` returned HTTP 302 to `kauth.kakao.com`, and Kakao then returned HTTP 302 to `accounts.kakao.com` instead of rendering the `KOE205` error page.
+- Verification: Production `/login` Kakao button now navigates from Balance Island to the Kakao consent screen for `Balance Island`; the consent screen shows required email plus optional nickname/profile image consent.
+- Limitation: Real Kakao login completion is waiting at the user-owned Kakao consent step; token-bearing callback URLs were not copied or recorded.
