@@ -19,3 +19,5 @@ YYYY-MM-DD HH:mm | command | summary | linked files
 2026-06-03 19:10 | lint | validate:wiki 자동 점검 명령 추가 | [[scripts/validate-wiki]], [[prompts/lint]], [[package]]
 2026-06-03 19:15 | lint | wiki source frontmatter 표준화 | [[AI-Sessions/wiki/sources/2026-06-03-comprehensive-review]], [[AI-Sessions/wiki/sources/2026-06-03-pet-island-liveops-upgrade-review]]
 2026-06-03 19:20 | lint | 위키 하드닝 누락 사항과 재발 방지 규칙 기록 | [[AI-Sessions/wiki/errors/wiki-hardening-gaps]]
+2026-06-03 19:30 | save | validate-wiki.mjs 오탐 방지 가드 코딩 및 research.md 리스크 슬림화/아카이브 완료 | [[scripts/validate-wiki]], [[research]], [[docs/research-history]]
+

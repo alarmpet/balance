@@ -69,7 +69,7 @@ GPT-5.3-Codex-Spark 읽기 전용 리뷰어가 지적한 내용 중 타당한 �
 
 작업:
 
-- `fetch_feed_questions` 호출부와 DB 함수 정의가 `p_limit`, `p_exclude_before`, `p_sort` 3인자 기준으로 통일되어 있는지 확인한다.
+- `fetch_feed_questions` 호출부와 DB 함수 정의가 `p_limit`, `p_cursor_created_at`, `p_sort` 3인자 기준으로 통일되어 있는지 확인한다.
 - 배포 체크리스트에 “모든 Supabase migration 적용 후 타입 생성”을 넣는다.
 - `supabase/schema.sql`, `supabase/apply_new_project.sql`은 새 프로젝트 초기화용으로만 표기하고 운영 적용 금지 문구를 추가한다.
 - 프로필 업데이트 경로는 클라이언트 직접 update가 아니라 `update_profile_display` RPC 중심으로 정리한다.

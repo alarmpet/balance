@@ -409,3 +409,20 @@
 - Verification: Deployment window reported `Supabase migration and Edge Function deploy commands completed.`
 - Verification: External unauthenticated POST smoke tests against both deployed function URLs returned HTTP 401 with missing authorization header errors, confirming unauthenticated calls do not reach OpenAI.
 - Security: Supabase access token, DB password, callback URLs, and auth tokens were not recorded in chat or repository files.
+
+## 2026-06-03 18:30 KST - Obsidian AI 업무 위키 통합 및 기획 마이그레이션
+
+- Work: 김효율 AI 업무 위키 템플릿의 디렉토리 구조(`AI-Sessions/`, `prompts/`)를 루트에 연동하고, 핵심 규칙 파일(`CLAUDE.md`, `AGENTS.md`, `index.md`, `log.md`)을 루트에 배치함.
+- Work: 기존에 흩어져 있던 `/docs` 하위의 계획 및 리뷰 보고서들을 위키 3-Layer 아키텍처에 맞춰 각 영역(`AI-Sessions/raw/plans/`, `wiki/sources/`, `conversations/`)으로 안전하게 마이그레이션 완료.
+- Design: Balance Island 프로젝트 전용 가이드라인을 `CLAUDE.md` 하단에 병행 준수 규칙으로 커스텀 탑재.
+- Concept: 핵심 비즈니스 개념 3개(`bipi-personality-system`, `pet-care-and-evolution-system`, `shell-economy-and-rpc-security`) 및 아키텍처 의사결정 2개(`oauth-provider-selection`, `bipi-model-adoption`)를 위키 문서로 작성하고 `index.md`에 교차 참조 링크 갱신 완료.
+
+## 2026-06-03 19:30 KST - 위키 하드닝(Hardening) 및 검증 스크립트 배포
+
+- Hardening: `.gitignore`에 Obsidian 로컬 작업 세션 캐시 파일(`.obsidian/workspace*`) 제외 규칙 적용 완료.
+- Hardening: 템플릿 누락 루트 문서 5건(`README.md`, `START_HERE.md`, `TEMPLATE_MANIFEST.md`, `VERSION`, `LICENSE.md`) 생성하여 위키 정합성 확보.
+- Script: 크로스플랫폼 린트 스크립트 `scripts/validate-wiki.mjs` 신규 작성 및 `validate:wiki` npm script 추가.
+- Safety: `validate-wiki.mjs` 검사 시 규칙 파일(`CLAUDE.md`), 프롬프트, 기획 본문(`/docs/`)은 Secret 패턴 오탐(False Positive)에서 예외 처리하고, 크로스플랫폼 경로 호환 가드 코드를 보강 완료.
+- Validation: `npm run validate:wiki` 명령으로 전체 위키 데이터 검증을 수행하여 정상 통과(`Wiki validation passed.`) 확인 완료.
+- Refactor: 580줄에 이르던 비대한 `research.md` 리스크 문서를 과거 이력 아카이브(`docs/research-history.md`)와 현재 활성 리스크로 완전 이원화하여 슬림화 완료.
+

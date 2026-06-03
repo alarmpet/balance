@@ -27,5 +27,7 @@ App verification remains separate:
 
 ```powershell
 npm.cmd run validate:pet-assets
+```
+```powershell
 npm.cmd run typecheck
 ```

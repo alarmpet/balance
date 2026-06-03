@@ -7,15 +7,16 @@
 ## Start Here
 
 - [[START_HERE]]
-- [[CLAUDE]]
-- [[AGENTS]]
 - [[README]]
 - [[TEMPLATE_MANIFEST]]
 - [[VERSION]]
 - [[LICENSE]]
+- [[CLAUDE]]
+- [[AGENTS]]
 - [[log]]
 - [[agent]] — 기존 에이전트 지침
-- [[research]] — 기존 리서치 문서
+- [[research]] — 활성 리서치 및 리스크 요약
+- [[docs/research-history]] — 과거 상세 리서치 역사 (아카이브)
 - [[timeline]] — 기존 작업 타임라인
 
 ## Vault Structure

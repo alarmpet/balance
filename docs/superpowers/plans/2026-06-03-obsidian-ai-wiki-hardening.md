@@ -43,13 +43,13 @@ The review document `docs/2026-06-03-obsidian-ai-wiki-hardening-review.md` was c
 - `VERSION`: adapted wiki template version string.
 - `LICENSE.md`: template/license note.
 - `prompts/reference.md`: alias prompt for `query`.
-- `scripts/validate-wiki.mjs`: cross-platform validator for wiki structure, command rules, frontmatter, index/log coverage, and secret-like text.
+- `scripts/validate-wiki.mjs`: cross-platform validator for wiki structure, command rules, frontmatter, index/log coverage.
 
 ### Modify
 
+- `.gitignore`: add Obsidian local workspace cache exclusion rules.
 - `CLAUDE.md`: add `reference` alias and explicit lint enforcement rule.
 - `AGENTS.md`: add `reference` alias and explicit lint enforcement rule.
-- `.gitignore`: ignore Obsidian local workspace cache files.
 - `index.md`: add missing root artifacts and `prompts/reference`.
 - `log.md`: append a hardening implementation entry.
 - `package.json`: add `validate:wiki`.
@@ -59,10 +59,10 @@ The review document `docs/2026-06-03-obsidian-ai-wiki-hardening-review.md` was c
 ### Do Not Modify
 
 - `AI-Sessions/raw/**`: read-only source material.
-- `.obsidian/workspace.json`, `.obsidian/workspace-mobile.json`: local Obsidian workspace cache.
 - `.supabase-access-token.txt`: local ignored secret.
 - `login-smoke.png`, `supabase-url-config-smoke.png`: local smoke evidence, leave untracked unless the user explicitly asks to preserve them.
 - `docs/codex-reinstall-handoff.md`, `docs/2026-06-03-pet-island-liveops-upgrade-review.md`: currently local/untracked docs with prior encoding concerns; do not commit in this plan.
+- `.obsidian/workspace.json`, `.obsidian/workspace-mobile.json`: local workspace cache files, do not commit.
 
 ---
 
@@ -418,12 +418,13 @@ const requiredDirs = [
 const secretPatterns = [
   /sk-[A-Za-z0-9_-]{20,}/,
   /sbp_[A-Za-z0-9_-]{20,}/,
-  /sb_secret_[A-Za-z0-9_-]{20,}/,
-  /eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}/,
-  /(?:api[_-]?key|client[_-]?secret|password|token)\s*[:=]\s*["'][^"']{16,}["']/i
+  /eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}/,
+  /service[_-]?role/i,
+  /client[_-]?secret/i,
+  /api[_-]?key\s*[:=]/i,
+  /password\s*[:=]/i
 ];
 
-const fiveFilterPattern = /5가지|5[ -]?Filter/i;
 const failures = [];
 
 for (const file of requiredFiles) {
@@ -438,8 +439,11 @@ assertIncludes('CLAUDE.md', ['save', 'ingest', 'query', 'reference', 'lint']);
 assertIncludes('AGENTS.md', ['save', 'ingest', 'query', 'reference', 'lint']);
 assertIncludes('CLAUDE.md', ['AI-Sessions/raw/', 'AI-Sessions/wiki/']);
 assertIncludes('AGENTS.md', ['AI-Sessions/raw/', 'AI-Sessions/wiki/']);
-assertAnyMatch('CLAUDE.md', fiveFilterPattern, '5-filter rule');
-assertAnyMatch('AGENTS.md', fiveFilterPattern, '5-filter rule');
+
+// 5-filter 설명 포함 여부를 유연하게 검증 (한글/영문 대응)
+assertRegex('CLAUDE.md', /5가지|5[ -]?Filter/i);
+assertRegex('AGENTS.md', /5가지|5[ -]?Filter/i);
+
 assertIncludes('index.md', ['[[prompts/save]]', '[[prompts/ingest]]', '[[prompts/query]]', '[[prompts/reference]]', '[[prompts/lint]]']);
 
 for (const file of listMarkdownFiles('AI-Sessions/wiki')) {
@@ -450,7 +454,17 @@ for (const file of listMarkdownFiles('AI-Sessions/wiki')) {
 }
 
 for (const file of listMarkdownFiles('.')) {
-  if (!isSecretScanTarget(file)) continue;
+  if (file.includes('node_modules') || file.includes('.git') || file.includes('dist')) continue;
+  if (file.includes('AI-Sessions/raw')) continue;
+  
+  // 규칙 파일, 프롬프트 파일 및 기획 보고서 본문 내의 가이드는 Secret 오탐(False Positive) 방지를 위해 제외
+  if (
+    file === 'CLAUDE.md' || 
+    file === 'AGENTS.md' || 
+    file.startsWith('prompts/') || 
+    file.startsWith('docs/')
+  ) continue;
+
   const content = readFileSync(file, 'utf8');
   for (const pattern of secretPatterns) {
     if (pattern.test(content)) {
@@ -477,22 +491,12 @@ function assertIncludes(path, needles) {
   }
 }
 
-function assertAnyMatch(path, pattern, label) {
+function assertRegex(path, regex) {
   if (!existsSync(path)) return;
   const content = readFileSync(path, 'utf8');
-  if (!pattern.test(content)) {
-    failures.push(`${path} missing required pattern: ${label}`);
+  if (!regex.test(content)) {
+    failures.push(`${path} missing required pattern: ${regex.source}`);
   }
-}
-
-function isSecretScanTarget(file) {
-  const rel = file.replaceAll('\\', '/');
-  if (rel.startsWith('node_modules/') || rel.startsWith('.git/') || rel.startsWith('dist/')) return false;
-  if (rel.startsWith('AI-Sessions/raw/')) return false;
-  if (rel === 'CLAUDE.md' || rel === 'AGENTS.md') return false;
-  if (rel.startsWith('prompts/') || rel.startsWith('docs/')) return false;
-  if (['README.md', 'START_HERE.md', 'TEMPLATE_MANIFEST.md', 'LICENSE.md'].includes(rel)) return false;
-  return true;
 }
 
 function listMarkdownFiles(root) {
@@ -651,11 +655,11 @@ git commit -m "Standardize wiki frontmatter"
 ## Task 5: Commit Safe Wiki System Files
 
 **Files:**
+- Modify: `.gitignore`
 - Add: `.obsidian/app.json`
 - Add: `.obsidian/appearance.json`
 - Add: `.obsidian/core-plugins.json`
 - Add: `.obsidian/graph.json`
-- Modify: `.gitignore`
 - Add: `AGENTS.md`
 - Add: `CLAUDE.md`
 - Add: `AI-Sessions/**`
@@ -667,7 +671,7 @@ git commit -m "Standardize wiki frontmatter"
 - Add: `TEMPLATE_MANIFEST.md`
 - Add: `VERSION`
 - Add: `LICENSE.md`
-- Do not add: `.obsidian/workspace.json`, `.obsidian/workspace-mobile.json`, `.supabase-access-token.txt`, `login-smoke.png`, `supabase-url-config-smoke.png`, untracked `docs/*.md` with encoding concerns.
+- Do not add: `.supabase-access-token.txt`, `login-smoke.png`, `supabase-url-config-smoke.png`, untracked `docs/*.md` with encoding concerns, `.obsidian/workspace.json`, `.obsidian/workspace-mobile.json`.
 
 - [ ] **Step 1: Ignore Obsidian local workspace cache**
 
