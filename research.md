@@ -1,8 +1,11 @@
 # Balance Island MVP Deep Research Report
 
 작성일: 2026-06-01  
+최종 업데이트: 2026-06-03 KST
 분석 범위: `balance-island` 전체 정적 분석  
-리뷰 보조: `GPT-5.3-Codex-Spark` 읽기 전용 리뷰어 에이전트 `019e829e-4cac-7060-96a9-1a638f2b1a04`
+리뷰 보조: `GPT-5.3-Codex-Spark` 읽기 전용 리뷰어 에이전트 `019e829e-4cac-7060-96a9-1a638f2b1a04`, `019e8c7d-d532-7bb1-a38e-9dc2d568db41`
+
+> 참고: 1-9장은 2026-06-01 최초 정적 분석이다. 이후 섹션의 날짜별 상태가 현재 코드/DB/배포 상태를 우선한다.
 
 ## 1. 프로젝트 개요
 
@@ -578,3 +581,83 @@ UUID를 따옴표 없이 직접 이어 붙이면 PostgREST/PG 파서에서 하�
 - 기존 `care_avatar(text)`는 제거하고 `care_avatar(text, uuid)`로 교체했다. 유료 케어 액션(`snack`, `play`)은 request id가 없으면 실패한다.
 - 클라이언트 타입/서비스/스토어/섬 화면에 성향 펫, 장착 테마, 무료 테마, 테마 뽑기 액션을 연결했다.
 - 검증됨: `npm.cmd run typecheck` 성공, `git diff --check` 성공.
+
+## 2026-06-03 Current State Override
+
+이 섹션은 2026-06-01 최초 분석의 오래된 “미적용/미검증” 항목을 현재 상태로 덮어쓴다.
+
+### Auth and Provider Status
+
+- 이메일 매직 링크, Google OAuth, Kakao OAuth는 Supabase Auth를 단일 세션 소스로 사용한다.
+- 앱 코드에는 `src/app/login.tsx`, `src/app/auth/callback.tsx`, `src/services/authService.ts`, `src/store/authStore.ts`가 연결되어 있다.
+- `supabase/migrations/202606021900_auth_profile_metadata.sql`은 Google/Kakao/Naver-style provider metadata와 magic-link 사용자의 profile 생성 fallback을 보강한다.
+- Google Cloud OAuth Web Client가 생성되었고, production/local web origin과 Supabase OAuth callback URI가 등록되었다.
+- Supabase Google provider는 활성화되었고, authorize smoke에서 `accounts.google.com`으로 redirect되는 것을 확인했다.
+- Kakao Developers 앱은 Kakao Login ON, Supabase callback Redirect URI, REST API key, Client Secret, consent items가 설정되었다.
+- Kakao `KOE205`는 앱 아이콘 등록, 개인 개발자 Biz App 전환, `account_email` 필수 동의 활성화로 해결했다.
+- Supabase Kakao provider는 활성화되었고, 실제 Kakao 로그인은 production app으로 돌아와 `/profile`의 non-guest session을 렌더링했다.
+- Google production login smoke도 `/profile` non-guest session으로 돌아오는 것을 확인했다. 다만 같은 이메일/기존 계정과 연결되어 보일 수 있으므로 provider별 별도 계정 판별은 선택 검증으로 남긴다.
+- Naver는 Supabase built-in provider가 아니므로 계속 비활성화 상태다. `custom:naver` 호환성 spike와 userinfo/email 매핑 검증 전에는 버튼을 열지 않는다.
+- 현재 실검증은 production web 중심이다. Expo native/development build의 `balanceisland://auth/callback` deep link smoke는 release 전 별도 검증 항목으로 남는다.
+- 관련 문서: `docs/auth-provider-setup.md`, `docs/superpowers/plans/2026-06-02-social-auth-magic-link.md`, `docs/superpowers/plans/2026-06-03-oauth-provider-console-setup.md`.
+
+### AI Edge Function Hardening and Deployment
+
+- `supabase/functions/refine-question/index.ts`와 `supabase/functions/embed-question/index.ts`는 POST-only, request size limit, field length/category validation, restricted CORS, JWT auth, upstream OpenAI error masking을 적용했다.
+- 기존 in-memory per-user rate limit은 1차 방어로 남아 있고, durable quota는 `supabase/migrations/202606030530_ai_edge_rate_limits.sql`의 `ai_edge_rate_limit_events`와 `check_ai_rate_limit()` RPC로 보강했다.
+- 두 Edge Function은 `check_ai_rate_limit()`를 호출한 뒤 OpenAI 요청을 수행한다. quota RPC 오류 시 fail-closed로 처리한다.
+- Supabase CLI 인증 후 `supabase db push`와 두 Edge Function deploy가 완료되었다.
+- 외부 unauthenticated POST smoke에서 두 function 모두 HTTP 401을 반환해 anonymous cost-drain 경로가 닫혔음을 확인했다.
+- 관련 커밋: `fdf05c5 Record Supabase edge deployment`.
+
+### Product Identity and Island Direction
+
+- 현재 정체성은 “재미삼아 밸런스 게임을 하다 보면 내가 몰랐던 성향, 가치관, 좋아하는 것과 싫어하는 것을 발견하는 앱”이다.
+- `펫`은 사용자의 감정적 아바타이자 선택 해석자다. 답변 성향을 먹고 반응하며, 사용자가 자기 자신을 더 쉽게 느끼도록 돕는다.
+- `섬`은 펫이 사는 단순 배경이 아니라, 사용자의 선택 기록이 축적되는 자기 이해 공간이다.
+- 섬의 장기 방향은 Obsidian graph의 연결성, mind map의 직관성, personal informatics의 회고 루프를 섞은 “나의 선택 지도”다.
+- 결과 표현은 심리검사나 MBTI 복제가 아니라 “선택 흐름”, “요즘 드러난 취향”, “반복되는 가치 기준”처럼 preference signal로 제한한다.
+- 뽑기/경제는 곧바로 본질이 되지 않는다. 우선 자기 발견 loop와 펫/섬 의미를 고정하고, theme/variant draw는 별도 확장 모듈로 둔다.
+- `supabase/migrations/202606021500_personality_insight_map.sql`과 `src/app/insight-map.tsx`, `src/components/insight/InsightMapPreview.tsx`는 섬 화면에서 “나의 선택 지도”를 preview/detail로 확장하기 위한 현재 구현 축이다.
+- 관련 계획서: `docs/superpowers/plans/2026-06-02-personality-insight-map.md`, `docs/superpowers/plans/2026-06-03-pet-island-liveops-economy.md`.
+
+### Pet Asset Batch and Runtime Resolution
+
+- 로컬 원본 에셋 위치는 `C:\Users\petbl\Desktop\alarmpetgo_\svg`, `C:\Users\petbl\Desktop\alarmpetgo_\rare`, `C:\Users\petbl\Desktop\alarmpetgo_\legend`이다.
+- 현재 repo에는 앱용 파생본으로 10 common, 10 rare, 3 legend PNG가 포함되어 있다.
+- common 10종: `american-shorthair`, `bichon`, `chameleon`, `chihuahua`, `deer`, `elephant`, `frog`, `giraffe`, `goldfish`, `hamster`.
+- rare 10종: 위 10종의 rare variant.
+- legend 3종: `dragon`, `phoenix`, `unicorn`.
+- 파생본은 768x768 RGBA PNG로 정규화되었다. common은 투명 컷아웃에 가깝고, rare/legend는 오라나 배경이 포함된 카드/초상화 성격이 강하다.
+- `src/app/(tabs)/island.tsx`의 `LOCAL_PET_ASSETS` resolver는 DB의 `asset://alarmpetgo/...` content id를 Expo bundled asset으로 매핑한다.
+- 현재 repo에는 `src/app/(tabs)/island-legacy.tsx`가 없으며, active island surface는 `src/app/(tabs)/island.tsx`다.
+- `scripts/validate-pet-assets.mjs`와 `npm run validate:pet-assets`는 10 common, 10 rare, 3 legend 파일/앱 resolver/migration 연결을 검증한다.
+- `npx.cmd expo export --platform web` 결과 23개 펫 이미지가 web bundle asset에 포함됨을 확인했다.
+- 주의: rare/legend를 섬 위의 자연스러운 캐릭터 컷아웃으로 쓰려면 배경 제거 파생본이 별도로 필요하다. 현재는 MVP 표시/초상화/레어 연출용으로 적합하다.
+- 관련 커밋: `edce102 Render initial pet asset batch`, `9d7f179 Expand pet asset batch`.
+
+### Supabase Pet Data Applied
+
+- 현재 local migration set은 `202606011940_run_ready_security.sql`부터 `202606030900_expand_pet_asset_batch.sql`까지 8개 파일이다. 이력은 destructive reset SQL 대신 증분 migration 중심으로 이동했다.
+- 새 migration `supabase/migrations/202606030900_expand_pet_asset_batch.sql`은 `pet_species`를 10종으로 확장하고, 기존 3종에 `legendary_asset_url`을 연결했다.
+- 신규 7종에는 `pet_species_traits` affinity seed를 추가했다. source label은 현재 `Balance Island archetype`으로 표시되며, 외부 품종 자료 기반 보강은 추후 정밀화 항목이다.
+- 사용자가 로컬 `.supabase-access-token.txt`를 저장한 뒤, 토큰 값을 출력하지 않고 `SUPABASE_ACCESS_TOKEN` 환경변수로만 주입해 `npx.cmd supabase db push`를 완료했다.
+- `.supabase-access-token`과 `.supabase-access-token.txt`는 `.gitignore`에 추가되었고, `git check-ignore`로 ignore 동작을 확인했다.
+- Google OAuth client secret 다운로드 파일 패턴 `client_secret_*.json`도 `.gitignore`에 포함되어 있다.
+- 관련 커밋: `2fcfc3e Ignore local Supabase token files`.
+
+### Current Verification Baseline
+
+- 검증됨: `npm.cmd run validate:pet-assets` 성공.
+- 검증됨: `npm.cmd run typecheck` 성공.
+- 검증됨: `npx.cmd expo export --platform web` 성공.
+- 검증됨: `git diff --check` 성공.
+- 검증됨: Supabase DB에 `202606030900_expand_pet_asset_batch.sql` 적용 성공.
+- 검증됨: GitHub `origin/main`은 `2fcfc3e`까지 반영되어 local `main`과 동기화되었다.
+
+### Remaining Known Gaps
+
+- `docs/2026-06-03-pet-island-liveops-upgrade-review.md`와 `docs/codex-reinstall-handoff.md`는 로컬에서 한글 인코딩이 깨져 보이며 아직 커밋하지 않았다.
+- `login-smoke.png`, `supabase-url-config-smoke.png`는 로컬 smoke evidence 파일로 남아 있지만 repo에는 커밋하지 않았다.
+- rare/legend 펫 이미지는 “투명 컷아웃”과 “카드/초상화” asset role을 분리하는 후속 파이프라인이 필요하다.
+- 앱의 뽑기/경제는 아직 theme 중심 MVP 단계다. 펫 자체를 확률형 뽑기 대상으로 확대하는 설계는 법적/윤리적 guardrail, 확률 공개, 천장, idempotent draw history가 준비된 뒤 별도 phase로 진행한다.
