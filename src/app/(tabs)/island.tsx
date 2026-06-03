@@ -51,9 +51,26 @@ const LOCAL_PET_ASSETS: Record<string, number> = {
   'asset://alarmpetgo/svg/american shorthair.png': require('../../../assets/pets/alarmpetgo/common/american-shorthair.png'),
   'asset://alarmpetgo/svg/bichon.png': require('../../../assets/pets/alarmpetgo/common/bichon.png'),
   'asset://alarmpetgo/svg/chameleon.png': require('../../../assets/pets/alarmpetgo/common/chameleon.png'),
+  'asset://alarmpetgo/svg/chihuahua.png': require('../../../assets/pets/alarmpetgo/common/chihuahua.png'),
+  'asset://alarmpetgo/svg/deer.png': require('../../../assets/pets/alarmpetgo/common/deer.png'),
+  'asset://alarmpetgo/svg/elephant.png': require('../../../assets/pets/alarmpetgo/common/elephant.png'),
+  'asset://alarmpetgo/svg/frog.png': require('../../../assets/pets/alarmpetgo/common/frog.png'),
+  'asset://alarmpetgo/svg/giraffe.png': require('../../../assets/pets/alarmpetgo/common/giraffe.png'),
+  'asset://alarmpetgo/svg/goldfish.png': require('../../../assets/pets/alarmpetgo/common/goldfish.png'),
+  'asset://alarmpetgo/svg/hamster.png': require('../../../assets/pets/alarmpetgo/common/hamster.png'),
   'asset://alarmpetgo/rare/rare-american shorthair.png': require('../../../assets/pets/alarmpetgo/rare/american-shorthair.png'),
   'asset://alarmpetgo/rare/rare-bichon.png': require('../../../assets/pets/alarmpetgo/rare/bichon.png'),
-  'asset://alarmpetgo/rare/rare-chameleon.png': require('../../../assets/pets/alarmpetgo/rare/chameleon.png')
+  'asset://alarmpetgo/rare/rare-chameleon.png': require('../../../assets/pets/alarmpetgo/rare/chameleon.png'),
+  'asset://alarmpetgo/rare/rare-chihuahua.png': require('../../../assets/pets/alarmpetgo/rare/chihuahua.png'),
+  'asset://alarmpetgo/rare/rare-deer.png': require('../../../assets/pets/alarmpetgo/rare/deer.png'),
+  'asset://alarmpetgo/rare/rare-elephant.png': require('../../../assets/pets/alarmpetgo/rare/elephant.png'),
+  'asset://alarmpetgo/rare/rare-frog.png': require('../../../assets/pets/alarmpetgo/rare/frog.png'),
+  'asset://alarmpetgo/rare/rare-giraffe.png': require('../../../assets/pets/alarmpetgo/rare/giraffe.png'),
+  'asset://alarmpetgo/rare/rare-goldfish.png': require('../../../assets/pets/alarmpetgo/rare/goldfish.png'),
+  'asset://alarmpetgo/rare/rare-hamster.png': require('../../../assets/pets/alarmpetgo/rare/hamster.png'),
+  'asset://alarmpetgo/legend/dragon.png': require('../../../assets/pets/alarmpetgo/legend/dragon.png'),
+  'asset://alarmpetgo/legend/phoenix.png': require('../../../assets/pets/alarmpetgo/legend/phoenix.png'),
+  'asset://alarmpetgo/legend/unicorn.png': require('../../../assets/pets/alarmpetgo/legend/unicorn.png')
 };
 
 function getTopTraits(traits: GamificationSnapshot['traits']) {
