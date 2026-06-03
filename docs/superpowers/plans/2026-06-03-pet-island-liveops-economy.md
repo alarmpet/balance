@@ -336,6 +336,61 @@ The pet should become the emotional narrator of self-discovery:
 
 Do not make the pet punish the user. Avoid “네가 안 와서 아팠어.” Use “기다리고 있었어” or “돌아와서 기뻐.”
 
+### Existing Pet Asset Pipeline
+
+The project already has a strong local pet asset base:
+
+- Common assets: `C:\Users\petbl\Desktop\alarmpetgo_\svg`
+- Rare assets: `C:\Users\petbl\Desktop\alarmpetgo_\rare`
+- Legendary/mythic assets: `C:\Users\petbl\Desktop\alarmpetgo_\legend`
+
+Current verified inventory:
+
+- `svg`: 35 PNG pet images plus one empty text file.
+- `rare`: 35 matching rare PNG pet images prefixed with `rare-`.
+- `legend`: 18 PNG images, mostly mythic/cosmic creatures such as dragon, phoenix, unicorn, pegasus, kraken, mermaid, and cosmic warrior variants.
+
+The current DB seed already points to these folders with `asset://alarmpetgo/svg/...` and `asset://alarmpetgo/rare/...` paths for:
+
+- `american-shorthair`
+- `bichon`
+- `chameleon`
+
+That confirms the intended direction, but the current app only renders `http://`, `https://`, and `file://` image URIs. `asset://...` is useful as a content identifier, but it is not yet a renderable app URL.
+
+Recommended asset strategy:
+
+1. **Do not regenerate everything.**
+   - Keep the existing 35 common and 35 rare pet images as the visual foundation.
+   - They already provide enough breadth for personality matching, collection, and rarity progression.
+
+2. **Process assets into app-ready derivatives.**
+   - Create transparent PNG/WebP versions for runtime use.
+   - Normalize canvas size, padding, and visual scale.
+   - Generate thumbnails for inventory/grid views.
+   - Generate hero versions for pet detail and island center stage.
+   - Keep original files untouched as source assets.
+
+3. **Use Supabase Storage or bundled Expo assets, not raw `asset://` strings.**
+   - For MVP, bundled assets are simplest if app size remains acceptable.
+   - For LiveOps, Supabase Storage/CDN URLs are better because new pets can ship without app-store releases.
+   - The DB should store a stable `asset_key` plus renderable `public_url` or resolved app asset reference.
+
+4. **Treat `legend` as seasonal/mythic variants, not simple level-20 replacements.**
+   - The legend folder does not map 1:1 to all 35 common animals.
+   - Use it for special limited pets, mythic transformations, founder rewards, or season bosses.
+   - Avoid forcing `dragon.png` to be the level-20 form of `bichon`; that breaks identity continuity.
+
+5. **Upgrade selectively.**
+   - Use image editing/upscaling only where assets are inconsistent, cropped, low contrast, too heavy, or missing transparent backgrounds.
+   - Do not change the whole art direction until a visual style guide exists.
+
+First asset batch:
+
+- Common/Rare MVP: `american shorthair`, `bichon`, `chameleon`.
+- Expansion batch: add 8-12 more common/rare pairs that map cleanly to BIPI traits.
+- Mythic batch: choose 3-5 legend assets for seasonal limited banners.
+
 ### Contradiction Discovery
 
 One of the strongest self-discovery moments is a positive contradiction:
@@ -575,6 +630,11 @@ Danger signal:
 - Let current personality pet species remain stable.
 - Variants are skins/forms for the assigned pet family.
 - Add seasonal pet variant banner with pity.
+- Add an asset processing step for `C:\Users\petbl\Desktop\alarmpetgo_\svg`, `rare`, and `legend`.
+- Preserve original local files and create app-ready resized/optimized derivatives.
+- Replace non-renderable `asset://alarmpetgo/...` runtime URLs with bundled asset references or Supabase Storage public URLs.
+- Map `svg` and `rare` folders as common/rare variants for the same species.
+- Map `legend` folder as mythic/seasonal variants only after manually approving each creature-to-theme fit.
 
 ### Phase 4: Add Island Mind Map
 
