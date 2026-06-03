@@ -401,3 +401,11 @@
 - Security: Kept the in-memory per-isolate limiter as a second local guard after the durable DB quota.
 - Verification: A pre-implementation source check failed for missing migration/RPC wiring; after the change, the same check passed and `npm.cmd run typecheck` passed.
 - Limitation: The migration still needs to be applied to the live Supabase DB, then both Edge Functions need deployment and authenticated smoke testing.
+
+## 2026-06-03 05:55 KST - AI Edge Rate Limit Deployed
+
+- Work: User completed Supabase CLI authentication in an interactive PowerShell window.
+- Deployment: Ran Supabase project link, database migration push, and Edge Function deploy commands for `embed-question` and `refine-question`.
+- Verification: Deployment window reported `Supabase migration and Edge Function deploy commands completed.`
+- Verification: External unauthenticated POST smoke tests against both deployed function URLs returned HTTP 401 with missing authorization header errors, confirming unauthenticated calls do not reach OpenAI.
+- Security: Supabase access token, DB password, callback URLs, and auth tokens were not recorded in chat or repository files.
