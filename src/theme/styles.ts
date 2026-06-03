@@ -6,19 +6,19 @@ export const THEME = {
   surfaces: SURFACES,
   colors: {
     backgrounds: {
-      feed: ['#e9fbf6', '#f0fdfa'],
+      feed: ['#FFF0F5', '#E6F3FF', '#F0E6FF', '#FFFFE0'],
       island: ['#ecfeff', '#e0f2fe'],
-      insight: ['#0f172a', '#1e293b']
+      insight: ['#070b19', '#0b132b', '#1c2541']
     },
     accent: SURFACES.accent,
     ui: {
-      glassBackground: SURFACES.background.panel,
-      glassBorder: SURFACES.border.light,
-      darkGlassBackground: SURFACES.background.darkPanel,
+      glassBackground: 'rgba(255, 255, 255, 0.45)',
+      glassBorder: 'rgba(255, 255, 255, 0.5)',
+      darkGlassBackground: 'rgba(15, 23, 42, 0.55)',
       darkGlassBorder: 'rgba(255, 255, 255, 0.12)',
       textPrimary: '#0f172a',
       textSecondary: '#475569',
-      textDarkPrimary: '#f8fafc',
+      textDarkPrimary: '#ffffff',
       textDarkSecondary: '#cbd5e1'
     }
   },

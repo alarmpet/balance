@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, type Href } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
@@ -10,6 +10,7 @@ import {
   StyleSheet,
   Text,
   View,
+  Animated,
   type DimensionValue
 } from 'react-native';
 import { InsightMapPreview } from '../../components/insight/InsightMapPreview';
@@ -20,6 +21,11 @@ import { analyticsService } from '../../services/analyticsService';
 import { useGamificationStore } from '../../store/gamificationStore';
 import type { GamificationSnapshot } from '../../services/gamificationService';
 import type { ThemeDrawResultRow } from '../../types/database.types';
+import GlassView from '../../components/common/GlassView';
+
+const LOCAL_PET_ISLAND = require('../../../assets/pets/cozy-island-retriever.png');
+const LOCAL_SHELL_ICON = require('../../../assets/icons/shell.png');
+const LOCAL_GEM_CHEST_ICON = require('../../../assets/icons/gem-chest.png');
 
 type PetImageSource = string | number | null;
 
@@ -118,11 +124,6 @@ function resolvePetAsset(uri: string | null): PetImageSource {
   return LOCAL_PET_ASSETS[uri] ?? uri;
 }
 
-function canRenderPetAsset(source: PetImageSource) {
-  if (typeof source === 'number') return true;
-  return source ? source.startsWith('http://') || source.startsWith('https://') || source.startsWith('file://') : false;
-}
-
 function getSkyPhase(hour = new Date().getHours()) {
   if (hour >= 5 && hour < 11) return { top: '#ffedd5', mid: '#bae6fd', sun: '#fde68a' };
   if (hour >= 11 && hour < 17) return { top: '#bae6fd', mid: '#e0f2fe', sun: '#fef3c7' };
@@ -148,13 +149,63 @@ export default function IslandScreen() {
 
   const [activeMode, setActiveMode] = useState<IslandMode>('discover');
   const [isProbabilityVisible, setIsProbabilityVisible] = useState(false);
-  const skyPhase = useMemo(() => getSkyPhase(), []);
+
+  // Floating heart animation setup
+  const [heartAnimY] = useState(() => new Animated.Value(0));
+  const [heartOpacity] = useState(() => new Animated.Value(0));
+
+  useEffect(() => {
+    let active = true;
+    const createLoop = () => {
+      if (!active) return;
+      heartAnimY.setValue(0);
+      heartOpacity.setValue(0);
+      
+      Animated.sequence([
+        Animated.delay(800),
+        Animated.parallel([
+          Animated.timing(heartAnimY, {
+            toValue: -55,
+            duration: 3000,
+            useNativeDriver: true
+          }),
+          Animated.sequence([
+            Animated.timing(heartOpacity, {
+              toValue: 0.9,
+              duration: 600,
+              useNativeDriver: true
+            }),
+            Animated.timing(heartOpacity, {
+              toValue: 0,
+              duration: 2400,
+              useNativeDriver: true
+            })
+          ])
+        ])
+      ]).start(() => {
+        if (active) createLoop();
+      });
+    };
+    
+    createLoop();
+    return () => {
+      active = false;
+    };
+  }, [heartAnimY, heartOpacity]);
 
   useEffect(() => {
     if (!snapshot) {
       void loadSnapshot();
     }
   }, [loadSnapshot, snapshot]);
+
+  const skyPhase = useMemo(() => {
+    // For decorate mode, match the sunset mockup exactly
+    if (activeMode === 'decorate') {
+      return { top: '#fda4af', mid: '#c4b5fd', sun: '#fb7185' };
+    }
+    return getSkyPhase();
+  }, [activeMode]);
 
   const islandTitle = useMemo(() => (snapshot ? getIslandTitle(snapshot.traits) : ''), [snapshot]);
   const topTraits = useMemo(() => (snapshot ? getTopTraits(snapshot.traits) : []), [snapshot]);
@@ -182,12 +233,11 @@ export default function IslandScreen() {
   }
 
   const stage = getPetStage(snapshot);
-  const petImage = getPetImage(snapshot);
   const shellBalance = snapshot.profile.shell_balance.toLocaleString('ko-KR');
-  const todayProgress = Math.min(100, Math.round((snapshot.profile.today_participation_count / 10) * 100));
-  const petMood = `${Math.min(100, snapshot.petState?.mood ?? snapshot.avatarState.mood)}%` as DimensionValue;
-  const petEnergy = `${Math.min(100, snapshot.petState?.energy ?? snapshot.avatarState.energy)}%` as DimensionValue;
-  const evolutionProgress = `${stage.progress}%` as DimensionValue;
+  const moodVal = Math.min(100, snapshot.petState?.mood ?? snapshot.avatarState.mood);
+  const energyVal = Math.min(100, snapshot.petState?.energy ?? snapshot.avatarState.energy);
+  const petMood = `${moodVal}%` as DimensionValue;
+  const petEnergy = `${energyVal}%` as DimensionValue;
   const isGuest = snapshot.profile.id === 'guest';
   const actionDisabled = isMutating;
 
@@ -209,7 +259,7 @@ export default function IslandScreen() {
             <Text style={styles.heading}>나의 성향 섬</Text>
           </View>
           <View style={styles.wallet}>
-            <MaterialCommunityIcons name="treasure-chest" size={22} color="#f59e0b" />
+            <Image source={LOCAL_SHELL_ICON} style={{ width: 20, height: 20 }} />
             <Text style={styles.walletText}>{shellBalance}</Text>
           </View>
         </View>
@@ -244,8 +294,9 @@ export default function IslandScreen() {
                 <View style={styles.cloudSmall} />
                 <View style={styles.cloudLarge} />
               </View>
+              
               <View style={styles.islandBase}>
-                <MaterialCommunityIcons name="island" size={86} color="#0ea5e9" />
+                <Image source={LOCAL_PET_ISLAND} style={{ width: 140, height: 100 }} contentFit="contain" />
               </View>
               <Text style={styles.levelBadge}>섬 Lv.{snapshot.island.island_level}</Text>
               <Text style={styles.title}>{islandTitle}</Text>
@@ -331,35 +382,130 @@ export default function IslandScreen() {
 
         {activeMode === 'decorate' && (
           <View style={styles.modeContainer}>
-            <View style={styles.petPanel}>
-              <View style={styles.panelHeader}>
-                <View>
-                  <Text style={styles.cardLabel}>성향 펫</Text>
-                  <Text style={styles.cardTitle}>{snapshot.petSpecies?.display_name ?? '아직 만나지 못했어요'}</Text>
+            {/* 1. MY ISLAND Header Summary */}
+            <GlassView style={styles.myIslandHeader} intensity={18} borderRadius={22}>
+              <View style={styles.myIslandRow}>
+                <View style={styles.logoBadgeContainer}>
+                  <View style={styles.logoCircle}>
+                    <MaterialCommunityIcons name="island" size={14} color="#0f766e" />
+                  </View>
+                  <Text style={styles.logoBadgeText}>MY ISLAND</Text>
                 </View>
-                <View style={styles.stagePill}>
-                  <Text style={styles.stagePillText}>{stage.label}</Text>
-                </View>
-              </View>
-
-              <View style={styles.petBody}>
-                <View style={styles.petPortrait}>
-                  {canRenderPetAsset(petImage) ? (
-                    <Image source={typeof petImage === 'number' ? petImage : { uri: petImage ?? undefined }} style={styles.petImage} contentFit="contain" />
-                  ) : (
-                    <MaterialCommunityIcons name={snapshot.petSpecies ? 'paw' : 'egg-easter'} size={72} color="#0ea5e9" />
-                  )}
-                </View>
-                <View style={styles.petInfo}>
-                  <Text style={styles.petDescription}>
-                    {snapshot.petSpecies?.description ?? '질문을 더 풀면 내 선택 패턴과 닮은 펫이 자동으로 배정됩니다.'}
-                  </Text>
-                  <ProgressRow label="진화" value={stage.next} width={evolutionProgress} color="#38bdf8" />
-                  <ProgressRow label="기분" value={`${snapshot.petState?.mood ?? snapshot.avatarState.mood}%`} width={petMood} color="#fb7185" />
-                  <ProgressRow label="에너지" value={`${snapshot.petState?.energy ?? snapshot.avatarState.energy}%`} width={petEnergy} color="#34d399" />
+                <View style={styles.myIslandStats}>
+                  <View style={styles.myIslandStatItem}>
+                    <Text style={styles.myIslandStatLabel}>MOOD: {moodVal}%</Text>
+                    <View style={styles.miniTrack}>
+                      <View style={[styles.miniFill, { width: petMood, backgroundColor: '#10b981' }]} />
+                    </View>
+                    <Text style={{ fontSize: 10 }}>😊</Text>
+                  </View>
+                  <View style={styles.myIslandStatItem}>
+                    <Text style={styles.myIslandStatLabel}>ENERGY: {energyVal}%</Text>
+                    <View style={styles.miniTrack}>
+                      <View style={[styles.miniFill, { width: petEnergy, backgroundColor: '#f97316' }]} />
+                    </View>
+                    <Text style={{ fontSize: 10 }}>⚡</Text>
+                  </View>
                 </View>
               </View>
+            </GlassView>
 
+            {/* 2. PET MOOD / ENERGY LEVEL Double Panels */}
+            <View style={styles.statusRow}>
+              <GlassView style={styles.statusCard} intensity={15} borderRadius={20}>
+                <View style={styles.statusHeaderRow}>
+                  <Ionicons name="paw" size={12} color="#10b981" style={{ marginRight: 4 }} />
+                  <Text style={styles.statusCardLabel}>PET MOOD</Text>
+                </View>
+                <Text style={styles.statusCardValue}>VERY HAPPY</Text>
+                <View style={styles.statusTrack}>
+                  <View style={[styles.statusFill, { width: petMood, backgroundColor: '#10b981' }]} />
+                </View>
+                <Text style={styles.statusProgressText}>{snapshot.petState?.mood ?? snapshot.avatarState.mood} / 100</Text>
+              </GlassView>
+
+              <GlassView style={styles.statusCard} intensity={15} borderRadius={20}>
+                <View style={styles.statusHeaderRow}>
+                  <Ionicons name="flash" size={12} color="#f97316" style={{ marginRight: 4 }} />
+                  <Text style={styles.statusCardLabel}>ENERGY LEVEL</Text>
+                </View>
+                <Text style={styles.statusCardValue}>READY FOR ADVENTURE</Text>
+                <View style={styles.statusTrack}>
+                  <View style={[styles.statusFill, { width: petEnergy, backgroundColor: '#f97316' }]} />
+                </View>
+                <Text style={styles.statusProgressText}>{snapshot.petState?.energy ?? snapshot.avatarState.energy} / 100</Text>
+              </GlassView>
+            </View>
+
+            {/* 3. Sunset Cozy Island (Hero representation) with floating animation */}
+            <View style={styles.cozyHero}>
+              <View style={[styles.sky, { backgroundColor: skyPhase.top }]}>
+                <View style={[styles.skyBand, { backgroundColor: skyPhase.mid }]} />
+                <View style={[styles.sun, { backgroundColor: skyPhase.sun }]} />
+                <View style={styles.cloudSmall} />
+                <View style={styles.cloudLarge} />
+              </View>
+              
+              {/* Animated Floating 3D Island & Puppy */}
+              <Animated.View style={[
+                styles.cozyIslandBase,
+                {
+                  transform: [{ translateY: heartAnimY.interpolate({
+                    inputRange: [-55, 0],
+                    outputRange: [-6, 0]
+                  }) }]
+                }
+              ]}>
+                <Image 
+                  source={LOCAL_PET_ISLAND} 
+                  style={styles.cozyIslandImage} 
+                  contentFit="contain" 
+                />
+                
+                {/* Floating hearts */}
+                <Animated.View style={[
+                  styles.floatingHearts,
+                  {
+                    opacity: heartOpacity,
+                    transform: [{ translateY: heartAnimY }]
+                  }
+                ]}>
+                  <Text style={{ fontSize: 26 }}>❤️</Text>
+                </Animated.View>
+              </Animated.View>
+
+              <Text style={styles.cozyLevelBadge}>
+                섬 Lv.{snapshot.island.island_level} · {snapshot.petSpecies?.display_name ?? '골든 리트리버'}
+              </Text>
+            </View>
+
+            {/* 4. Shell Currency / Treasure Chest Double Panels */}
+            <View style={styles.currencyRow}>
+              <GlassView style={styles.currencyCard} intensity={15} borderRadius={18}>
+                <View style={styles.currencyIconWrapper}>
+                  <Image source={LOCAL_SHELL_ICON} style={{ width: 26, height: 26 }} contentFit="contain" />
+                </View>
+                <View style={styles.currencyInfo}>
+                  <Text style={styles.currencyLabel}>SHELL CURRENCY</Text>
+                  <Text style={styles.currencyValue}>{shellBalance}</Text>
+                </View>
+              </GlassView>
+
+              <GlassView style={styles.currencyCard} intensity={15} borderRadius={18}>
+                <View style={styles.currencyIconWrapper}>
+                  <Image source={LOCAL_GEM_CHEST_ICON} style={{ width: 26, height: 26 }} contentFit="contain" />
+                </View>
+                <View style={styles.currencyInfo}>
+                  <Text style={styles.currencyLabel}>TREASURE CHEST</Text>
+                  <Text style={styles.currencyValue}>3 Gems</Text>
+                </View>
+              </GlassView>
+            </View>
+
+            {/* 5. Draw & Care action Grid */}
+            <GlassView style={styles.controlPanel} intensity={12} borderRadius={24}>
+              <Text style={styles.controlTitle}>성장 및 테마 가챠</Text>
+              
               <View style={styles.actionGrid}>
                 <ActionButton icon="account-heart" label="펫 배정" disabled={actionDisabled} onPress={() => runAuthAction(assignPet)} />
                 <ActionButton icon="gift" label="무료 테마" disabled={actionDisabled} onPress={() => runAuthAction(claimTheme)} />
@@ -367,6 +513,12 @@ export default function IslandScreen() {
                   void drawTheme();
                   analyticsService.track('theme_draw_submit', { pool: 'standard-theme', count: 1 });
                 })} />
+              </View>
+
+              <View style={styles.careRow}>
+                <ActionButton icon="food-apple" label="간식" disabled={actionDisabled} onPress={() => runAuthAction(() => careForAvatar('snack'))} />
+                <ActionButton icon="gamepad-variant" label="놀아주기" disabled={actionDisabled} onPress={() => runAuthAction(() => careForAvatar('play'))} />
+                <ActionButton icon="heart" label="칭찬" disabled={actionDisabled} onPress={() => runAuthAction(() => careForAvatar('praise'))} />
               </View>
 
               <Pressable
@@ -379,24 +531,9 @@ export default function IslandScreen() {
                 <MaterialCommunityIcons name="information-outline" size={15} color="#0f766e" />
                 <Text style={styles.probabilityLinkText}>획득 확률 및 피티 규칙 보기</Text>
               </Pressable>
-            </View>
+            </GlassView>
 
-            <View style={styles.rewardPanel}>
-              <View style={styles.panelHeader}>
-                <View>
-                  <Text style={styles.cardLabel}>오늘 참여</Text>
-                  <Text style={styles.cardTitle}>{snapshot.profile.today_participation_count}/10 완료</Text>
-                </View>
-                <MaterialCommunityIcons name="calendar-check" size={34} color="#0ea5e9" />
-              </View>
-              <ProgressRow label="일일 보상" value={`${todayProgress}%`} width={`${todayProgress}%` as DimensionValue} color="#60a5fa" />
-              <View style={styles.careRow}>
-                <ActionButton icon="food-apple" label="간식" disabled={actionDisabled} onPress={() => runAuthAction(() => careForAvatar('snack'))} />
-                <ActionButton icon="gamepad-variant" label="놀아주기" disabled={actionDisabled} onPress={() => runAuthAction(() => careForAvatar('play'))} />
-                <ActionButton icon="heart" label="칭찬" disabled={actionDisabled} onPress={() => runAuthAction(() => careForAvatar('praise'))} />
-              </View>
-            </View>
-
+            {/* 6. Theme Inventory 보관함 */}
             <ThemeInventorySection snapshot={snapshot} />
           </View>
         )}
@@ -488,30 +625,6 @@ function ThemeInventorySection({ snapshot }: { snapshot: GamificationSnapshot })
           })}
         </View>
       )}
-    </View>
-  );
-}
-
-function ProgressRow({
-  label,
-  value,
-  width,
-  color
-}: {
-  label: string;
-  value: string;
-  width: DimensionValue;
-  color: string;
-}) {
-  return (
-    <View style={styles.progressBlock}>
-      <View style={styles.progressTextRow}>
-        <Text style={styles.progressLabel}>{label}</Text>
-        <Text style={styles.progressValue}>{value}</Text>
-      </View>
-      <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width, backgroundColor: color }]} />
-      </View>
     </View>
   );
 }
@@ -671,8 +784,7 @@ const styles = StyleSheet.create({
   errorTitle: {
     color: '#164e63',
     fontSize: 20,
-    fontWeight: '900',
-    marginTop: 14
+    fontWeight: '900'
   },
   equippedPill: {
     backgroundColor: '#ffffff',
@@ -733,10 +845,10 @@ const styles = StyleSheet.create({
     borderColor: '#86efac',
     borderRadius: 999,
     borderWidth: 1,
-    height: 122,
+    height: 100,
     justifyContent: 'center',
     marginTop: 24,
-    width: 190
+    width: 170
   },
   kicker: {
     color: '#0ea5e9',
@@ -810,42 +922,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between'
-  },
-  petBody: {
-    flexDirection: 'row',
-    gap: 14,
-    marginTop: 18
-  },
-  petDescription: {
-    color: '#4f7d89',
-    fontSize: 13,
-    fontWeight: '700',
-    lineHeight: 19
-  },
-  petImage: {
-    height: 106,
-    width: 106
-  },
-  petInfo: {
-    flex: 1
-  },
-  petPanel: {
-    backgroundColor: '#ffffff',
-    borderColor: '#bae6fd',
-    borderRadius: 24,
-    borderWidth: 1,
-    marginTop: 16,
-    padding: 18
-  },
-  petPortrait: {
-    alignItems: 'center',
-    backgroundColor: '#f0f9ff',
-    borderColor: '#bae6fd',
-    borderRadius: 24,
-    borderWidth: 1,
-    height: 126,
-    justifyContent: 'center',
-    width: 126
   },
   primaryButton: {
     alignItems: 'center',
@@ -925,14 +1001,6 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     marginTop: 8
   },
-  rewardPanel: {
-    backgroundColor: '#ffffff',
-    borderColor: '#bae6fd',
-    borderRadius: 24,
-    borderWidth: 1,
-    marginTop: 16,
-    padding: 18
-  },
   sky: {
     backgroundColor: '#bae6fd',
     height: 112,
@@ -948,19 +1016,6 @@ const styles = StyleSheet.create({
     opacity: 0.72,
     position: 'absolute',
     right: 0
-  },
-  stagePill: {
-    backgroundColor: '#ecfeff',
-    borderColor: '#99f6e4',
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 6
-  },
-  stagePillText: {
-    color: '#0f766e',
-    fontSize: 11,
-    fontWeight: '900'
   },
   sun: {
     backgroundColor: '#fde68a',
@@ -1083,5 +1138,206 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 14,
     marginTop: 8
+  },
+  myIslandHeader: {
+    backgroundColor: 'rgba(255, 255, 255, 0.45)',
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+    borderWidth: 1,
+    borderRadius: 22,
+    padding: 14,
+    marginTop: 16
+  },
+  myIslandRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  logoBadgeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8
+  },
+  logoCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  logoBadgeText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#0f172a'
+  },
+  myIslandStats: {
+    gap: 6
+  },
+  myIslandStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 6
+  },
+  myIslandStatLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#475569'
+  },
+  miniTrack: {
+    width: 60,
+    height: 6,
+    backgroundColor: 'rgba(0,0,0,0.06)',
+    borderRadius: 3,
+    overflow: 'hidden'
+  },
+  miniFill: {
+    height: '100%',
+    borderRadius: 3
+  },
+  statusRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 14
+  },
+  statusCard: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 12,
+    justifyContent: 'space-between',
+    minHeight: 110
+  },
+  statusHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  statusCardLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#64748b'
+  },
+  statusCardValue: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#0f172a',
+    marginTop: 4
+  },
+  statusTrack: {
+    height: 8,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginTop: 8
+  },
+  statusFill: {
+    height: '100%',
+    borderRadius: 4
+  },
+  statusProgressText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#64748b',
+    textAlign: 'right',
+    marginTop: 4
+  },
+  cozyHero: {
+    height: 220,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: '#bae6fd',
+    marginTop: 14,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    position: 'relative'
+  },
+  cozyIslandBase: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+    position: 'relative',
+    width: '100%',
+    height: 160
+  },
+  cozyIslandImage: {
+    width: 220,
+    height: 160
+  },
+  floatingHearts: {
+    position: 'absolute',
+    top: -10,
+    alignSelf: 'center',
+    zIndex: 99
+  },
+  cozyLevelBadge: {
+    backgroundColor: '#fef3c7',
+    borderColor: '#fcd34d',
+    borderRadius: 999,
+    borderWidth: 1,
+    color: '#b45309',
+    fontSize: 11,
+    fontWeight: '900',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    position: 'absolute',
+    bottom: 12
+  },
+  currencyRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 14
+  },
+  currencyCard: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.45)',
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+    borderWidth: 1,
+    borderRadius: 18,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10
+  },
+  currencyIconWrapper: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderColor: 'rgba(255,255,255,0.6)',
+    borderWidth: 1
+  },
+  currencyInfo: {
+    flex: 1
+  },
+  currencyLabel: {
+    fontSize: 8,
+    fontWeight: '900',
+    color: '#64748b'
+  },
+  currencyValue: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0f172a',
+    marginTop: 2
+  },
+  controlPanel: {
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+    borderWidth: 1,
+    borderRadius: 24,
+    padding: 16,
+    marginTop: 14
+  },
+  controlTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#164e63',
+    marginBottom: 10
   }
 });

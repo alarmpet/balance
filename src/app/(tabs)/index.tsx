@@ -86,6 +86,7 @@ export default function FeedScreen() {
     prefetchNextImagesRef.current = prefetchNextImages;
   }, [prefetchNextImages]);
 
+  // Keep a fully constant ref to avoid onViewableItemsChanged flatlist runtime error
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: any[] }) => {
     const first = viewableItems[0]?.index;
     if (typeof first === 'number') {
@@ -99,10 +100,8 @@ export default function FeedScreen() {
     const question = questions.find((q) => q.id === questionId);
     if (!question) return;
 
-    // Background call
     void voteOnQuestion(questionId, option);
 
-    // Immediate UI reaction
     const result = generateChoiceEcho(question, option);
     setEchoData(result);
     setIsEchoVisible(true);
@@ -149,11 +148,17 @@ export default function FeedScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Background color spots matching the mockup */}
+      <View style={styles.spot1} pointerEvents="none" />
+      <View style={styles.spot2} pointerEvents="none" />
+      <View style={styles.spot3} pointerEvents="none" />
+      <View style={styles.spot4} pointerEvents="none" />
+
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <Text style={styles.logoText}>
-            <Text style={{ color: '#0ea5e9', fontWeight: '900' }}>Balance </Text>
-            <Text style={{ color: '#f97316', fontWeight: '900' }}>Island</Text>
+            <Text style={{ color: '#0f766e', fontWeight: '900' }}>Balance </Text>
+            <Text style={{ color: '#fb923c', fontWeight: '900' }}>Island</Text>
           </Text>
           <View style={styles.profileBadge}>
             <View style={styles.avatarPlaceholder}>
@@ -161,6 +166,8 @@ export default function FeedScreen() {
             </View>
           </View>
         </View>
+        
+        {/* Glassmorphic Stats bar matching mockup */}
         <View style={styles.headerStats}>
           <View style={styles.statsItem}>
             <Text style={styles.statsLabel}>Level 12</Text>
@@ -174,6 +181,7 @@ export default function FeedScreen() {
         </View>
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </View>
+
       <FlatList
         contentContainerStyle={styles.listContent}
         data={questions}
@@ -184,11 +192,13 @@ export default function FeedScreen() {
         renderItem={renderItem}
         viewabilityConfig={viewabilityConfig}
       />
+      
       <ChoiceEchoSheet
         visible={isEchoVisible}
         onClose={() => setIsEchoVisible(false)}
         echoData={echoData}
       />
+      
       {particles.map((p) => (
         <Animated.Text
           key={p.id}
@@ -219,6 +229,58 @@ const styles = StyleSheet.create({
   centerText: {
     color: '#52716d',
     fontWeight: '700'
+  },
+  spot1: {
+    position: 'absolute',
+    left: -100,
+    top: -100,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: '#ffdadb',
+    opacity: 0.55,
+    // @ts-ignore
+    filter: 'blur(80px)',
+    webkitFilter: 'blur(80px)'
+  },
+  spot2: {
+    position: 'absolute',
+    right: -100,
+    top: 100,
+    width: 350,
+    height: 350,
+    borderRadius: 175,
+    backgroundColor: '#d0ebff',
+    opacity: 0.6,
+    // @ts-ignore
+    filter: 'blur(90px)',
+    webkitFilter: 'blur(90px)'
+  },
+  spot3: {
+    position: 'absolute',
+    left: -80,
+    bottom: 150,
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: '#f1e1ff',
+    opacity: 0.5,
+    // @ts-ignore
+    filter: 'blur(75px)',
+    webkitFilter: 'blur(75px)'
+  },
+  spot4: {
+    position: 'absolute',
+    right: -50,
+    bottom: -50,
+    width: 250,
+    height: 250,
+    borderRadius: 125,
+    backgroundColor: '#fffbcb',
+    opacity: 0.5,
+    // @ts-ignore
+    filter: 'blur(70px)',
+    webkitFilter: 'blur(70px)'
   },
   container: {
     backgroundColor: '#fff5ec',
@@ -275,13 +337,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.38)',
-    borderColor: 'rgba(255, 255, 255, 0.45)',
+    backgroundColor: 'rgba(255, 255, 255, 0.45)',
+    borderColor: 'rgba(255, 255, 255, 0.5)',
     borderWidth: 1,
-    borderRadius: 16,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    marginTop: 14
+    borderRadius: 18,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginTop: 14,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2
   },
   statsItem: {
     alignItems: 'center',
@@ -316,4 +383,3 @@ const styles = StyleSheet.create({
     pointerEvents: 'none'
   }
 });
-

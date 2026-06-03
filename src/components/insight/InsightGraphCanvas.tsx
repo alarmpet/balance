@@ -1,12 +1,15 @@
-import { memo, useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { memo, useMemo, useState } from 'react';
+import Svg, { Circle, G, Line, Text as SvgText, Defs, Filter, FeGaussianBlur, FeMerge, FeMergeNode, Path, Image as SvgImage } from 'react-native-svg';
+import { StyleSheet, Text, View, Dimensions } from 'react-native';
 import { hierarchy, tree } from 'd3-hierarchy';
-import Svg, { Circle, G, Line, Text as SvgText } from 'react-native-svg';
 import type { InsightGraphEdge, InsightGraphNode, InsightGraphSnapshot } from '../../types/database.types';
+import GlassView from '../common/GlassView';
+import { useAuthStore } from '../../store/authStore';
 
 type PositionedNode = InsightGraphNode & {
   x: number;
   y: number;
+  colorCode: string;
 };
 
 type TreeNodeData = {
@@ -17,7 +20,7 @@ type TreeNodeData = {
 type InsightGraphCanvasProps = {
   snapshot: InsightGraphSnapshot;
   selectedNodeId: string | null;
-  onSelectNode: (nodeId: string) => void;
+  onSelectNode: (nodeId: string | null) => void;
 };
 
 const WIDTH = 340;
@@ -25,17 +28,193 @@ const HEIGHT = 340;
 const CENTER_X = WIDTH / 2;
 const CENTER_Y = HEIGHT / 2;
 
+// Constellation label coordinates for background visual effect
+const CONSTELLATIONS = [
+  { name: 'Orion', x: 50, y: 70 },
+  { name: 'Draco', x: 230, y: 65 },
+  { name: 'Orion', x: 60, y: 290 },
+  { name: 'Ursa Major', x: 270, y: 280 }
+];
+
+// Star background positions
+const BG_STARS = [
+  { x: 30, y: 40, r: 1 },
+  { x: 90, y: 80, r: 1.2 },
+  { x: 45, y: 150, r: 0.8 },
+  { x: 75, y: 220, r: 1 },
+  { x: 120, y: 290, r: 1.5 },
+  { x: 280, y: 50, r: 0.8 },
+  { x: 310, y: 120, r: 1 },
+  { x: 260, y: 190, r: 1.2 },
+  { x: 290, y: 260, r: 0.9 },
+  { x: 210, y: 310, r: 1 }
+];
+
+function getNodeColor(label: string, kind: string): string {
+  if (kind === 'pet') return '#d8b4fe'; // Purple glow for center
+  
+  const text = (label || '').toLowerCase();
+  
+  // Food & Health
+  if (
+    text.includes('food') || 
+    text.includes('health') || 
+    text.includes('diet') || 
+    text.includes('nutrition') || 
+    text.includes('cook') || 
+    text.includes('gut') || 
+    text.includes('식습관') || 
+    text.includes('요리') || 
+    text.includes('영양')
+  ) {
+    return '#f97316'; // Neon Orange
+  }
+
+  // Romance & Connections
+  if (
+    text.includes('romance') || 
+    text.includes('connect') || 
+    text.includes('self-love') || 
+    text.includes('relationship') || 
+    text.includes('attract') || 
+    text.includes('commun') || 
+    text.includes('intimacy') || 
+    text.includes('연애') || 
+    text.includes('관계') || 
+    text.includes('소통') || 
+    text.includes('호감')
+  ) {
+    return '#ec4899'; // Neon Pink/Magenta
+  }
+
+  // Life & Balance (default / teal)
+  return '#14b8a6'; // Neon Teal/Mint
+}
+
+function getTooltipContent(node: PositionedNode) {
+  const label = node.label;
+  const isPulsing = node.size > 25 ? ' (Pulsing)' : '';
+  
+  if (node.kind === 'pet') {
+    return {
+      title: `${label}${isPulsing}`,
+      desc: '나의 자아 성찰 은하의 중심핵입니다. 모든 성향들이 이 곳으로 수렴됩니다.',
+      flow: 'Flow: Infinite'
+    };
+  }
+
+  if (node.colorCode === '#f97316') {
+    return {
+      title: `${label}${isPulsing}`,
+      desc: '식습관 및 건강 분석 노드. 답변을 통해 활성화된 나의 영양 가치관입니다.',
+      flow: 'Flow: Strong'
+    };
+  }
+
+  if (node.colorCode === '#ec4899') {
+    return {
+      title: `${label}${isPulsing}`,
+      desc: '로맨스 및 인간관계 가치관 노드. 타인과의 감정 소통 방식을 대변합니다.',
+      flow: 'Flow: High'
+    };
+  }
+
+  return {
+    title: `${label}${isPulsing}`,
+    desc: '라이프스타일과 웰니스 가치관 노드. 일상의 균형과 신체 활동을 결정짓습니다.',
+    flow: 'Flow: Balanced'
+  };
+}
+
 export function InsightGraphCanvas({ snapshot, selectedNodeId, onSelectNode }: InsightGraphCanvasProps) {
   const layout = useMemo(() => createRadialLayout(snapshot.nodes, snapshot.edges), [snapshot.nodes, snapshot.edges]);
-  const selectedNode = selectedNodeId ? layout.nodesById.get(selectedNodeId) ?? null : null;
+  
+  const selectedNode = useMemo(() => {
+    if (!selectedNodeId) return null;
+    return layout.nodesById.get(selectedNodeId) ?? null;
+  }, [selectedNodeId, layout.nodesById]);
+
+  const profile = useAuthStore((state) => state.profile);
+  const universeName = profile ? (profile.nickname || 'Islander') : 'Guest';
 
   return (
     <View style={styles.frame}>
+      {/* Nebula spots for dreamy glow matching mockup */}
+      <View style={styles.nebulaOrange} pointerEvents="none" />
+      <View style={styles.nebulaCyan} pointerEvents="none" />
+      <View style={styles.nebulaPink} pointerEvents="none" />
+
+      {/* Header Info Overlay */}
+      <View style={styles.canvasHeader} pointerEvents="none">
+        <Text style={styles.canvasTitle}>Your Starry Mind</Text>
+        <Text style={styles.canvasSubtitle}>Neon white/connections connected</Text>
+      </View>
+
       <Svg width="100%" height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} accessibilityLabel={snapshot.summary.title}>
+        <Defs>
+          <Filter id="glowOrange" x="-40%" y="-40%" width="180%" height="180%">
+            <FeGaussianBlur stdDeviation="8" result="blur" />
+            <FeMerge>
+              <FeMergeNode in="blur" />
+              <FeMergeNode in="SourceGraphic" />
+            </FeMerge>
+          </Filter>
+          <Filter id="glowCyan" x="-40%" y="-40%" width="180%" height="180%">
+            <FeGaussianBlur stdDeviation="8" result="blur" />
+            <FeMerge>
+              <FeMergeNode in="blur" />
+              <FeMergeNode in="SourceGraphic" />
+            </FeMerge>
+          </Filter>
+          <Filter id="glowPink" x="-40%" y="-40%" width="180%" height="180%">
+            <FeGaussianBlur stdDeviation="8" result="blur" />
+            <FeMerge>
+              <FeMergeNode in="blur" />
+              <FeMergeNode in="SourceGraphic" />
+            </FeMerge>
+          </Filter>
+        </Defs>
+
+        {/* Faint Stars Background */}
+        {BG_STARS.map((star, i) => (
+          <Circle key={`star-${i}`} cx={star.x} cy={star.y} r={star.r} fill="#ffffff" opacity={0.35} />
+        ))}
+
+        {/* Glowing crescent moon in top-right */}
+        <Path 
+          d="M275,30 A14,14 0 0,0 293,48 A12,12 0 1,1 275,30" 
+          fill="#f8fafc" 
+          opacity={0.8} 
+          filter="url(#glowCyan)"
+        />
+
+        {/* Background Constellation Texts */}
+        {CONSTELLATIONS.map((c, i) => (
+          <SvgText
+            key={`const-${i}`}
+            x={c.x}
+            y={c.y}
+            fill="#ffffff"
+            fontSize="8"
+            fontWeight="300"
+            opacity={0.12}
+            textAnchor="middle"
+          >
+            {c.name}
+          </SvgText>
+        ))}
+
+        {/* Starry Constellation Dotted Edges */}
         {layout.edges.map((edge) => {
           const source = layout.nodesById.get(edge.source);
           const target = layout.nodesById.get(edge.target);
           if (!source || !target) return null;
+
+          const isSelectedPath = selectedNodeId && (edge.source === selectedNodeId || edge.target === selectedNodeId);
+          let strokeColor = 'rgba(255, 255, 255, 0.12)';
+          if (isSelectedPath) {
+            strokeColor = source.colorCode || '#14b8a6';
+          }
 
           return (
             <Line
@@ -44,29 +223,87 @@ export function InsightGraphCanvas({ snapshot, selectedNodeId, onSelectNode }: I
               y1={source.y}
               x2={target.x}
               y2={target.y}
-              stroke={selectedNodeId && (edge.source === selectedNodeId || edge.target === selectedNodeId) ? '#0ea5e9' : '#bae6fd'}
+              stroke={strokeColor}
               strokeLinecap="round"
-              strokeWidth={2 + Math.min(4, edge.weight * 4)}
+              strokeWidth={isSelectedPath ? 3.0 : 1.0}
+              strokeDasharray={isSelectedPath ? undefined : "3 3"} // Constellation dotted line look
+              opacity={isSelectedPath ? 0.95 : 0.25}
             />
           );
         })}
 
-        {layout.nodes.map((node) => (
-          <GraphNode
-            key={node.id}
-            node={node}
-            selected={node.id === selectedNodeId}
-            onSelectNode={onSelectNode}
-          />
-        ))}
+        {/* Render Graph Nodes */}
+        {layout.nodes.map((node) => {
+          const selected = node.id === selectedNodeId;
+          const isCenter = node.kind === 'pet';
+          const nodeColor = node.colorCode;
+
+          return (
+            <GraphNode
+              key={node.id}
+              node={node}
+              selected={selected}
+              isCenter={isCenter}
+              nodeColor={nodeColor}
+              universeName={universeName}
+              onSelectNode={onSelectNode}
+            />
+          );
+        })}
       </Svg>
 
-      <View style={styles.summaryCard}>
+      {/* Interactive Speech Callout Tooltip matching mockup */}
+      {selectedNode ? (
+        <View 
+          style={[
+            styles.tooltipContainer,
+            {
+              top: selectedNode.y < 150 ? selectedNode.y + 24 : selectedNode.y - 126,
+              left: Math.max(16, Math.min(Dimensions.get('window').width - 250, selectedNode.x - 100))
+            }
+          ]}
+        >
+          <GlassView 
+            style={styles.tooltipCard}
+            intensity={24}
+            borderRadius={16}
+            backgroundColor="rgba(15, 23, 42, 0.85)"
+            borderColor={selectedNode.colorCode}
+          >
+            <Text style={[styles.tooltipTitle, { color: selectedNode.colorCode }]}>
+              {getTooltipContent(selectedNode).title}
+            </Text>
+            <Text style={styles.tooltipDesc}>
+              {getTooltipContent(selectedNode).desc}
+            </Text>
+            <Text style={styles.tooltipFlow}>
+              {getTooltipContent(selectedNode).flow}
+            </Text>
+          </GlassView>
+          {/* Tooltip Arrow */}
+          <View 
+            style={[
+              styles.tooltipArrow,
+              selectedNode.y < 150 ? styles.tooltipArrowTop : styles.tooltipArrowBottom,
+              { borderColor: selectedNode.colorCode }
+            ]} 
+          />
+        </View>
+      ) : null}
+
+      {/* Bottom Summary Panel */}
+      <GlassView 
+        style={styles.summaryCard}
+        intensity={24}
+        borderRadius={18}
+        backgroundColor="rgba(15, 23, 42, 0.55)"
+        borderColor="rgba(255, 255, 255, 0.12)"
+      >
         <Text style={styles.summaryTitle}>{selectedNode?.label ?? snapshot.summary.title}</Text>
         <Text style={styles.summaryText}>
-          {selectedNode ? describeNode(selectedNode) : snapshot.summary.body}
+          {selectedNode ? `현재 은하 지도에서 "${selectedNode.label}" 성향 노드가 환하게 활성화되어 연결을 비추고 있습니다.` : snapshot.summary.body}
         </Text>
-      </View>
+      </GlassView>
     </View>
   );
 }
@@ -74,34 +311,70 @@ export function InsightGraphCanvas({ snapshot, selectedNodeId, onSelectNode }: I
 const GraphNode = memo(function GraphNode({
   node,
   selected,
+  isCenter,
+  nodeColor,
+  universeName,
   onSelectNode
 }: {
   node: PositionedNode;
   selected: boolean;
-  onSelectNode: (nodeId: string) => void;
+  isCenter: boolean;
+  nodeColor: string;
+  universeName: string;
+  onSelectNode: (nodeId: string | null) => void;
 }) {
-  const radius = Math.max(10, Math.min(28, node.size / 2));
+  const radius = isCenter ? 26 : Math.max(10, Math.min(22, node.size / 2));
+  
+  // Apply neon filter
+  let filterId = 'glowCyan';
+  if (nodeColor === '#f97316') {
+    filterId = 'glowOrange';
+  } else if (nodeColor === '#ec4899') {
+    filterId = 'glowPink';
+  }
 
   return (
-    <G onPress={() => onSelectNode(node.id)}>
+    <G onPress={() => onSelectNode(selected ? null : node.id)}>
+      {/* Glow outer ring */}
       <Circle
         cx={node.x}
         cy={node.y}
         r={selected ? radius + 5 : radius}
-        fill={selected ? '#fff7ed' : '#ffffff'}
-        stroke={selected ? '#f59e0b' : node.color}
-        strokeWidth={selected ? 4 : 3}
+        fill="transparent"
+        stroke={nodeColor}
+        strokeWidth={selected ? 3.5 : 1.5}
+        opacity={selected ? 0.95 : 0.55}
+        filter={`url(#${filterId})`}
       />
-      <Circle cx={node.x} cy={node.y} r={Math.max(5, radius - 8)} fill={node.color} opacity={selected ? 0.95 : 0.76} />
+      
+      {/* Inner Node Core */}
+      {isCenter ? (
+        <Circle 
+          cx={node.x} 
+          cy={node.y} 
+          r={radius - 2} 
+          fill="#cbd5e1" // Mock user photo placeholder
+        />
+      ) : (
+        <Circle 
+          cx={node.x} 
+          cy={node.y} 
+          r={Math.max(3, radius - 8)} 
+          fill={selected ? '#ffffff' : nodeColor} 
+          opacity={0.9} 
+        />
+      )}
+      
+      {/* Text label underneath */}
       <SvgText
         x={node.x}
-        y={node.y + radius + 15}
-        fill="#164e63"
-        fontSize="10"
-        fontWeight="700"
+        y={node.y + radius + 14}
+        fill={selected ? '#ffffff' : 'rgba(255, 255, 255, 0.6)'}
+        fontSize="9"
+        fontWeight="800"
         textAnchor="middle"
       >
-        {shortenLabel(node.label)}
+        {isCenter ? `${universeName}'s Universe` : shortenLabel(node.label)}
       </SvgText>
     </G>
   );
@@ -114,7 +387,8 @@ function createRadialLayout(nodes: InsightGraphNode[], edges: InsightGraphEdge[]
   const positionedNodes: PositionedNode[] = [];
 
   if (centerNode) {
-    const center = { ...centerNode, x: CENTER_X, y: CENTER_Y };
+    const centerColor = getNodeColor(centerNode.label, centerNode.kind);
+    const center = { ...centerNode, x: CENTER_X, y: CENTER_Y, colorCode: centerColor };
     positionedNodes.push(center);
     nodesById.set(center.id, center);
   }
@@ -123,17 +397,19 @@ function createRadialLayout(nodes: InsightGraphNode[], edges: InsightGraphEdge[]
     node: centerNode,
     children: outerNodes.map((node) => ({ node }))
   });
-  const treeLayout = tree<TreeNodeData>().size([Math.PI * 2, 132]);
+  
+  const treeLayout = tree<TreeNodeData>().size([Math.PI * 2, 126]);
   const laidOut = treeLayout(root).children ?? [];
 
   laidOut.forEach((item) => {
     const node = item.data.node;
     if (!node) return;
-    const ring = node.kind === 'question' ? 132 : node.kind === 'category' ? 110 : 88;
+    const ring = node.kind === 'question' ? 126 : node.kind === 'category' ? 104 : 84;
     const angle = item.x - Math.PI / 2;
     const x = CENTER_X + Math.cos(angle) * ring;
     const y = CENTER_Y + Math.sin(angle) * ring;
-    const positioned = { ...node, x, y };
+    const nodeColor = getNodeColor(node.label, node.kind);
+    const positioned = { ...node, x, y, colorCode: nodeColor };
     positionedNodes.push(positioned);
     nodesById.set(node.id, positioned);
   });
@@ -149,34 +425,137 @@ function shortenLabel(label: string) {
   return label.length > 8 ? `${label.slice(0, 8)}…` : label;
 }
 
-function describeNode(node: InsightGraphNode) {
-  if (node.kind === 'trait') return `${node.label} 성향이 선택 지도에서 크게 반짝이고 있어요.`;
-  if (node.kind === 'category') return `${node.label} 질문들이 최근 선택 흐름과 연결되어 있어요.`;
-  if (node.kind === 'question') return `이 질문은 현재 지도의 근거 조각으로 쓰였어요.`;
-  return `이 노드는 내 선택 지도에서 중심 역할을 하고 있어요.`;
-}
-
 const styles = StyleSheet.create({
   frame: {
+    backgroundColor: '#070b19', // Deep dark starry space background
+    borderRadius: 24,
+    padding: 16,
+    overflow: 'hidden',
+    position: 'relative',
     gap: 14
   },
+  canvasHeader: {
+    position: 'absolute',
+    left: 20,
+    top: 20,
+    zIndex: 5
+  },
+  canvasTitle: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: -0.3
+  },
+  canvasSubtitle: {
+    color: 'rgba(255, 255, 255, 0.45)',
+    fontSize: 9,
+    fontWeight: '700',
+    marginTop: 2
+  },
+  nebulaOrange: {
+    position: 'absolute',
+    left: 10,
+    top: 30,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: '#f97316',
+    opacity: 0.14,
+    // @ts-ignore
+    filter: 'blur(60px)',
+    webkitFilter: 'blur(60px)'
+  },
+  nebulaCyan: {
+    position: 'absolute',
+    right: 20,
+    top: 90,
+    width: 170,
+    height: 170,
+    borderRadius: 85,
+    backgroundColor: '#14b8a6',
+    opacity: 0.16,
+    // @ts-ignore
+    filter: 'blur(65px)',
+    webkitFilter: 'blur(65px)'
+  },
+  nebulaPink: {
+    position: 'absolute',
+    left: 80,
+    bottom: 40,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: '#ec4899',
+    opacity: 0.13,
+    // @ts-ignore
+    filter: 'blur(55px)',
+    webkitFilter: 'blur(55px)'
+  },
   summaryCard: {
-    backgroundColor: '#f8fafc',
-    borderColor: '#dbeafe',
-    borderRadius: 18,
-    borderWidth: 1,
     padding: 14
   },
   summaryText: {
-    color: '#64748b',
-    fontSize: 13,
+    color: '#94a3b8',
+    fontSize: 12,
     fontWeight: '700',
-    lineHeight: 20,
-    marginTop: 6
+    lineHeight: 18,
+    marginTop: 4
   },
   summaryTitle: {
-    color: '#164e63',
-    fontSize: 16,
+    color: '#ffffff',
+    fontSize: 15,
     fontWeight: '900'
+  },
+  tooltipContainer: {
+    position: 'absolute',
+    width: 200,
+    zIndex: 10,
+    alignItems: 'center'
+  },
+  tooltipCard: {
+    padding: 10,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12
+  },
+  tooltipTitle: {
+    fontSize: 11,
+    fontWeight: '900'
+  },
+  tooltipDesc: {
+    color: '#cbd5e1',
+    fontSize: 9,
+    fontWeight: '600',
+    lineHeight: 13,
+    marginTop: 4
+  },
+  tooltipFlow: {
+    color: '#94a3b8',
+    fontSize: 8,
+    fontWeight: '800',
+    marginTop: 6,
+    textTransform: 'uppercase'
+  },
+  tooltipArrow: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderBottomWidth: 6,
+    borderStyle: 'solid',
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: 'rgba(15, 23, 42, 0.85)',
+    position: 'absolute'
+  },
+  tooltipArrowTop: {
+    top: -6,
+    transform: [{ rotate: '0deg' }]
+  },
+  tooltipArrowBottom: {
+    bottom: -6,
+    transform: [{ rotate: '180deg' }]
   }
 });

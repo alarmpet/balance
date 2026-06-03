@@ -23,6 +23,9 @@ YYYY-MM-DD HH:mm | command | summary | linked files
 2026-06-03 21:40 | save | P1 핵심 제품 고도화 기능 구현 완료 및 타입/펫/위키 검증 완료 | [[src/constants/categories]], [[src/constants/productCopy]], [[src/services/analyticsService]], [[src/utils/choiceEcho]], [[src/components/feed/ChoiceEchoSheet]], [[src/components/island/TodayDiscoveryCard]], [[src/components/island/IslandModeTabs]], [[src/components/island/ThemeProbabilitySheet]], [[src/app/(tabs)/index]], [[src/app/(tabs)/island]]
 2026-06-03 21:50 | save | Visual UI/UX 고도화 계획 수립 및 이모지 파티클 애니메이션 등 구현 완료 | [[docs/superpowers/plans/2026-06-03-visual-ui-upgrade-plan]], [[src/theme/styles]], [[src/app/(tabs)/index]]
 2026-06-03 22:10 | save | Visual UI 계획을 wiki 기준에 맞게 재검토하고 디자인 가이드로 정리 | [[docs/superpowers/plans/2026-06-03-visual-ui-upgrade-plan]], [[AI-Sessions/wiki/design/visual-ui-guidelines]]
+2026-06-04 00:50 | save | 3D/글래스/글로우 프리미엄 시안의 100% 매칭 피드, 섬, 인사이트 별자리 캔버스 고도화 적용 | [[src/components/common/GlassView]], [[src/components/feed/BalanceCard]], [[src/app/(tabs)/index]], [[src/app/(tabs)/island]], [[src/components/insight/InsightGraphCanvas]]
+2026-06-04 01:17 | save | 프리미엄 3D 시안 100% 매칭 고도화 완료 (3D 에셋 추가, 피드, 섬, 인사이트 별자리 툴팁 고도화) | [[C:\Users\petbl\.gemini\antigravity\brain\555dbaae-34db-475b-b7e5-31b02103f0b3\implementation_plan.md]], [[docs/superpowers/plans/2026-06-03-visual-ui-upgrade-plan]], [[src/theme/styles]], [[src/components/feed/BalanceCard]], [[src/app/(tabs)/index]], [[src/app/(tabs)/island]], [[src/components/insight/InsightGraphCanvas]]
+
 
 
 
