@@ -378,3 +378,10 @@
 - Verification: Island screen loaded the authenticated gamification snapshot with avatar mood/energy values, confirming `user_avatar_state` was available through the app session.
 - Verification: Triggered the app's `펫 배정` action and the Island screen updated from no pet to `카멜레온`, confirming `user_pet_state` creation/loading.
 - Security: Callback URL query strings, auth codes, access tokens, refresh tokens, and provider credentials were not recorded.
+
+## 2026-06-03 05:02 KST - Google Production Login Smoke Rechecked
+
+- Work: Logged out of the production app session and re-ran the Google login button flow from `https://balance-vert.vercel.app/login`.
+- Verification: The app returned to `https://balance-vert.vercel.app/profile` and rendered the non-guest profile screen with logout/check-in actions.
+- Note: The visible profile nickname matched the existing account, so this confirms production Google login flow/session creation is not blocked, but it does not distinguish a separate Google-only user from the already linked/same-email account.
+- Security: Token-bearing callback URLs and browser storage were not inspected or recorded.

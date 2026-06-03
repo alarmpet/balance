@@ -42,7 +42,8 @@
 - Supabase Kakao provider has been enabled; authorize smoke returned HTTP 302 to `kauth.kakao.com`.
 - Production Kakao button now reaches the Kakao consent screen instead of `KOE205`.
 - User completed the Kakao consent screen; production app returned to `/profile` with a non-guest profile, Island loaded avatar state, and the app's pet assignment action created/loaded a Kakao user pet state.
-- Remaining work: repeat Google real login smoke if a fresh account-level verification is needed, then decide whether to push the local documentation commits to `origin/main`.
+- Google production login smoke was re-run after app logout and returned to `/profile` with a non-guest session; because the visible profile matched the same account, a separate Google-only identity check remains optional if account-provider distinction is required.
+- Remaining work: decide whether to push the local documentation commits to `origin/main`.
 
 ## Security Rules
 
