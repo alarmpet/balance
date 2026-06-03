@@ -1,32 +1,94 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 interface EmbedRequestBody {
   text: string;
 }
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+const MAX_BODY_BYTES = 16_384;
+const MAX_EMBED_TEXT_LENGTH = 4_000;
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX_REQUESTS = 20;
+const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
+const allowedOrigins = new Set([
+  'https://balance-vert.vercel.app',
+  'http://localhost:8081',
+  'http://127.0.0.1:8081',
+]);
+
+const getCorsHeaders = (request: Request) => ({
+  'Access-Control-Allow-Origin': getAllowedOrigin(request),
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+});
 
 serve(async (request) => {
+  const responseHeaders = getCorsHeaders(request);
+
   if (request.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: responseHeaders });
+  }
+
+  if (request.method !== 'POST') {
+    return jsonResponse({ error: 'Method not allowed.' }, 405, responseHeaders);
+  }
+
+  const contentLength = Number(request.headers.get('Content-Length') ?? 0);
+  if (contentLength > MAX_BODY_BYTES) {
+    return jsonResponse({ error: 'Request body is too large.' }, 413, responseHeaders);
+  }
+
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return jsonResponse({ error: 'Unauthorized: Missing or invalid token' }, 401, responseHeaders);
   }
 
   try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Supabase configuration is missing for embed-question.');
+      return jsonResponse({ error: 'Server configuration error.' }, 500, responseHeaders);
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return jsonResponse({ error: 'Unauthorized: Invalid token' }, 401, responseHeaders);
+    }
+
+    const rateLimit = checkRateLimit(user.id);
+    if (!rateLimit.allowed) {
+      return jsonResponse(
+        { error: 'Rate limit exceeded.' },
+        429,
+        responseHeaders,
+        { 'Retry-After': String(Math.ceil(rateLimit.retryAfterMs / 1000)) },
+      );
+    }
+
     const openAiKey = Deno.env.get('OPENAI_API_KEY');
     const model = Deno.env.get('OPENAI_EMBEDDING_MODEL') ?? 'text-embedding-3-small';
 
     if (!openAiKey) {
-      throw new Error('OPENAI_API_KEY is not configured.');
+      console.error('OPENAI_API_KEY is not configured for embed-question.');
+      return jsonResponse({ error: 'Server configuration error.' }, 500, responseHeaders);
     }
 
-    const body = (await request.json()) as EmbedRequestBody;
+    const body = await parseJsonBody<EmbedRequestBody>(request);
+    if (!body) {
+      return jsonResponse({ error: 'Invalid JSON body.' }, 400, responseHeaders);
+    }
 
-    if (!body.text?.trim()) {
-      return jsonResponse({ error: 'Missing text.' }, 400);
+    const text = typeof body.text === 'string' ? body.text.trim() : '';
+    if (!text) {
+      return jsonResponse({ error: 'Missing text.' }, 400, responseHeaders);
+    }
+    if (text.length > MAX_EMBED_TEXT_LENGTH) {
+      return jsonResponse({ error: 'Text is too long.' }, 400, responseHeaders);
     }
 
     const response = await fetch('https://api.openai.com/v1/embeddings', {
@@ -37,13 +99,18 @@ serve(async (request) => {
       },
       body: JSON.stringify({
         model,
-        input: body.text,
+        input: text,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      return jsonResponse({ error: errorText }, response.status);
+      console.error('OpenAI embedding request failed.', response.status, errorText.slice(0, 500));
+      return jsonResponse(
+        { error: 'AI service request failed.' },
+        response.status === 429 ? 429 : 502,
+        responseHeaders,
+      );
     }
 
     const payload = await response.json();
@@ -53,17 +120,71 @@ serve(async (request) => {
       throw new Error('OpenAI embedding response was empty.');
     }
 
-    return jsonResponse({ embedding }, 200);
+    return jsonResponse({ embedding }, 200, responseHeaders);
   } catch (error) {
-    return jsonResponse({ error: error instanceof Error ? error.message : String(error) }, 500);
+    console.error('embed-question failed.', error);
+    return jsonResponse({ error: 'Internal server error.' }, 500, responseHeaders);
   }
 });
 
-const jsonResponse = (body: unknown, status: number) =>
+const parseJsonBody = async <T>(request: Request): Promise<T | null> => {
+  try {
+    return (await request.json()) as T;
+  } catch {
+    return null;
+  }
+};
+
+const checkRateLimit = (userId: string) => {
+  const now = Date.now();
+  const bucket = rateLimitBuckets.get(userId);
+
+  if (!bucket || bucket.resetAt <= now) {
+    rateLimitBuckets.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    pruneRateLimitBuckets(now);
+    return { allowed: true, retryAfterMs: 0 };
+  }
+
+  if (bucket.count >= RATE_LIMIT_MAX_REQUESTS) {
+    return { allowed: false, retryAfterMs: bucket.resetAt - now };
+  }
+
+  bucket.count += 1;
+  return { allowed: true, retryAfterMs: 0 };
+};
+
+const pruneRateLimitBuckets = (now: number) => {
+  if (rateLimitBuckets.size < 1_000) {
+    return;
+  }
+
+  for (const [userId, bucket] of rateLimitBuckets.entries()) {
+    if (bucket.resetAt <= now) {
+      rateLimitBuckets.delete(userId);
+    }
+  }
+};
+
+const getAllowedOrigin = (request: Request) => {
+  const origin = request.headers.get('Origin');
+  if (origin && allowedOrigins.has(origin)) {
+    return origin;
+  }
+
+  return 'https://balance-vert.vercel.app';
+};
+
+const jsonResponse = (
+  body: unknown,
+  status: number,
+  corsHeaders: Record<string, string>,
+  headers: Record<string, string> = {},
+) =>
   new Response(JSON.stringify(body), {
     status,
     headers: {
       ...corsHeaders,
+      ...headers,
       'Content-Type': 'application/json',
     },
   });

@@ -1,7 +1,29 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 type CategorySlug = 'food' | 'life' | 'romance' | 'career' | 'culture';
 type OptionSide = 'A' | 'B';
+
+interface RefinedTrait {
+  option_side: OptionSide;
+  trait_key: string;
+  weight: number;
+}
+
+interface RefinedQuestionPayload {
+  title: string;
+  description: string;
+  tags: string[];
+  option_a_title: string;
+  option_a_description: string;
+  option_a_image_url: string;
+  option_b_title: string;
+  option_b_description: string;
+  option_b_image_url: string;
+  category_slug: CategorySlug;
+  trait_mapping: RefinedTrait[];
+  traits: RefinedTrait[];
+}
 
 interface QuestionDraftInput {
   title: string;
@@ -11,15 +33,27 @@ interface QuestionDraftInput {
 }
 
 interface RefineRequestBody {
-  systemPrompt?: string;
   draft: QuestionDraftInput;
 }
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+const CATEGORY_SLUGS = ['food', 'life', 'romance', 'career', 'culture'] as const;
+const MAX_BODY_BYTES = 16_384;
+const MAX_TITLE_LENGTH = 160;
+const MAX_OPTION_LENGTH = 240;
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX_REQUESTS = 8;
+const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
+const allowedOrigins = new Set([
+  'https://balance-vert.vercel.app',
+  'http://localhost:8081',
+  'http://127.0.0.1:8081',
+]);
+
+const getCorsHeaders = (request: Request) => ({
+  'Access-Control-Allow-Origin': getAllowedOrigin(request),
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+});
 
 const jsonSchema = {
   name: 'balance_island_ai_refine_result',
@@ -144,22 +178,69 @@ Rules:
 };
 
 serve(async (request) => {
+  const responseHeaders = getCorsHeaders(request);
+
   if (request.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: responseHeaders });
+  }
+
+  if (request.method !== 'POST') {
+    return jsonResponse({ error: 'Method not allowed.' }, 405, responseHeaders);
+  }
+
+  const contentLength = Number(request.headers.get('Content-Length') ?? 0);
+  if (contentLength > MAX_BODY_BYTES) {
+    return jsonResponse({ error: 'Request body is too large.' }, 413, responseHeaders);
+  }
+
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return jsonResponse({ error: 'Unauthorized: Missing or invalid token' }, 401, responseHeaders);
   }
 
   try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Supabase configuration is missing for refine-question.');
+      return jsonResponse({ error: 'Server configuration error.' }, 500, responseHeaders);
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return jsonResponse({ error: 'Unauthorized: Invalid token' }, 401, responseHeaders);
+    }
+
+    const rateLimit = checkRateLimit(user.id);
+    if (!rateLimit.allowed) {
+      return jsonResponse(
+        { error: 'Rate limit exceeded.' },
+        429,
+        responseHeaders,
+        { 'Retry-After': String(Math.ceil(rateLimit.retryAfterMs / 1000)) },
+      );
+    }
+
     const openAiKey = Deno.env.get('OPENAI_API_KEY');
     const model = Deno.env.get('OPENAI_REFINE_MODEL') ?? 'gpt-4.1-mini';
 
     if (!openAiKey) {
-      throw new Error('OPENAI_API_KEY is not configured.');
+      console.error('OPENAI_API_KEY is not configured for refine-question.');
+      return jsonResponse({ error: 'Server configuration error.' }, 500, responseHeaders);
     }
 
-    const body = (await request.json()) as RefineRequestBody;
+    const body = await parseJsonBody<RefineRequestBody>(request);
+    if (!body) {
+      return jsonResponse({ error: 'Invalid JSON body.' }, 400, responseHeaders);
+    }
 
-    if (!body.draft?.title || !body.draft?.optionAText || !body.draft?.optionBText) {
-      return jsonResponse({ error: 'Missing draft fields.' }, 400);
+    const draft = sanitizeDraft(body.draft);
+    if ('error' in draft) {
+      return jsonResponse({ error: draft.error }, 400, responseHeaders);
     }
 
     const response = await fetch('https://api.openai.com/v1/responses', {
@@ -173,11 +254,11 @@ serve(async (request) => {
         input: [
           {
             role: 'system',
-            content: body.systemPrompt ?? defaultSystemPrompt,
+            content: defaultSystemPrompt,
           },
           {
             role: 'user',
-            content: buildUserPrompt(body.draft),
+            content: buildUserPrompt(draft),
           },
         ],
         text: {
@@ -191,7 +272,12 @@ serve(async (request) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      return jsonResponse({ error: errorText }, response.status);
+      console.error('OpenAI refine request failed.', response.status, errorText.slice(0, 500));
+      return jsonResponse(
+        { error: 'AI service request failed.' },
+        response.status === 429 ? 429 : 502,
+        responseHeaders,
+      );
     }
 
     const payload = await response.json();
@@ -201,24 +287,209 @@ serve(async (request) => {
       throw new Error('OpenAI response did not contain output_text.');
     }
 
-    const parsed = JSON.parse(outputText);
-    const normalized = {
-      ...parsed,
-      traits: parsed.traits?.length ? parsed.traits : parsed.trait_mapping,
-      trait_mapping: parsed.trait_mapping?.length ? parsed.trait_mapping : parsed.traits,
-    };
+    const parsed = parseJsonString(outputText);
+    const normalized = parsed ? normalizeRefinedPayload(parsed) : null;
+    if (!normalized) {
+      console.error('OpenAI refine response did not match expected schema.');
+      return jsonResponse({ error: 'AI service returned an invalid response.' }, 502, responseHeaders);
+    }
 
-    return jsonResponse(normalized, 200);
+    return jsonResponse(normalized, 200, responseHeaders);
   } catch (error) {
-    return jsonResponse({ error: error instanceof Error ? error.message : String(error) }, 500);
+    console.error('refine-question failed.', error);
+    return jsonResponse({ error: 'Internal server error.' }, 500, responseHeaders);
   }
 });
 
-const jsonResponse = (body: unknown, status: number) =>
+const parseJsonBody = async <T>(request: Request): Promise<T | null> => {
+  try {
+    return (await request.json()) as T;
+  } catch {
+    return null;
+  }
+};
+
+const sanitizeDraft = (
+  draft: QuestionDraftInput | undefined,
+): QuestionDraftInput | { error: string } => {
+  if (!draft) {
+    return { error: 'Missing draft fields.' };
+  }
+
+  const title = typeof draft.title === 'string' ? draft.title.trim() : '';
+  const optionAText = typeof draft.optionAText === 'string' ? draft.optionAText.trim() : '';
+  const optionBText = typeof draft.optionBText === 'string' ? draft.optionBText.trim() : '';
+  const categorySlug = draft.categorySlug;
+
+  if (!title || !optionAText || !optionBText) {
+    return { error: 'Missing draft fields.' };
+  }
+  if (title.length > MAX_TITLE_LENGTH) {
+    return { error: 'Title is too long.' };
+  }
+  if (optionAText.length > MAX_OPTION_LENGTH || optionBText.length > MAX_OPTION_LENGTH) {
+    return { error: 'Option text is too long.' };
+  }
+  if (!CATEGORY_SLUGS.includes(categorySlug)) {
+    return { error: 'Invalid category.' };
+  }
+
+  return { title, optionAText, optionBText, categorySlug };
+};
+
+const parseJsonString = (value: string): unknown | null => {
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return null;
+  }
+};
+
+const normalizeRefinedPayload = (payload: unknown): RefinedQuestionPayload | null => {
+  if (!isRecord(payload)) {
+    return null;
+  }
+
+  const traits = isTraitArray(payload.traits) && payload.traits.length
+    ? payload.traits
+    : isTraitArray(payload.trait_mapping)
+      ? payload.trait_mapping
+      : null;
+  const traitMapping = isTraitArray(payload.trait_mapping) && payload.trait_mapping.length
+    ? payload.trait_mapping
+    : traits;
+
+  if (!traits || !traitMapping || traits.length < 2 || traitMapping.length < 2) {
+    return null;
+  }
+  if (!isStringArray(payload.tags) || payload.tags.length < 2 || payload.tags.length > 5) {
+    return null;
+  }
+  if (!isCategorySlug(payload.category_slug)) {
+    return null;
+  }
+
+  const title = getRequiredString(payload.title);
+  const description = getRequiredString(payload.description);
+  const optionATitle = getRequiredString(payload.option_a_title);
+  const optionADescription = getRequiredString(payload.option_a_description);
+  const optionAImageUrl = getRequiredString(payload.option_a_image_url);
+  const optionBTitle = getRequiredString(payload.option_b_title);
+  const optionBDescription = getRequiredString(payload.option_b_description);
+  const optionBImageUrl = getRequiredString(payload.option_b_image_url);
+
+  if (
+    !title ||
+    !description ||
+    !optionATitle ||
+    !optionADescription ||
+    !optionAImageUrl ||
+    !optionBTitle ||
+    !optionBDescription ||
+    !optionBImageUrl
+  ) {
+    return null;
+  }
+
+  return {
+    title,
+    description,
+    tags: payload.tags,
+    option_a_title: optionATitle,
+    option_a_description: optionADescription,
+    option_a_image_url: optionAImageUrl,
+    option_b_title: optionBTitle,
+    option_b_description: optionBDescription,
+    option_b_image_url: optionBImageUrl,
+    category_slug: payload.category_slug,
+    trait_mapping: traitMapping,
+    traits,
+  };
+};
+
+const getRequiredString = (value: unknown): string | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isStringArray = (value: unknown): value is string[] =>
+  Array.isArray(value) && value.every((item) => typeof item === 'string' && item.trim().length > 0);
+
+const isCategorySlug = (value: unknown): value is CategorySlug =>
+  typeof value === 'string' && CATEGORY_SLUGS.includes(value as CategorySlug);
+
+const isTraitArray = (value: unknown): value is RefinedTrait[] =>
+  Array.isArray(value) &&
+  value.length >= 2 &&
+  value.length <= 6 &&
+  value.every(
+    (item) =>
+      isRecord(item) &&
+      (item.option_side === 'A' || item.option_side === 'B') &&
+      typeof item.trait_key === 'string' &&
+      item.trait_key.trim().length > 0 &&
+      typeof item.weight === 'number' &&
+      item.weight >= 0.5 &&
+      item.weight <= 2,
+  );
+
+const checkRateLimit = (userId: string) => {
+  const now = Date.now();
+  const bucket = rateLimitBuckets.get(userId);
+
+  if (!bucket || bucket.resetAt <= now) {
+    rateLimitBuckets.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    pruneRateLimitBuckets(now);
+    return { allowed: true, retryAfterMs: 0 };
+  }
+
+  if (bucket.count >= RATE_LIMIT_MAX_REQUESTS) {
+    return { allowed: false, retryAfterMs: bucket.resetAt - now };
+  }
+
+  bucket.count += 1;
+  return { allowed: true, retryAfterMs: 0 };
+};
+
+const pruneRateLimitBuckets = (now: number) => {
+  if (rateLimitBuckets.size < 1_000) {
+    return;
+  }
+
+  for (const [userId, bucket] of rateLimitBuckets.entries()) {
+    if (bucket.resetAt <= now) {
+      rateLimitBuckets.delete(userId);
+    }
+  }
+};
+
+const getAllowedOrigin = (request: Request) => {
+  const origin = request.headers.get('Origin');
+  if (origin && allowedOrigins.has(origin)) {
+    return origin;
+  }
+
+  return 'https://balance-vert.vercel.app';
+};
+
+const jsonResponse = (
+  body: unknown,
+  status: number,
+  corsHeaders: Record<string, string>,
+  headers: Record<string, string> = {},
+) =>
   new Response(JSON.stringify(body), {
     status,
     headers: {
       ...corsHeaders,
+      ...headers,
       'Content-Type': 'application/json',
     },
   });

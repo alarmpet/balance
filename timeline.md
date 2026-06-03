@@ -385,3 +385,11 @@
 - Verification: The app returned to `https://balance-vert.vercel.app/profile` and rendered the non-guest profile screen with logout/check-in actions.
 - Note: The visible profile nickname matched the existing account, so this confirms production Google login flow/session creation is not blocked, but it does not distinguish a separate Google-only user from the already linked/same-email account.
 - Security: Token-bearing callback URLs and browser storage were not inspected or recorded.
+
+## 2026-06-03 05:25 KST - Edge Function AI Cost Guard First Pass
+
+- Work: Hardened `supabase/functions/embed-question/index.ts` and `supabase/functions/refine-question/index.ts` beyond the existing JWT check.
+- Security: Added POST-only handling, request size limits, field length/category validation, per-user in-memory rate limits, masked OpenAI upstream errors, and restricted browser CORS origins to production plus local dev origins.
+- Security: Removed caller-controlled `systemPrompt` from `refine-question`; the function now always uses the server-side default system prompt.
+- Security: Added runtime validation for the refined OpenAI JSON payload before returning it to callers.
+- Limitation: The rate limit is an immediate in-process guard only; Supabase Edge isolate restarts or scale-out can reset it. Durable DB/RPC-backed quota and actual Edge Function deployment remain next steps.
