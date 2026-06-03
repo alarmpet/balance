@@ -369,3 +369,12 @@
 - Verification: Supabase authorize for `kakao` returned HTTP 302 to `kauth.kakao.com`, and Kakao then returned HTTP 302 to `accounts.kakao.com` instead of rendering the `KOE205` error page.
 - Verification: Production `/login` Kakao button now navigates from Balance Island to the Kakao consent screen for `Balance Island`; the consent screen shows required email plus optional nickname/profile image consent.
 - Limitation: Real Kakao login completion is waiting at the user-owned Kakao consent step; token-bearing callback URLs were not copied or recorded.
+
+## 2026-06-03 04:49 KST - Kakao Real Login and Side Effects Verified
+
+- Work: User completed the Kakao account login and consent screen in Chrome.
+- Verification: Production app returned to `https://balance-vert.vercel.app/profile` and rendered a non-guest profile with the Kakao-created session.
+- Verification: Profile screen showed nickname `islander_dcc0ac`, shell/streak/participation counters, and logout/check-in actions.
+- Verification: Island screen loaded the authenticated gamification snapshot with avatar mood/energy values, confirming `user_avatar_state` was available through the app session.
+- Verification: Triggered the app's `펫 배정` action and the Island screen updated from no pet to `카멜레온`, confirming `user_pet_state` creation/loading.
+- Security: Callback URL query strings, auth codes, access tokens, refresh tokens, and provider credentials were not recorded.

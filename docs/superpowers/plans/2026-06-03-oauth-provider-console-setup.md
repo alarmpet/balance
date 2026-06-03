@@ -41,7 +41,8 @@
 - Kakao account email is now enabled as required consent after registering an app icon and converting the Kakao app to a personal developer Biz App. This is required because Supabase's built-in Kakao provider includes `account_email` in the authorize request.
 - Supabase Kakao provider has been enabled; authorize smoke returned HTTP 302 to `kauth.kakao.com`.
 - Production Kakao button now reaches the Kakao consent screen instead of `KOE205`.
-- Remaining work: user completes the Kakao consent screen, then profile/pet/avatar side-effect verification. Repeat Google real login smoke if a fresh account-level verification is needed.
+- User completed the Kakao consent screen; production app returned to `/profile` with a non-guest profile, Island loaded avatar state, and the app's pet assignment action created/loaded a Kakao user pet state.
+- Remaining work: repeat Google real login smoke if a fresh account-level verification is needed, then decide whether to push the local documentation commits to `origin/main`.
 
 ## Security Rules
 
