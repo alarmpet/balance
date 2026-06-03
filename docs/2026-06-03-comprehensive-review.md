@@ -185,15 +185,17 @@ ON CONFLICT DO NOTHING;
 **현재 상태:**
 - `supabase/functions/embed-question/index.ts`, `refine-question/index.ts`가 존재
 - 2026-06-03 로컬 코드에서 Supabase Auth JWT 검증, POST-only 처리, 입력 크기/길이 제한, per-user in-memory rate limit, OpenAI 오류 마스킹, 제한 CORS가 1차 반영됨
+- `supabase/migrations/202606030530_ai_edge_rate_limits.sql`에서 `ai_edge_rate_limit_events`와 `check_ai_rate_limit()` RPC를 추가하여 durable per-user quota의 로컬 구현이 준비됨
+- 두 Edge Function은 OpenAI 호출 전에 `check_ai_rate_limit()`을 먼저 호출하며, RPC 실패 시 비용 보호를 위해 503으로 fail-closed 처리함
 - `refine-question`은 호출자 제공 `systemPrompt`를 더 이상 system role로 사용하지 않고 기본 서버 프롬프트만 사용하도록 정리됨
 - `refine-question`은 OpenAI 응답을 `JSON.parse` 후 필수 필드/태그/카테고리/trait 범위로 재검증함
-- 아직 Supabase Edge Functions 배포 및 운영형 durable rate limit(DB/RPC 기반) 적용은 남아 있음
+- 아직 Supabase DB migration 적용, Edge Functions 배포, 실제 authenticated 호출 smoke test는 남아 있음
 
 **리스크:**
-로컬 코드의 1차 방어는 직접 호출 비용 소진 위험을 줄입니다. 다만 in-memory rate limit은 Edge isolate 재시작/스케일아웃에서 우회될 수 있으므로, 배포 후에도 인증된 사용자의 과도 호출을 완전히 막는 운영형 제한으로 보기는 어렵습니다.
+로컬 코드의 1차 방어와 DB/RPC quota 구현은 직접 호출 비용 소진 위험을 줄입니다. 다만 migration이 live DB에 적용되지 않았거나 Edge Function이 새 코드로 배포되지 않으면 production에는 아직 반영되지 않습니다.
 
 **개선안:**
-1차 보강 코드를 Supabase Edge Functions에 배포하고, 이어서 `ai_usage_events` 또는 RPC 기반의 durable per-user quota를 추가해야 합니다. 배포 시 `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `OPENAI_API_KEY`, 모델 환경변수 설정도 함께 확인해야 합니다.
+`202606030530_ai_edge_rate_limits.sql`를 Supabase DB에 적용한 뒤 1차 보강 코드를 Supabase Edge Functions에 배포해야 합니다. 배포 시 `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `OPENAI_API_KEY`, 모델 환경변수 설정도 함께 확인해야 합니다.
 
 ```typescript
 // 최소한의 JWT 검증 핵심
@@ -436,8 +438,8 @@ Timeline은 330줄로, 3일간의 작업이 상세하게 기록되어 있습니�
 
 ### 즉시
 
-1. ⚠️ Edge Function 1차 보강 코드 배포 및 Supabase 환경변수 확인 (`refine-question`, `embed-question`)
-2. ⚠️ durable rate limit 설계/마이그레이션 추가
+1. ⚠️ `202606030530_ai_edge_rate_limits.sql` DB 적용
+2. ⚠️ Edge Function 보강 코드 배포 및 Supabase 환경변수 확인 (`refine-question`, `embed-question`)
 3. ⚠️ `research.md` 현재 상태 갱신 (해결된 항목 업데이트)
 
 ### 이번 주

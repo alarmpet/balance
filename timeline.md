@@ -393,3 +393,11 @@
 - Security: Removed caller-controlled `systemPrompt` from `refine-question`; the function now always uses the server-side default system prompt.
 - Security: Added runtime validation for the refined OpenAI JSON payload before returning it to callers.
 - Limitation: The rate limit is an immediate in-process guard only; Supabase Edge isolate restarts or scale-out can reset it. Durable DB/RPC-backed quota and actual Edge Function deployment remain next steps.
+
+## 2026-06-03 05:40 KST - Durable AI Edge Rate Limit Prepared
+
+- Work: Added `supabase/migrations/202606030530_ai_edge_rate_limits.sql` with `ai_edge_rate_limit_events` and the `check_ai_rate_limit()` RPC.
+- Security: Updated `embed-question` and `refine-question` to call the durable RPC before any OpenAI request; if the RPC is unavailable, the functions fail closed with 503 instead of spending API tokens.
+- Security: Kept the in-memory per-isolate limiter as a second local guard after the durable DB quota.
+- Verification: A pre-implementation source check failed for missing migration/RPC wiring; after the change, the same check passed and `npm.cmd run typecheck` passed.
+- Limitation: The migration still needs to be applied to the live Supabase DB, then both Edge Functions need deployment and authenticated smoke testing.

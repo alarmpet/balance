@@ -36,11 +36,19 @@ interface RefineRequestBody {
   draft: QuestionDraftInput;
 }
 
+interface RpcClient {
+  rpc: (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ data: unknown; error: { message?: string } | null }>;
+}
+
 const CATEGORY_SLUGS = ['food', 'life', 'romance', 'career', 'culture'] as const;
 const MAX_BODY_BYTES = 16_384;
 const MAX_TITLE_LENGTH = 160;
 const MAX_OPTION_LENGTH = 240;
 const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_WINDOW_SECONDS = RATE_LIMIT_WINDOW_MS / 1000;
 const RATE_LIMIT_MAX_REQUESTS = 8;
 const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
 const allowedOrigins = new Set([
@@ -215,6 +223,25 @@ serve(async (request) => {
       return jsonResponse({ error: 'Unauthorized: Invalid token' }, 401, responseHeaders);
     }
 
+    const durableRateLimit = await checkDurableRateLimit(
+      supabase,
+      'refine-question',
+      RATE_LIMIT_WINDOW_SECONDS,
+      RATE_LIMIT_MAX_REQUESTS,
+    );
+    if (durableRateLimit.error) {
+      console.error('Durable rate limit check failed for refine-question.', durableRateLimit.error);
+      return jsonResponse({ error: 'Rate limit temporarily unavailable.' }, 503, responseHeaders);
+    }
+    if (!durableRateLimit.allowed) {
+      return jsonResponse(
+        { error: 'Rate limit exceeded.' },
+        429,
+        responseHeaders,
+        { 'Retry-After': String(durableRateLimit.retryAfterSeconds) },
+      );
+    }
+
     const rateLimit = checkRateLimit(user.id);
     if (!rateLimit.allowed) {
       return jsonResponse(
@@ -335,6 +362,34 @@ const sanitizeDraft = (
   }
 
   return { title, optionAText, optionBText, categorySlug };
+};
+
+const checkDurableRateLimit = async (
+  supabase: RpcClient,
+  functionName: 'refine-question',
+  windowSeconds: number,
+  maxRequests: number,
+) => {
+  const { data, error } = await supabase.rpc('check_ai_rate_limit', {
+    p_function_name: functionName,
+    p_window_seconds: windowSeconds,
+    p_max_requests: maxRequests,
+  });
+
+  if (error) {
+    return { allowed: false, retryAfterSeconds: 0, error: error.message ?? 'Unknown RPC error' };
+  }
+
+  const result = Array.isArray(data) ? data[0] : data;
+  if (!isRecord(result)) {
+    return { allowed: false, retryAfterSeconds: 0, error: 'Unexpected RPC response shape' };
+  }
+
+  return {
+    allowed: result.allowed === true,
+    retryAfterSeconds: Math.max(1, Number(result.retry_after_seconds ?? 1)),
+    error: null,
+  };
 };
 
 const parseJsonString = (value: string): unknown | null => {
