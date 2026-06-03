@@ -125,10 +125,52 @@ function resolvePetAsset(uri: string | null): PetImageSource {
 }
 
 function getSkyPhase(hour = new Date().getHours()) {
-  if (hour >= 5 && hour < 11) return { top: '#ffedd5', mid: '#bae6fd', sun: '#fde68a' };
-  if (hour >= 11 && hour < 17) return { top: '#bae6fd', mid: '#e0f2fe', sun: '#fef3c7' };
-  if (hour >= 17 && hour < 21) return { top: '#fda4af', mid: '#c4b5fd', sun: '#fb7185' };
-  return { top: '#172554', mid: '#312e81', sun: '#f8fafc' };
+  if (hour >= 5 && hour < 11) {
+    return {
+      top: '#ffedd5',
+      mid: '#bae6fd',
+      sun: '#fde68a',
+      text: '#164e63',
+      subText: '#4f7d89',
+      badgeBg: '#fef3c7',
+      badgeText: '#b45309',
+      cloudOpacity: 0.55
+    };
+  }
+  if (hour >= 11 && hour < 17) {
+    return {
+      top: '#bae6fd',
+      mid: '#e0f2fe',
+      sun: '#fef3c7',
+      text: '#164e63',
+      subText: '#4f7d89',
+      badgeBg: '#fef3c7',
+      badgeText: '#b45309',
+      cloudOpacity: 0.6
+    };
+  }
+  if (hour >= 17 && hour < 21) {
+    return {
+      top: '#fda4af',
+      mid: '#c4b5fd',
+      sun: '#fb7185',
+      text: '#ffffff',
+      subText: '#f1f5f9',
+      badgeBg: 'rgba(255, 255, 255, 0.25)',
+      badgeText: '#ffffff',
+      cloudOpacity: 0.4
+    };
+  }
+  return {
+    top: '#172554',
+    mid: '#312e81',
+    sun: '#f8fafc',
+    text: '#ffffff',
+    subText: '#94a3b8',
+    badgeBg: 'rgba(255, 255, 255, 0.15)',
+    badgeText: '#ffffff',
+    cloudOpacity: 0.2
+  };
 }
 
 export default function IslandScreen() {
@@ -202,7 +244,16 @@ export default function IslandScreen() {
   const skyPhase = useMemo(() => {
     // For decorate mode, match the sunset mockup exactly
     if (activeMode === 'decorate') {
-      return { top: '#fda4af', mid: '#c4b5fd', sun: '#fb7185' };
+      return {
+        top: '#fda4af',
+        mid: '#c4b5fd',
+        sun: '#fb7185',
+        text: '#ffffff',
+        subText: '#f1f5f9',
+        badgeBg: 'rgba(255, 255, 255, 0.25)',
+        badgeText: '#ffffff',
+        cloudOpacity: 0.4
+      };
     }
     return getSkyPhase();
   }, [activeMode]);
@@ -287,26 +338,28 @@ export default function IslandScreen() {
 
         {activeMode === 'discover' && (
           <View style={styles.modeContainer}>
-            <View style={styles.hero}>
+            <View style={[styles.hero, { borderColor: skyPhase.badgeBg }]}>
               <View style={[styles.sky, { backgroundColor: skyPhase.top }]}>
                 <View style={[styles.skyBand, { backgroundColor: skyPhase.mid }]} />
                 <View style={[styles.sun, { backgroundColor: skyPhase.sun }]} />
-                <View style={styles.cloudSmall} />
-                <View style={styles.cloudLarge} />
+                <View style={[styles.cloudSmall, { opacity: skyPhase.cloudOpacity }]} />
+                <View style={[styles.cloudLarge, { opacity: skyPhase.cloudOpacity }]} />
               </View>
               
               <View style={styles.islandBase}>
                 <Image source={LOCAL_PET_ISLAND} style={{ width: 140, height: 100 }} contentFit="contain" />
               </View>
-              <Text style={styles.levelBadge}>섬 Lv.{snapshot.island.island_level}</Text>
-              <Text style={styles.title}>{islandTitle}</Text>
-              <Text style={styles.description}>
+              <Text style={[styles.levelBadge, { backgroundColor: skyPhase.badgeBg, color: skyPhase.badgeText, borderColor: skyPhase.badgeBg }]}>
+                섬 Lv.{snapshot.island.island_level}
+              </Text>
+              <Text style={[styles.title, { color: skyPhase.text }]}>{islandTitle}</Text>
+              <Text style={[styles.description, { color: skyPhase.subText }]}>
                 지금까지 {snapshot.profile.total_participation_count}개의 선택이 이 섬의 성격을 만들었어요.
               </Text>
               {snapshot.equippedTheme ? (
-                <View style={styles.equippedTheme}>
-                  <MaterialCommunityIcons name="palette-swatch" size={18} color="#7c3aed" />
-                  <Text style={styles.equippedThemeText}>
+                <View style={[styles.equippedTheme, { backgroundColor: skyPhase.badgeBg, borderColor: skyPhase.badgeBg }]}>
+                  <MaterialCommunityIcons name="palette-swatch" size={18} color={skyPhase.badgeText} />
+                  <Text style={[styles.equippedThemeText, { color: skyPhase.badgeText }]}>
                     {snapshot.equippedTheme.skin.display_name} LV.{snapshot.equippedTheme.inventory.level}
                   </Text>
                 </View>
@@ -438,12 +491,12 @@ export default function IslandScreen() {
             </View>
 
             {/* 3. Sunset Cozy Island (Hero representation) with floating animation */}
-            <View style={styles.cozyHero}>
+            <View style={[styles.cozyHero, { borderColor: skyPhase.badgeBg }]}>
               <View style={[styles.sky, { backgroundColor: skyPhase.top }]}>
                 <View style={[styles.skyBand, { backgroundColor: skyPhase.mid }]} />
                 <View style={[styles.sun, { backgroundColor: skyPhase.sun }]} />
-                <View style={styles.cloudSmall} />
-                <View style={styles.cloudLarge} />
+                <View style={[styles.cloudSmall, { opacity: skyPhase.cloudOpacity }]} />
+                <View style={[styles.cloudLarge, { opacity: skyPhase.cloudOpacity }]} />
               </View>
               
               {/* Animated Floating 3D Island & Puppy */}
@@ -474,7 +527,7 @@ export default function IslandScreen() {
                 </Animated.View>
               </Animated.View>
 
-              <Text style={styles.cozyLevelBadge}>
+              <Text style={[styles.cozyLevelBadge, { backgroundColor: skyPhase.badgeBg, color: skyPhase.badgeText, borderColor: skyPhase.badgeBg }]}>
                 섬 Lv.{snapshot.island.island_level} · {snapshot.petSpecies?.display_name ?? '골든 리트리버'}
               </Text>
             </View>
@@ -697,22 +750,20 @@ const styles = StyleSheet.create({
   cloudLarge: {
     backgroundColor: '#ffffff',
     borderRadius: 999,
-    height: 34,
-    opacity: 0.8,
+    height: 28,
     position: 'absolute',
-    right: 44,
-    top: 38,
-    width: 86
+    right: 80,
+    top: 44,
+    width: 74
   },
   cloudSmall: {
     backgroundColor: '#ffffff',
     borderRadius: 999,
-    height: 26,
-    left: 40,
-    opacity: 0.75,
+    height: 22,
+    left: 44,
     position: 'absolute',
-    top: 56,
-    width: 62
+    top: 50,
+    width: 54
   },
   container: {
     backgroundColor: '#ecfeff',
@@ -1002,29 +1053,28 @@ const styles = StyleSheet.create({
     marginTop: 8
   },
   sky: {
-    backgroundColor: '#bae6fd',
-    height: 112,
     left: 0,
     position: 'absolute',
     right: 0,
-    top: 0
+    top: 0,
+    bottom: 0
   },
   skyBand: {
     bottom: 0,
-    height: 44,
+    height: 60,
     left: 0,
-    opacity: 0.72,
+    opacity: 0.45,
     position: 'absolute',
     right: 0
   },
   sun: {
     backgroundColor: '#fde68a',
     borderRadius: 999,
-    height: 48,
+    height: 40,
     position: 'absolute',
-    right: 26,
-    top: 18,
-    width: 48
+    right: 32,
+    top: 20,
+    width: 40
   },
   title: {
     color: '#164e63',

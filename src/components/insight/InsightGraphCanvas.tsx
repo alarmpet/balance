@@ -1,4 +1,5 @@
 import { memo, useMemo, useState } from 'react';
+// @ts-ignore
 import Svg, { Circle, G, Line, Text as SvgText, Defs, Filter, FeGaussianBlur, FeMerge, FeMergeNode, Path, Image as SvgImage } from 'react-native-svg';
 import { StyleSheet, Text, View, Dimensions } from 'react-native';
 import { hierarchy, tree } from 'd3-hierarchy';
@@ -185,6 +186,7 @@ export function InsightGraphCanvas({ snapshot, selectedNodeId, onSelectNode }: I
           d="M275,30 A14,14 0 0,0 293,48 A12,12 0 1,1 275,30" 
           fill="#f8fafc" 
           opacity={0.8} 
+          // @ts-ignore
           filter="url(#glowCyan)"
         />
 
@@ -344,6 +346,7 @@ const GraphNode = memo(function GraphNode({
         stroke={nodeColor}
         strokeWidth={selected ? 3.5 : 1.5}
         opacity={selected ? 0.95 : 0.55}
+        // @ts-ignore
         filter={`url(#${filterId})`}
       />
       
