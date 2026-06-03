@@ -17,6 +17,8 @@ import { useGamificationStore } from '../../store/gamificationStore';
 import type { GamificationSnapshot } from '../../services/gamificationService';
 import type { ThemeDrawResultRow } from '../../types/database.types';
 
+type PetImageSource = string | number | null;
+
 type TraitCopy = {
   label: string;
   title: string;
@@ -45,6 +47,15 @@ const RARITY_COPY: Record<ThemeDrawResultRow['rarity'], { label: string; color: 
 
 const LOGIN_ROUTE = '/login' as Href;
 
+const LOCAL_PET_ASSETS: Record<string, number> = {
+  'asset://alarmpetgo/svg/american shorthair.png': require('../../../assets/pets/alarmpetgo/common/american-shorthair.png'),
+  'asset://alarmpetgo/svg/bichon.png': require('../../../assets/pets/alarmpetgo/common/bichon.png'),
+  'asset://alarmpetgo/svg/chameleon.png': require('../../../assets/pets/alarmpetgo/common/chameleon.png'),
+  'asset://alarmpetgo/rare/rare-american shorthair.png': require('../../../assets/pets/alarmpetgo/rare/american-shorthair.png'),
+  'asset://alarmpetgo/rare/rare-bichon.png': require('../../../assets/pets/alarmpetgo/rare/bichon.png'),
+  'asset://alarmpetgo/rare/rare-chameleon.png': require('../../../assets/pets/alarmpetgo/rare/chameleon.png')
+};
+
 function getTopTraits(traits: GamificationSnapshot['traits']) {
   return [...traits].sort((a, b) => b.score - a.score).slice(0, 2);
 }
@@ -66,23 +77,29 @@ function getPetStage(snapshot: GamificationSnapshot) {
   return { label: '새싹 친구', next: '50회 참여 시 동료로 진화', progress: Math.min(100, Math.round((count / 50) * 100)) };
 }
 
-function getPetImage(snapshot: GamificationSnapshot) {
+function getPetImage(snapshot: GamificationSnapshot): PetImageSource {
   const species = snapshot.petSpecies;
   if (!species) return null;
 
   if (snapshot.petState && snapshot.petState.level >= 20 && species.legendary_asset_url) {
-    return species.legendary_asset_url;
+    return resolvePetAsset(species.legendary_asset_url);
   }
 
   if (snapshot.petState && snapshot.petState.level >= 8 && species.rare_asset_url) {
-    return species.rare_asset_url;
+    return resolvePetAsset(species.rare_asset_url);
   }
 
-  return species.common_asset_url;
+  return resolvePetAsset(species.common_asset_url);
 }
 
-function canRenderRemoteAsset(uri: string | null) {
-  return uri ? uri.startsWith('http://') || uri.startsWith('https://') || uri.startsWith('file://') : false;
+function resolvePetAsset(uri: string | null): PetImageSource {
+  if (!uri) return null;
+  return LOCAL_PET_ASSETS[uri] ?? uri;
+}
+
+function canRenderPetAsset(source: PetImageSource) {
+  if (typeof source === 'number') return true;
+  return source ? source.startsWith('http://') || source.startsWith('https://') || source.startsWith('file://') : false;
 }
 
 export default function IslandScreen() {
@@ -221,8 +238,8 @@ export default function IslandScreen() {
 
           <View style={styles.petBody}>
             <View style={styles.petPortrait}>
-              {canRenderRemoteAsset(petImage) ? (
-                <Image source={{ uri: petImage ?? undefined }} style={styles.petImage} contentFit="contain" />
+              {canRenderPetAsset(petImage) ? (
+                <Image source={typeof petImage === 'number' ? petImage : { uri: petImage ?? undefined }} style={styles.petImage} contentFit="contain" />
               ) : (
                 <MaterialCommunityIcons name={snapshot.petSpecies ? 'paw' : 'egg-easter'} size={72} color="#0ea5e9" />
               )}
