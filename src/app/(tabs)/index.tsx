@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, RefreshControl, StyleSheet, Text, View, Animated } from 'react-native';
 import { Image } from 'expo-image';
+import { Ionicons } from '@expo/vector-icons';
 import BalanceCard from '../../components/feed/BalanceCard';
 import ChoiceEchoSheet from '../../components/feed/ChoiceEchoSheet';
 import { useFeedStore } from '../../store/feedStore';
@@ -148,13 +149,29 @@ export default function FeedScreen() {
 
   return (
     <View style={styles.container}>
-      <View pointerEvents="none" style={styles.backdrop}>
-        <View style={styles.skyBand} />
-        <View style={styles.seaBand} />
-      </View>
       <View style={styles.header}>
-        <Text style={styles.kicker}>밸런스 아일랜드</Text>
-        <Text style={styles.heading}>오늘의 밸런스</Text>
+        <View style={styles.headerTop}>
+          <Text style={styles.logoText}>
+            <Text style={{ color: '#0ea5e9', fontWeight: '900' }}>Balance </Text>
+            <Text style={{ color: '#f97316', fontWeight: '900' }}>Island</Text>
+          </Text>
+          <View style={styles.profileBadge}>
+            <View style={styles.avatarPlaceholder}>
+              <Ionicons name="person" size={14} color="rgba(255,255,255,0.7)" />
+            </View>
+          </View>
+        </View>
+        <View style={styles.headerStats}>
+          <View style={styles.statsItem}>
+            <Text style={styles.statsLabel}>Level 12</Text>
+            <Text style={styles.statsSub}>Cozy Life</Text>
+          </View>
+          <View style={styles.statsDivider} />
+          <View style={styles.statsItem}>
+            <Text style={styles.statsLabel}>78 | 425</Text>
+            <Text style={styles.statsSub}>210° 40% 90%</Text>
+          </View>
+        </View>
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </View>
       <FlatList
@@ -194,7 +211,7 @@ export default function FeedScreen() {
 const styles = StyleSheet.create({
   center: {
     alignItems: 'center',
-    backgroundColor: '#e9fbf6',
+    backgroundColor: '#fff5ec',
     flex: 1,
     gap: 12,
     justifyContent: 'center'
@@ -204,30 +221,10 @@ const styles = StyleSheet.create({
     fontWeight: '700'
   },
   container: {
-    backgroundColor: '#f4fbf8',
+    backgroundColor: '#fff5ec',
+    // @ts-ignore
+    backgroundImage: 'linear-gradient(135deg, #FFF0F5 0%, #E6F3FF 35%, #F0E6FF 70%, #FFFFE0 100%)',
     flex: 1
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject
-  },
-  seaBand: {
-    backgroundColor: '#dff7ed',
-    bottom: 0,
-    left: 0,
-    opacity: 0.72,
-    position: 'absolute',
-    right: 0,
-    top: 250
-  },
-  skyBand: {
-    backgroundColor: '#0f3d3a',
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
-    height: 250,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0
   },
   empty: {
     color: '#52716d',
@@ -236,28 +233,76 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
   error: {
-    color: '#fecdd3',
+    color: '#ef4444',
     fontSize: 13,
     fontWeight: '700',
     marginTop: 8
   },
   header: {
-    paddingBottom: 18,
+    paddingBottom: 12,
     paddingHorizontal: 20,
-    paddingTop: 58
+    paddingTop: 54
   },
-  heading: {
-    color: '#ffffff',
-    fontSize: 32,
-    fontWeight: '900',
-    lineHeight: 38,
-    marginTop: 6
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
   },
-  kicker: {
-    color: '#99f6e4',
-    fontSize: 12,
+  logoText: {
+    fontSize: 24,
     fontWeight: '900',
-    letterSpacing: 0
+    letterSpacing: -0.5
+  },
+  profileBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.45)',
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  avatarPlaceholder: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#cbd5e1',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  headerStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.38)',
+    borderColor: 'rgba(255, 255, 255, 0.45)',
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginTop: 14
+  },
+  statsItem: {
+    alignItems: 'center',
+    flex: 1
+  },
+  statsLabel: {
+    color: '#0f172a',
+    fontSize: 15,
+    fontWeight: '900'
+  },
+  statsSub: {
+    color: '#475569',
+    fontSize: 10,
+    fontWeight: '800',
+    marginTop: 1
+  },
+  statsDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: 'rgba(0,0,0,0.06)',
+    marginHorizontal: 12
   },
   listContent: {
     paddingBottom: 32,
@@ -271,3 +316,4 @@ const styles = StyleSheet.create({
     pointerEvents: 'none'
   }
 });
+
