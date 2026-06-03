@@ -8,6 +8,8 @@
 
 **Current Codebase Fit:** Balance Island already has `pet_species`, `user_pet_state`, `theme_skins`, `theme_draw_pools`, `theme_draw_pool_items`, `user_theme_inventory`, `theme_draw_history`, `user_theme_pity`, and probability disclosure RPCs. That means the fastest path is to evolve the current theme draw system into a seasonal LiveOps layer while adding collectible pet variants in a controlled second wave.
 
+**Identity Update:** The app should not primarily feel like “a gacha island game.” It should feel like **a playful balance-question app where your choices slowly reveal your unknown preferences, values, dislikes, and personality patterns, then turn them into an explorable island-map of yourself.**
+
 ---
 
 ## 1. External Research Takeaways
@@ -61,6 +63,46 @@ Sources:
 - https://github.com/Roblox/creator-docs/blob/main/content/en-us/production/monetization/virtual-items.md
 - https://pmc.ncbi.nlm.nih.gov/articles/PMC12583229/
 
+### Obsidian Graph Gives The Island Its Mental Model
+
+Obsidian Graph view represents notes as nodes and links as lines. Its useful product ideas are not the visual complexity itself, but filters, node size, link thickness, group colors, and Local Graph depth. Local Graph is especially important because it shows only what is connected to the active note, with depth controls.
+
+**Balance Island implication:** The island should not show a giant unreadable graph by default. It should show a simple “나의 선택 지도” and let users tap one node, such as `연애`, `안정`, `혼자`, or `매운맛`, to see the surrounding local graph.
+
+Sources:
+- https://obsidian.md/help/Plugins/Graph%2Bview
+- https://www.reddit.com/r/ObsidianMD/comments/1ij8hqd
+
+### Obsidian Canvas Gives The Island Its Card Language
+
+Obsidian Canvas uses cards, connections, colors, and groups to arrange ideas spatially. This is useful for Balance Island because individual votes are easier to understand as small evidence cards than as raw data rows.
+
+**Balance Island implication:** A question result can become a card: “데이트는 즉흥 쪽 선택”, linked to `표현`, `흐름`, `연애`, and one AI insight sentence. The user should feel they are walking through evidence about themselves, not reading a diagnostic report.
+
+Sources:
+- https://obsidian.md/help/plugins/canvas
+- https://obsidian.md/canvas
+
+### Personal Informatics Explains Why This Is More Than MBTI
+
+Personal informatics research describes systems that help people collect personal data, integrate it, reflect on it, and sometimes act on it. Reviews of the literature connect self-relevant data inspection to self-insight and behavior change, but also imply that raw data alone is not enough; users need interpretation and reflection.
+
+**Balance Island implication:** The app should avoid “당신은 이런 사람입니다” as a final diagnosis. It should say “최근 선택에서 이런 흐름이 보여요” and show the evidence path from questions to traits to insight.
+
+Sources:
+- https://www.cs.cmu.edu/~jhm/Readings/2010-ianli-chi-stage-based-model.pdf
+- https://www.tandfonline.com/doi/abs/10.1080/07370024.2016.1276456
+
+### Mind Map Keeps The Experience Understandable
+
+Mind maps are radial, hierarchical diagrams built around a central concept. They are easier for users to parse than a dense global graph because the center and branches give immediate orientation.
+
+**Balance Island implication:** The default island map should be a radial mind map, not a full Obsidian vault graph. The captured reference image is useful as an aspirational “data constellation,” but the product should reveal that density gradually.
+
+Sources:
+- https://github.com/xyflow/react-flow-mindmap-app
+- https://en.wikipedia.org/wiki/Mind_map
+
 ---
 
 ## 2. Product Decision
@@ -74,25 +116,36 @@ Reason:
 - Limited pets are easier to market: “이번 시즌 한정 카멜레온” is clearer than “이번 시즌 한정 섬 배경.”
 - Pets can evolve, react, sit on the profile, appear on the island, and become the user’s avatar proxy.
 
-But the better product is **pets as desire, islands as proof**.
+But the better product is **pets as self-avatar, islands as self-knowledge space**.
 
-The island should answer: “What does owning this pet let me show?”
+The island should answer: “What do my choices reveal about the world I want to live in?”
 
 ### Recommended Hierarchy
 
-1. **Pet Variant:** primary chase item.
+1. **Pet / Avatar:** the living symbol of “me.”
+   - The pet is not just a collectible. It is the user's personality avatar.
+   - It should react to choice patterns, mood, streaks, and repeated values.
+   - Limited variants are still powerful, but they should feel like expressions of the user's discovered self.
+
+2. **Insight Island:** the user's explorable self-map.
+   - The island is not just a showroom. It is where choices become visible geography.
+   - Trait clusters become zones.
+   - Repeated values become landmarks.
+   - Favorite/disliked patterns become paths, weather, or borders.
+
+3. **Pet Variant:** primary chase item inside the collection economy.
    - Example: `카멜레온: 달빛 변이`, `비숑: 체리블라썸`, `아메숏: 오로라`.
    - Limited variants change appearance, idle effect, profile badge, and island behavior.
 
-2. **Island Theme:** secondary chase and display stage.
+4. **Island Theme:** secondary chase and atmosphere layer.
    - Example: `별빛 왕국`, `네온 카페`, `핑크 라군`.
-   - Themes modify background, ambience, effects, and visitor first impression.
+   - Themes modify background, ambience, effects, and the emotional reading of the user's self-map.
 
-3. **Decor/Props:** long-tail collection filler.
+5. **Decor/Props:** long-tail collection filler.
    - Example: chairs, lamps, shells, signs, plants.
    - Use for common/rare rewards so duplicates do not feel worthless.
 
-4. **Titles/Badges:** social proof.
+6. **Titles/Badges:** social proof.
    - Example: `시즌 1 개척자`, `달빛 카멜레온 오너`, `100문답 탐험가`.
    - Cheap to produce, high status value.
 
@@ -187,22 +240,68 @@ The strongest loop is:
 
 1. User answers questions.
 2. Traits update.
-3. Traits influence recommended pet/island style.
-4. User receives or chases a pet/theme that feels “me-coded.”
-5. User equips it on island/profile.
-6. Other users can see it.
-7. New season introduces a more desirable expression of self.
+3. The app turns votes into visible evidence nodes.
+4. Traits, categories, likes, dislikes, and repeated values become island-map clusters.
+5. The pet reflects the user's current self-pattern.
+6. The user receives or chases a pet/theme that feels “me-coded.”
+7. The user equips it on island/profile.
+8. Other users can see a simplified version of the island identity.
+9. New questions and seasons add new branches to the self-map.
 
 This makes the gacha feel like self-expression rather than pure gambling.
 
+### Identity Loop
+
+The app promise should be:
+
+> “재미삼아 밸런스 게임을 하다 보면, 내가 좋아하는 것과 싫어하는 것, 반복해서 고르는 가치관, 나도 몰랐던 성향이 섬의 지도로 자라난다.”
+
+This is closer to “playful self-discovery” than to MBTI. MBTI gives a type label. Balance Island should give a living evidence map.
+
+### Island Information Architecture
+
+To avoid complexity, the island should have only three map modes at first:
+
+1. **오늘의 발견**
+   - One new insight card.
+   - Example: “최근 연애 질문에서는 표현을 숨기기보다 바로 말하는 선택이 많았어요.”
+   - User sees one clear takeaway, not a graph wall.
+
+2. **성향 가지**
+   - Mind-map view.
+   - Center: pet/avatar.
+   - First branches: core trait axes.
+   - Second branches: categories and repeated choices.
+   - Best default mode for mobile.
+
+3. **연결 지도**
+   - Obsidian Local Graph style.
+   - User taps one node and sees nearby evidence only.
+   - Depth starts at 1, with optional depth 2.
+   - Full global graph remains hidden until advanced mode.
+
+The captured reference image should guide the long-term feeling: a constellation of self-data. MVP should show a small island constellation, not the whole universe.
+
 ### “나만의 꾸미기” Must Be Visible
 
-Do not bury inventory in a list. The island screen should eventually become:
-- Pet center stage.
-- Theme background.
-- 3-6 decor slots.
-- Visitor/profile preview.
+Do not bury inventory or insights in lists. The island screen should eventually combine:
+- Pet center stage as “나의 현재 아바타.”
+- Theme background as “내가 살고 싶은 무드.”
+- 3-6 decor slots as lightweight self-expression.
+- Insight map as “내 선택의 연결.”
+- Visitor/profile preview as “남에게 보여줄 요약본.”
 - “오늘의 섬 기분” based on recent choices.
+
+### Complexity Guardrails
+
+The concept is deep, but the first UI must stay simple:
+
+- No freeform canvas editing in MVP.
+- No giant full graph on first open.
+- No more than 7 visible nodes in the default island map.
+- Every insight must show one evidence path: question -> choice -> trait/category -> insight.
+- The pet and island must not both have separate complex leveling systems.
+- Pet owns growth. Island owns map/space.
 
 ---
 
@@ -291,12 +390,18 @@ Use for:
 ### Islands
 
 Role:
+- Self-knowledge space.
+- Preference map.
 - Showroom.
 - Collection sink.
 - Social proof.
 - Personalization canvas.
 
 Use for:
+- Insight map.
+- Trait zones.
+- Like/dislike landmarks.
+- Local graph exploration.
 - Themes.
 - Decor slots.
 - Seasonal atmosphere.
@@ -304,7 +409,11 @@ Use for:
 
 ### Decision
 
-Do not make users choose “pet or island.” Make users want a limited pet, then make them want the perfect island to display it.
+Do not make users choose “pet or island.” Make the pet the user-avatar, and make the island the readable map of the user's values, preferences, and desired world.
+
+The simplified product sentence:
+
+> “펫은 나, 섬은 내가 살아가고 싶은 세계와 내 선택의 지도.”
 
 ---
 
@@ -337,7 +446,14 @@ Danger signal:
 
 ## 10. Implementation Phases
 
-### Phase 1: Make Existing Theme Draw Feel Valuable
+### Phase 1: Make The Island Explain The User
+
+- Add “오늘의 발견” card to the island screen.
+- Show one evidence path from recent votes to one insight.
+- Keep graph hidden behind a simple card.
+- Use existing `user_traits`, `votes`, `questions`, `categories`, and `user_insight_cards`.
+
+### Phase 2: Make Existing Theme Draw Feel Valuable
 
 - Add probability modal before draw.
 - Show pity counter and draw history.
@@ -345,7 +461,7 @@ Danger signal:
 - Add equipped island preview.
 - Add “why this theme fits you” text from trait data.
 
-### Phase 2: Add Pet Variants Without Trading
+### Phase 3: Add Pet Variants Without Trading
 
 - Add `pet_variants` table.
 - Add `user_pet_variants` table.
@@ -353,21 +469,37 @@ Danger signal:
 - Variants are skins/forms for the assigned pet family.
 - Add seasonal pet variant banner with pity.
 
-### Phase 3: Add Island Showroom
+### Phase 4: Add Island Mind Map
+
+- Add radial `성향 가지` map.
+- Center node is current pet.
+- First branches are core trait axes.
+- Second branches are categories and repeated choices.
+- Keep max visible nodes low.
+
+### Phase 5: Add Island Showroom
 
 - Add island decor slots.
 - Add visitor/profile preview.
 - Let users save one active layout.
 - Add seasonal theme collections.
 
-### Phase 4: Add LiveOps Admin Config
+### Phase 6: Add Local Graph Exploration
+
+- Add `연결 지도` detail mode.
+- Tapping a node shows only nearby connected nodes.
+- Depth 1 is default.
+- Depth 2 is opt-in.
+- Add filters by category and time window.
+
+### Phase 7: Add LiveOps Admin Config
 
 - Add server-side banner schedule.
 - Add probability versioning per banner.
 - Add content calendar.
 - Add metrics dashboard export.
 
-### Phase 5: Consider Monetization
+### Phase 8: Consider Monetization
 
 Only after retention data:
 - Add non-random starter pack first.
@@ -380,13 +512,15 @@ Only after retention data:
 
 Balance Island should become:
 
-> “내 선택이 만든 성향 펫을 중심으로, 한정판 펫 변이와 섬 테마를 모아 나만의 섬을 꾸미는 취향 수집 게임.”
+> “재미삼아 밸런스 게임을 하다 보면, 내 선택이 성향 펫과 섬의 지도로 자라나서 내가 좋아하는 것, 싫어하는 것, 반복하는 가치관을 발견하게 해주는 취향 자기이해 앱.”
 
 The desire engine is not “a gacha button.” The desire engine is:
 - This pet feels like me.
+- This island shows the world I want to live in.
+- This map helps me understand why I keep choosing certain things.
 - This limited version may not come back soon.
 - My island makes it look special.
 - Other people can see I got it.
 - I can still trust the game because odds and pity are clear.
 
-That is the strongest path between obsession and trust.
+That is the strongest path between self-discovery, collection desire, and trust.
