@@ -80,6 +80,20 @@ export default function FeedScreen() {
     });
   }, [questions]);
 
+  const prefetchNextImagesRef = useRef(prefetchNextImages);
+  useEffect(() => {
+    prefetchNextImagesRef.current = prefetchNextImages;
+  }, [prefetchNextImages]);
+
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: any[] }) => {
+    const first = viewableItems[0]?.index;
+    if (typeof first === 'number') {
+      prefetchNextImagesRef.current(first);
+    }
+  }).current;
+
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 60 }).current;
+
   const handleVote = useCallback((questionId: string, option: OptionSide) => {
     const question = questions.find((q) => q.id === questionId);
     if (!question) return;
@@ -148,13 +162,10 @@ export default function FeedScreen() {
         data={questions}
         keyExtractor={(item) => item.id}
         ListEmptyComponent={<Text style={styles.empty}>표시할 질문이 없습니다.</Text>}
-        onViewableItemsChanged={({ viewableItems }) => {
-          const first = viewableItems[0]?.index;
-          if (typeof first === 'number') prefetchNextImages(first);
-        }}
+        onViewableItemsChanged={onViewableItemsChanged}
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => loadFeedQuestions()} />}
         renderItem={renderItem}
-        viewabilityConfig={{ itemVisiblePercentThreshold: 60 }}
+        viewabilityConfig={viewabilityConfig}
       />
       <ChoiceEchoSheet
         visible={isEchoVisible}
