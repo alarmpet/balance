@@ -103,6 +103,37 @@ Sources:
 - https://github.com/xyflow/react-flow-mindmap-app
 - https://en.wikipedia.org/wiki/Mind_map
 
+### Finch Shows Why A Pet Should React To The User
+
+Finch's core pattern is not just “cute pet.” It connects the user's self-care actions to a virtual pet that gains energy, grows, and goes on adventures. Public app-store/review descriptions consistently frame Finch as habit/self-care plus virtual-pet companionship.
+
+**Balance Island implication:** The pet should not be a static reward. It should visibly react to votes, streaks, comeback moments, and insight discoveries. Keep the reaction gentle: the pet misses the user, but never guilt-trips them.
+
+Sources:
+- https://apps.apple.com/us/app/finch-self-care-pet/id1528595748
+- https://webisoft.com/articles/finch-self-care-app/
+
+### Spotify Wrapped Shows Why Data Needs Story
+
+Spotify Wrapped works because it turns activity logs into a personal, visual, shareable story. Research and media coverage also point out a caution: users enjoy personalized reflection, but data stories can feel inaccurate, exposing, or over-assertive if the platform overclaims identity.
+
+**Balance Island implication:** Weekly/monthly recaps should be opt-in, story-card based, and phrased as “최근 선택에서 보이는 흐름,” not as a permanent identity label.
+
+Sources:
+- https://journals.sagepub.com/doi/10.1177/14614448251391301
+- https://www.clarigital.com/codex/case-studies/spotify-data-marketing/
+- https://www.axios.com/2024/12/05/spotify-wrapped-2024-ai
+
+### Forced Choice Is Useful, But Not Magic
+
+Balance-game questions resemble forced-choice preference elicitation. Forced-choice formats can reduce some rating-scale problems, but psychometric literature is mixed: forced-choice can create ipsative scores and does not automatically solve social desirability or measurement validity.
+
+**Balance Island implication:** Use forced choices as playful preference signals, not as clinical measurement. The app can say “이런 선택 흐름이 보여요,” but should not imply a validated personality diagnosis.
+
+Sources:
+- https://pmc.ncbi.nlm.nih.gov/articles/PMC10621689/
+- https://journals.sagepub.com/doi/abs/10.1177/00131644231178721
+
 ---
 
 ## 2. Product Decision
@@ -258,6 +289,61 @@ The app promise should be:
 
 This is closer to “playful self-discovery” than to MBTI. MBTI gives a type label. Balance Island should give a living evidence map.
 
+### Choice Echo
+
+Each vote should create a tiny reflection moment before the next question:
+
+- Show the selected option.
+- Show 1-2 trait/category effects in plain Korean.
+- Show one pet reaction.
+- Offer “섬 지도에서 보기” only when a meaningful new connection exists.
+
+Example:
+
+> “즉흥 여행을 골랐어요. 흐름과 모험 쪽 별이 조금 밝아졌고, 비숑이 신나서 해변 쪽으로 뛰어갔어요.”
+
+Rules:
+
+- Keep it under two seconds unless the user taps for detail.
+- Do not interrupt fast voting every time; after the first few sessions, show Choice Echo only for strong, new, or surprising signals.
+- Do not use clinical language.
+- Never claim one choice proves a trait.
+
+### Daily Dilemma Theme
+
+Bundle daily questions around a lightweight theme:
+
+- `혼자 vs 같이`
+- `안정 vs 모험`
+- `계획 vs 즉흥`
+- `맛 vs 분위기`
+- `표현 vs 차분`
+
+Why:
+
+- It makes the feed feel intentional.
+- It gives the island map enough related data to show visible growth.
+- It creates a natural weekly recap: “이번 주에는 흐름 쪽 선택이 자주 보였어요.”
+
+### Pet As Interpreter
+
+The pet should become the emotional narrator of self-discovery:
+
+- Vote reaction: “오늘은 새로운 쪽에 마음이 갔네.”
+- Comeback reaction: “돌아와서 기뻐. 오늘은 가볍게 하나만 골라볼까?”
+- Insight reaction: “연애에서는 표현, 일에서는 차분. 이 조합 꽤 멋진데?”
+- Diary reaction: one short optional daily note after enough choices.
+
+Do not make the pet punish the user. Avoid “네가 안 와서 아팠어.” Use “기다리고 있었어” or “돌아와서 기뻐.”
+
+### Contradiction Discovery
+
+One of the strongest self-discovery moments is a positive contradiction:
+
+> “연애 질문에서는 표현을 자주 고르지만, 커리어 질문에서는 차분을 자주 골라요. 일관성이 없는 게 아니라, 관계와 일에서 다른 모드를 쓰는 사람일 수 있어요.”
+
+This should become a later insight-card type because it uses existing category/trait inputs and fits the app identity better than simple trait totals.
+
 ### Island Information Architecture
 
 To avoid complexity, the island should have only three map modes at first:
@@ -302,6 +388,16 @@ The concept is deep, but the first UI must stay simple:
 - Every insight must show one evidence path: question -> choice -> trait/category -> insight.
 - The pet and island must not both have separate complex leveling systems.
 - Pet owns growth. Island owns map/space.
+- Use the current `react-native-svg` + `d3-hierarchy` direction for MVP visual maps; defer `react-native-skia`, gesture-heavy editing, and complex animation stacks until the basic map proves useful.
+- Treat pet diary, weekly recap, and contradiction discovery as staged features, not day-one requirements.
+
+### Ethics Guardrails
+
+- No diagnosis language: avoid “당신은 이런 사람입니다.”
+- No guilt mechanics: the pet can welcome, miss, or encourage, but must not shame the user.
+- No hidden public sharing: insight details and vote history are private by default.
+- Share cards must be opt-in and summarize, not expose raw votes.
+- Forced-choice results are preference signals, not validated psychological scores.
 
 ---
 
@@ -423,6 +519,11 @@ Track:
 - D1/D7/D30 retention.
 - Daily draw claim rate.
 - First pet assignment completion.
+- Choice Echo view/skip/tap rate.
+- Daily dilemma completion rate.
+- Pet reaction positive engagement: care tap, next-question tap, diary open.
+- Insight card open and “섬 지도에서 보기” tap rate.
+- Weekly recap open/share/save rate.
 - Seasonal banner open rate.
 - Draw conversion from probability screen.
 - Inventory equip rate.
@@ -441,6 +542,9 @@ Danger signal:
 - Users churn after duplicates.
 - Users complain that odds are unclear.
 - New users feel old users are impossibly ahead.
+- Users skip Choice Echo repeatedly.
+- Users perceive insights as inaccurate or too deterministic.
+- Users feel pet comeback messages are guilt-inducing.
 
 ---
 
@@ -452,6 +556,9 @@ Danger signal:
 - Show one evidence path from recent votes to one insight.
 - Keep graph hidden behind a simple card.
 - Use existing `user_traits`, `votes`, `questions`, `categories`, and `user_insight_cards`.
+- Add a minimal Choice Echo after meaningful votes.
+- Add 5-10 pet dialogue templates driven by existing trait/category signals, without adding a large dialogue CMS yet.
+- Add daily dilemma theme labels to the feed calendar or seed plan.
 
 ### Phase 2: Make Existing Theme Draw Feel Valuable
 
@@ -476,6 +583,8 @@ Danger signal:
 - First branches are core trait axes.
 - Second branches are categories and repeated choices.
 - Keep max visible nodes low.
+- Add geography metaphors only where they clarify meaning: e.g. `모험의 언덕`, `안정의 마을`, `흐름의 해변`.
+- Add “나의 선택 별자리” as a visual style for local graph/detail mode, not as the default full map.
 
 ### Phase 5: Add Island Showroom
 
@@ -491,6 +600,14 @@ Danger signal:
 - Depth 1 is default.
 - Depth 2 is opt-in.
 - Add filters by category and time window.
+- Add contradiction-discovery cards for category-specific differences, such as “연애에서는 표현, 커리어에서는 차분.”
+
+### Phase 6.5: Add Recaps After Retention Signals
+
+- Add weekly recap only after users have enough vote volume for the story to feel grounded.
+- Use story-card format inspired by Wrapped, but keep sharing opt-in.
+- Add “펫의 짧은 일기” as the emotional wrapper around the recap.
+- Include privacy copy before first share.
 
 ### Phase 7: Add LiveOps Admin Config
 
