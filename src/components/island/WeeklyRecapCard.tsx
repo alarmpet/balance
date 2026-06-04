@@ -1,5 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { useRef } from 'react';
+import { Platform, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { captureRef } from 'react-native-view-shot';
 import type { GamificationSnapshot } from '../../services/gamificationService';
 import { analyticsService } from '../../services/analyticsService';
 import { traitLabel } from '../../utils/traitLabels';
@@ -11,6 +13,7 @@ type Props = {
 // Spotify Wrapped식 데이터 스토리텔링 카드(바이럴 엔진). "데이터를 돌려주면 자발적으로 공유한다".
 // 정확한 주간 윈도우는 서버 히스토리가 필요하므로, 여기서는 누적 데이터로 솔직하게 요약한다.
 export function WeeklyRecapCard({ snapshot }: Props) {
+  const cardRef = useRef<View>(null);
   const top = [...snapshot.traits].sort((a, b) => b.score - a.score)[0];
   const total = snapshot.profile.total_participation_count;
 
@@ -24,20 +27,31 @@ export function WeeklyRecapCard({ snapshot }: Props) {
 
   const petLine = `"${petName}: 요즘 주인은 '${topLabel}' 쪽으로 마음이 기우는 것 같아. 그 결이 참 너다워."`;
 
+  const message = `🌊 나의 밸런스 요약\n· 지금까지 ${total}개의 선택\n· 가장 진한 성향: ${topLabel}\n· 연속 참여 ${streak}일\n${petLine}\n\n#밸런스아일랜드 #나를발견하는섬`;
+
   const handleShare = async () => {
     analyticsService.track('share_card_generate', { kind: 'weekly_recap', topTrait: top.trait_key });
     try {
-      await Share.share({
-        message: `🌊 나의 밸런스 요약\n· 지금까지 ${total}개의 선택\n· 가장 진한 성향: ${topLabel}\n· 연속 참여 ${streak}일\n${petLine}\n\n#밸런스아일랜드 #나를발견하는섬`
-      });
-      analyticsService.track('share_card_complete', { kind: 'weekly_recap' });
+      // 네이티브: 카드를 이미지(PNG)로 캡처해 함께 공유. 웹/실패 시 텍스트 공유로 폴백.
+      if (Platform.OS !== 'web' && cardRef.current) {
+        try {
+          const uri = await captureRef(cardRef, { format: 'png', quality: 0.95 });
+          await Share.share({ message, url: uri });
+          analyticsService.track('share_card_complete', { kind: 'weekly_recap', withImage: true });
+          return;
+        } catch {
+          // 캡처 실패 → 아래 텍스트 공유로 폴백
+        }
+      }
+      await Share.share({ message });
+      analyticsService.track('share_card_complete', { kind: 'weekly_recap', withImage: false });
     } catch {
       // 사용자가 공유를 취소했거나 share API 미지원. 조용히 무시.
     }
   };
 
   return (
-    <View style={styles.card}>
+    <View style={styles.card} ref={cardRef} collapsable={false}>
       <View style={styles.header}>
         <Text style={styles.kicker}>🌊 나의 밸런스 요약</Text>
         <View style={styles.wrappedBadge}>

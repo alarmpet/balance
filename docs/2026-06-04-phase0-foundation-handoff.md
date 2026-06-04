@@ -128,6 +128,33 @@ Expo Development Build 준비 후 실기기/시뮬레이터에서:
 - **공유 이미지 자동 생성:** 현재는 텍스트 공유(RN `Share`/`navigator.share`, 무의존). 이미지 카드 export는 `react-native-view-shot`(네이티브) 또는 웹 `html2canvas` 도입 필요. KPI `share_card_generate`/`share_card_complete`는 이미 계측 중.
 - **시간여행(1개월/3개월 전 vs 지금):** `user_personality_snapshots` 주기 스냅샷을 읽어 비교 카드 렌더. 히스토리 적재 스케줄(주기적 스냅샷 작성)이 선행되어야 함.
 
+## 2-8. dev build · UI 라이브러리 · SDK 업그레이드 (2026-06-04)
+
+### dev build (사용자 실행 — 클라우드/인증 필요)
+코드/설정 준비 완료: `expo-dev-client` 설치, 루트 `GestureHandlerRootView` 래핑, `eas.json`(development/preview/production) 생성, `app.json` scheme 존재. **에이전트는 EAS 클라우드 빌드를 실행할 수 없음**(Expo 로그인 필요). 사용자가 실행:
+```bash
+npm i -g eas-cli   # 최초 1회
+eas login
+eas build --profile development --platform android   # 또는 ios
+# 빌드된 dev client 설치 후: npx expo start --dev-client
+```
+이게 있어야 **BlurView·haptics·reanimated 모션을 실기기에서 시각 검증**할 수 있음(현재는 웹만 검증됨).
+
+### 도입된 UI 라이브러리 (웹 빌드 검증 완료)
+expo-linear-gradient(피드 보케 적용), expo-haptics(투표 햅틱, 웹 가드), expo-blur(GlassView 네이티브), react-native-reanimated+gesture-handler(babel/엔트리 설정), react-native-view-shot(주간 리캡 이미지 공유, 네이티브 가드).
+
+### ⚠️ SDK 업그레이드 (권장하되 별도 작업으로)
+- **현재**: Expo SDK 51 / RN 0.74.5 / reanimated 3.10. `expo-doctor` 17/17 통과(건강함).
+- **차단 사례**: `@gorhom/bottom-sheet@5`는 reanimated **3.16+**를 요구 → SDK 51에선 설치 불가(드래그 시트 보류). 이는 SDK 업그레이드의 직접 동기.
+- **판단**: SDK 업그레이드는 RN 버전 상승·breaking change를 동반하는 **대규모 마이그레이션**이라, **웹만 검증 가능한 현 세션에서 강행하면 그린 빌드가 깨질 위험**이 큼. dev build로 네이티브 회귀를 검증하며 **전담 작업**으로 진행 권장.
+- **업그레이드 경로(전담 작업 시)**:
+  ```bash
+  npx expo install expo@latest
+  npx expo install --fix          # 의존성 SDK 정렬
+  npx expo-doctor                 # 17개 체크
+  # 이후 @gorhom/bottom-sheet@latest 설치 → Choice Echo를 드래그 시트로 전환
+  ```
+
 ## 3. 다음 단계
 
 Phase 0의 코드 측은 정리되었습니다. 위 2번 항목(라이브 적용)을 사용자가 완료하면 Phase 0가 닫히고, 계획서 **Phase 1(핵심 루프: 희귀도 Choice Echo · 펫 말풍선 · 오늘의 딜레마 테마)** 로 진입합니다.

@@ -37,6 +37,7 @@ YYYY-MM-DD HH:mm | command | summary | linked files
 2026-06-04 07:30 | save | 디자인 D4 섬 통화 카드 깊이/골드 + D6 별자리 클러스터 범례 | [[src/app/(tabs)/island]], [[src/screens/InsightMapScreen]], [[timeline]]
 2026-06-04 08:00 | save | 계획서에 §10 동반자 펫·루틴·다이어리 통합 추가(Routinery/Otto/Finch/Rosebud 리서치) + 문서 말미 stray token 정리 | [[docs/2026-06-04-trendy-self-discovery-upgrade-plan]], [[docs/2026-06-04-design-system-upgrade-plan]], [[docs/2026-06-04-phase0-foundation-handoff]], [[AI-Sessions/wiki/decisions/2026-06-04-trendy-self-discovery-direction]]
 2026-06-04 08:30 | save | UI/UX 라이브러리 도입(linear-gradient/haptics/blur/reanimated/gesture) + 피드 그라데이션·햅틱·네이티브 글래스 적용, babel/엔트리 설정 | [[babel.config]], [[src/app/_layout]], [[src/app/(tabs)/index]], [[src/components/common/GlassView]], [[timeline]]
+2026-06-04 09:00 | save | dev build 준비(dev-client/GestureHandlerRootView/eas.json) + view-shot 이미지 공유 + SDK 업그레이드 어셋먼트(bottom-sheet는 SDK 게이트) | [[eas]], [[src/app/_layout]], [[src/components/island/WeeklyRecapCard]], [[docs/2026-06-04-phase0-foundation-handoff]], [[timeline]]
 
 
 

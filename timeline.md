@@ -603,5 +603,17 @@
 - 한계: 네이티브 BlurView/haptics/reanimated 모션은 dev build에서만 시각 검증 가능(웹은 검증됨). reanimated/gesture/blur는 향후 bottom-sheet/moti/lottie 도입과 모션 고도화의 토대.
 - 주의: 이 네이티브 모듈들은 Expo Go가 아닌 dev build(EAS/prebuild) 필요. SDK 51은 구버전이라 추후 업그레이드 검토 권장.
 
+## 2026-06-04 09:00 KST - dev build 준비 + Tier2(view-shot) + SDK 업그레이드 어셋먼트
+
+- 작업: 추천 순서(① dev build ② Tier2 ③ SDK 업그레이드) 진행.
+- ① dev build 준비(코드/설정만, 클라우드 빌드는 사용자):
+  - `expo-dev-client` 설치, `src/app/_layout.tsx` 루트 `GestureHandlerRootView` 래핑, `eas.json`(dev/preview/prod) 생성.
+- ② Tier2:
+  - `react-native-view-shot` 설치 → `WeeklyRecapCard` 공유를 **네이티브 이미지(PNG) 캡처**로, 웹은 텍스트 공유 폴백(가드).
+  - `@gorhom/bottom-sheet`는 **reanimated 3.16+ 요구 ↔ SDK 51의 3.10 충돌**로 보류(드래그 시트는 SDK 업그레이드 후).
+- ③ SDK 업그레이드: `expo-doctor` 17/17 통과(SDK51 건강). 업그레이드는 RN 버전 상승 동반 대규모 마이그레이션이라 **웹만 검증 가능한 현 세션 강행은 회귀 위험** → dev build 검증과 함께 전담 작업 권장(handoff §2-8에 경로 기록).
+- 검증: `npm run typecheck` 통과, `npm run build`(expo export) 성공, `expo-doctor` 통과, 프리뷰 부팅 정상.
+- 결론: dev build 준비 완료(사용자 실행 대기), bottom-sheet/SDK는 업그레이드 게이트로 묶임.
+
 
 

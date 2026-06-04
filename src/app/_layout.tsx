@@ -2,6 +2,7 @@ import 'react-native-gesture-handler';
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAuthStore } from '../store/authStore';
 import { LogBox, Platform } from 'react-native';
 
@@ -38,7 +39,7 @@ export default function RootLayout() {
   }, [bootstrap]);
 
   return (
-    <>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
@@ -46,6 +47,6 @@ export default function RootLayout() {
         <Stack.Screen name="auth/callback" />
         <Stack.Screen name="insight-map" />
       </Stack>
-    </>
+    </GestureHandlerRootView>
   );
 }
