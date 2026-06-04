@@ -44,3 +44,4 @@ YYYY-MM-DD HH:mm | command | summary | linked files
 
 
 2026-06-04 12:10 | save | 인사이트 맵 단순화 계획서 작성(3탭 폐기 → 단일 마음 지도, Obsidian×마인드맵 통합, 시안 #3) | [[docs/2026-06-04-unified-insight-map-plan]]
+2026-06-04 12:40 | save | zero-cost AI ops 계획서 라이브 검증 갱신(trait 키 canonical 정합, Edge 미배포=$0 확인, 보안 교훈 반영, env 위치 정정, 정규화 Task8) | [[docs/2026-06-04-zero-cost-ai-ops-plan]]
