@@ -244,6 +244,121 @@ Spotify Wrapped 공식("데이터를 돌려주면 자발적으로 공유한다")
 - Personal Informatics Stage Model (Li et al., CHI 2010): https://www.cs.cmu.edu/~jhm/Readings/2010-ianli-chi-stage-based-model.pdf
 - Obsidian Graph/Canvas: https://help.obsidian.md/plugins/graph , https://obsidian.md/canvas
 
+---
+
+## 10. 동반자 펫 · 루틴 · 다이어리 통합 (2026-06-04 추가)
+
+> 사용자 방향: **"섬 = 나를 알아가는 공간, 펫 = 등급/레벨로 능력치가 다른 나의 비서·아바타·친구."** 펫이 동기부여를 하고, 하루의 좋았던 일·아쉬웠던 일·기억에 남은 일을 가볍게 물어 다이어리처럼 쓰면 그 기록이 섬에 정보로 쌓이고, 펫이 루틴(루티너리) 코치 역할까지 한다.
+
+### 10.1 외부 리서치 요약 (2026-06-04)
+
+| 앱 | 핵심 메커닉 | 우리가 가져올 것 |
+|---|---|---|
+| **Routinery** (Apple 2026 올해의 앱, ADHD 베스트) | 루틴을 단계별로 **음성 가이드 타이머**로 안내(일시정지/스킵/자동진행), 요일·시간 스케줄, streak로 자라는 식물 배지 | 펫이 **루틴을 단계별로 코칭**하는 동반자 역할 |
+| **Otto** | 펫이 **할 일 완료로 속성(attribute)을 얻고 진화**, 탐험으로 아이템 발견 | 행동(루틴/투표) → **펫 능력치 성장** 인과 |
+| **Finch** | 셀프케어 행동 → 펫 에너지 → 모험, 정서적 그리움으로 복귀 | 비처벌·정서형 동기부여 톤 |
+| **Rosebud** | 매일 저녁 **3가지 질문(Rose/Bud/Thorn)** + AI 후속질문, 5분 회고 | **펫이 묻는 3질문 다이어리** → 섬 데이터로 적층 |
+| **HabitYou/Motion** | 습관으로 펫 레벨업, 랭크 상승 시 새 펫 해금 | 등급/레벨 기반 수집·해금 |
+
+핵심 통찰: 위 앱들은 각각 **루틴(Routinery)·동기펫(Otto/Finch)·회고(Rosebud)** 중 하나에 특화돼 있다. **셋을 "나의 섬"이라는 하나의 자기지도로 모으는** 제품은 비어 있다 — 이것이 우리 자리.
+
+### 10.2 펫 = 등급/레벨별 능력치를 가진 "비서·친구"
+
+펫은 전투용 스펙이 아니라 **자기성장을 돕는 비서 능력(편의·표현)**을 등급/레벨로 가진다. (윤리 가드: pay-to-win 금지, 핵심 자기발견·기본 루틴·다이어리는 무과금 풀 접근)
+
+**동반자 스탯(4종, 행동으로 성장):**
+- 🤝 **친밀도(Bond)** — 함께한 일수/상호작용. 높을수록 말투가 친근, 더 개인화된 코멘트.
+- ⚡ **활력(Energy)** — 최근 케어/참여. 낮으면 펫이 쉬자고 권유(번아웃 방지).
+- 🔮 **통찰(Insight)** — 누적 선택/다이어리. 높을수록 **인사이트 요약을 더 깊게** 제공.
+- 🎯 **끈기(Discipline)** — 루틴 완수율. 높을수록 **루틴 코칭/리마인드 능력** 강화.
+
+**등급/레벨 → 비서 능력 해금(예시, 모두 편의·표현):**
+| 단계 | 해금 능력 |
+|---|---|
+| Common Lv↑ | 아침 브리핑 1줄, 저녁 회고 알림 |
+| Rare | 루틴 **음성/단계 코칭**, 다이어리 후속질문 +1 |
+| Epic | **주간 리캡 자동 요약**, 모순 발견 코멘트 |
+| Legendary | 시즌 회고 내레이션, 펫 고유 페르소나 보이스 |
+
+> **수집 가치 = "어떤 비서와 함께할까".** 등급/종에 따라 코칭 말투·성격(persona)이 달라, 능력치가 곧 "내 곁의 동반자 선택"이 된다. 능력은 자기발견을 *가속*할 뿐, 막지 않는다.
+
+### 10.3 데일리 다이어리 (펫이 묻는 3질문) → 섬에 적층
+
+Rosebud식 **Rose/Bud/Thorn**을 펫의 목소리로 가볍게:
+- 🌹 **오늘 좋았던 일** (Rose)
+- 🌧 **아쉬웠던 일** (Thorn)
+- 🌱 **기억에 남은 / 기대되는 일** (Bud)
+
+설계 원칙:
+1. **저마찰**: 3질문, 각 한 줄. 건너뛰기 자유. 펫이 후속질문 1개(통찰 스탯에 따라)만 부드럽게.
+2. **섬에 데이터로 적층(사용자 요청 직접 구현)**: 다이어리 답이 **섬 지형/별자리에 "기억 조각" 노드**로 쌓여, 단순 기록이 아니라 *자기이해 지도의 입력*이 된다. (예: 반복되는 Thorn 키워드 → 인사이트 카드로 승격)
+3. **펫 일기와 연결**: 이미 만든 `PetDiaryCard`가 사용자의 3질문 답을 받아 펫의 시선으로 되돌려준다(감성 채널).
+4. **프라이버시(중요)**: 다이어리는 민감정보 → 기본 비공개·로컬/암호화, 공유는 사용자가 고른 요약 카드만. (research.md PIPC 경고 연계, 민감 축 분류 제외 유지)
+
+### 10.4 펫 = 루틴(루티너리) 코치
+
+- 사용자가 만든 루틴(예: 아침 루틴 = 물 한 잔 → 스트레칭 → 명상)을 펫이 **단계별 타이머로 안내**(Routinery 차용), 동기 멘트로 응원.
+- **행동 → 자기발견 연결(우리만의 차별)**: 루틴 완료가 **섬 zone 성장 + trait 반영**으로 번역된다. 예: '명상 루틴' 완수 → 안정/차분 trait↑ → 안정의 마을 성장. 즉 *루틴(행동)·투표(놀이)·다이어리(기록)*가 모두 같은 성향 지도로 모인다.
+- 루틴 완수율 → 펫 **끈기 스탯**↑ → 코칭 능력 해금(선순환).
+
+### 10.5 통합 루프 (갱신)
+
+```mermaid
+flowchart LR
+  A[밸런스게임 한 판] --> M[성향 지도/섬]
+  R[루틴 완수] --> M
+  J[3질문 다이어리] --> M
+  M --> P[펫 능력치 성장]
+  P --> C[펫: 비서·코치·친구 동기부여]
+  C --> A
+  C --> R
+  C --> J
+  M --> S[Wrapped 리캡·공유]
+```
+
+### 10.6 데이터 모델 스케치 (서버 핸드오프)
+
+```sql
+-- 동반자 스탯
+pet_stats(user_id, bond, energy, insight, discipline, updated_at)
+-- 능력 해금(등급/레벨 게이트)
+pet_abilities(slug, min_rarity, min_level, kind)  -- 'voice_coach','recap_summary',...
+-- 루틴
+routines(id, user_id, title, schedule)
+routine_steps(id, routine_id, label, duration_sec, sort_order)
+user_routine_logs(id, user_id, routine_id, completed_at, trait_effects jsonb)
+-- 다이어리(Rose/Bud/Thorn)
+daily_journal_entries(id, user_id, entry_date UNIQUE, rose, thorn, bud, mood, created_at)
+-- 섬 적층: 다이어리/루틴 → island_zones·insight 노드로 반영(기존 trait 파이프라인 확장)
+```
+
+### 10.7 로드맵 편입
+
+- **Phase 3 (소유욕) 확장**: 펫 등급/레벨 → **비서 능력 해금** 테이블(`pet_abilities`) + 스탯(`pet_stats`).
+- **Phase 3.5 (정서) 확장**: 현 `PetDiaryCard`를 **입력형 3질문 다이어리**로 승격 → 섬 적층.
+- **신규 Phase 4.0 "동반자·루틴"**: 루틴 빌더 + 단계 타이머 코칭 + 루틴→trait 반영. (수익화 Phase 이전, 리텐션 코어로 우선)
+
+### 10.8 내가 더하는 아이디어 (요약)
+
+1. **능력 = "도움"의 메타포** — 등급↑는 더 센 펫이 아니라 *더 잘 돕는 비서*. 윤리적이고 차별적.
+2. **다이어리가 지도가 된다** — 기록을 "기억 조각 노드"로 섬에 적층해 자기이해의 입력으로 재활용(단순 일기 앱과의 결정적 차이).
+3. **행동·놀이·기록의 삼위일체** — 루틴(행동)·밸런스(놀이)·다이어리(기록)가 **하나의 성향 지도**로 수렴.
+4. **등급별 페르소나** — 수집 동기를 "스펙"이 아니라 "어떤 성격의 동반자와 함께할까"로 전환.
+5. **번아웃 가드** — 활력 낮으면 펫이 쉬자고 권하는 비처벌 설계(Finch 교훈).
+
+### 10.9 가드레일 (추가분)
+
+- **Pay-to-win 금지**: 자기발견·기본 루틴·다이어리는 무과금 풀 접근. 펫 능력은 편의·표현 가속만.
+- **민감정보**: 다이어리 본문은 기본 비공개·암호화, 민감 축 분류 제외 유지(PIPC).
+- **비진단·비처벌 톤** 유지, 미접속 복귀는 항상 환영.
+
+### 10.10 참조 (이 절)
+
+- Routinery: https://www.routinery.app/
+- Otto (Daily Tasks Virtual Pet): https://apps.apple.com/us/app/otto-daily-tasks-virtual-pet/id6677016305
+- Finch: https://apps.apple.com/us/app/finch-self-care-pet/id1528595748
+- Rosebud (AI Journal, Rose/Bud/Thorn): https://www.rosebud.app/
+- Rose/Bud/Thorn 프레임워크: https://www.panoramaed.com/blog/rose-bud-thorn-activity-and-worksheet
+- HabitYou / Motion (펫 레벨업·랭크): https://apps.apple.com/us/app/habit-tracker-n-pets-habityou/id6473684904 , https://motion-app.com/digital-fitness-pets/
+
 > 이 문서는 UTF-8로 인코딩되어 있습니다.
-</content>
-</invoke>

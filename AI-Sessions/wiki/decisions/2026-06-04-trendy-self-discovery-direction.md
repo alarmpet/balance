@@ -44,4 +44,3 @@ Phase 0 기반 토목공사 → Phase 1 핵심 루프(희귀도 Choice Echo, 펫
 - [[AI-Sessions/wiki/sources/2026-06-03-pet-island-liveops-upgrade-review|2026-06-03 LiveOps Upgrade Review]]
 - [[AI-Sessions/wiki/sources/2026-06-03-comprehensive-review|2026-06-03 Comprehensive Review]]
 - [[research|활성 리서치 및 리스크]]
-</content>

@@ -226,4 +226,3 @@ Step 6. (옵션) Figma MCP 연결 후 토큰을 Figma Variables ↔ Style Dictio
 - Google Stitch: https://stitch.withgoogle.com
 
 > 이 문서는 UTF-8로 인코딩되어 있습니다.
-</content>
