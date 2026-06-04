@@ -3,6 +3,7 @@ export type AnalyticsEventName =
   | 'vote_submit'
   | 'choice_echo_open'
   | 'choice_echo_map_open'
+  | 'comments_open_soon'
   | 'first_insight_unlock'
   | 'today_discovery_view'
   | 'today_discovery_map_open'

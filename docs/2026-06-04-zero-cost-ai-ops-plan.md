@@ -65,7 +65,7 @@
 
 ### E. 마이그레이션 현황 메모
 
-repo 마이그레이션은 `202606040600`까지 존재하고 Supabase가 **네이티브로 마이그레이션을 추적**한다. 커스텀 `public.schema_migrations` 테이블은 불필요하므로 새 task에서 그것에 의존하지 않는다(Task 2의 새 migration도 끝에 커스텀 INSERT를 넣지 않는다).
+repo에는 Supabase 네이티브 migration 파일을 계속 사용한다. 다만 이 프로젝트는 이미 `public.schema_migrations` 기반의 운영 확인 쿼리를 문서화해 두었으므로, 새 migration은 **네이티브 파일 적용을 1순위**로 두되 끝에 `public.schema_migrations` 백필 INSERT를 함께 넣어 운영자가 적용 여부를 SQL로 확인할 수 있게 한다. `public.schema_migrations`는 보조 기록일 뿐, 실제 적용 순서와 롤백 판단은 `supabase/migrations/*` 파일을 기준으로 한다.
 
 ## 공식 비용 근거
 
@@ -269,7 +269,9 @@ Expected: both pass.
 - 항상 `status='pending'`, `created_by = auth.uid()`로 INSERT.
 - 일일 제출 수 제한(예: `check_ai_rate_limit` 패턴 재사용 또는 간단 카운트).
 - **`REVOKE EXECUTE ... FROM anon, PUBLIC; GRANT ... TO authenticated;`** — `apply_shell_delta` 취약점과 같은 유형(내부/민감 함수의 공개 노출)을 반복하지 않는다.
-- migration 파일 끝에 커스텀 `schema_migrations` INSERT를 넣지 않는다(Supabase 네이티브 추적).
+- migration 파일 끝에는 `public.schema_migrations` 보조 기록 INSERT를 넣는다. 단, 이 기록은 운영 확인용이며 Supabase 네이티브 migration 파일을 대체하지 않는다.
+
+**Implementation status (2026-06-04):** `202606041900_question_submission_queue.sql`로 구현 완료. `create.tsx`는 로그인 사용자만 RPC로 제출하고, 같은 입력의 중복 재전송을 클라이언트에서 막는다. 비로그인/게스트는 로컬 미리보기와 로그인 안내까지만 제공한다.
 
 ### Task 3: 로컬 질문 은행 배치 포맷 만들기
 
@@ -589,6 +591,20 @@ npm run validate:wiki
 ```
 
 Expected: sample questions produce deterministic classifications and wiki validation passes.
+
+**Implementation status (2026-06-04):** `docs/admin-question-review-rules.md`, `data/question-review/rubric.examples.jsonl`, `scripts/admin/classify-pending-question.mjs`, `scripts/admin/export-pending-questions.mjs`, `docs/admin-review-workflow.md`로 구현 완료. 외부 AI API 없이 pending 질문을 내려받고, 로컬 규칙으로 `approve_candidate`, `needs_edit`, `needs_human_review`, `reject_candidate`를 1차 분류한다.
+
+### Task 7.1: 보안 advisory 1차 정리
+
+**Files:**
+- Create: `supabase/migrations/202606041930_security_advisory_rls_search_path.sql`
+- Modify: `supabase/schema.sql`
+- Modify: `supabase/apply_new_project.sql`
+
+- [x] `bookmarks`, `follows`, `comment_reactions`에 RLS를 켜고 로그인 사용자 자기 row 중심 정책을 추가한다.
+- [x] `set_updated_at`, `match_questions_by_embedding`에 `SET search_path = public`을 명시한다.
+- [x] `match_questions_by_embedding`의 `anon`/`PUBLIC` 실행 권한을 회수하고 `authenticated`만 허용한다.
+- [ ] `extension_in_public` advisory는 별도 migration으로 분리한다. `vector`, `pg_trgm`, `pgcrypto` 이동은 라이브 DB 타입/인덱스 영향이 커서 이번 Task 2 범위에서 즉시 처리하지 않는다.
 
 ### Task 8: canonical trait 키 정규화 (라이브 드리프트 정리)
 

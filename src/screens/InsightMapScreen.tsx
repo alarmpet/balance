@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -9,20 +9,9 @@ import {
   Text,
   View
 } from 'react-native';
-import { ContradictionCard } from '../components/insight/ContradictionCard';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { InsightGraphCanvas } from '../components/insight/InsightGraphCanvas';
-import { InsightNodeDetailSheet } from '../components/insight/InsightNodeDetailSheet';
-import { IslandTerrainView } from '../components/insight/IslandTerrainView';
 import { useInsightMapStore } from '../store/insightMapStore';
-
-type InsightTab = 'discover' | 'terrain' | 'links';
-
-// 별자리 클러스터 범례(시안의 라벨 클러스터). 색은 THEME.glowByCluster와 정렬.
-const CLUSTER_LEGEND = [
-  { label: '푸드·건강', color: '#f59e0b' },
-  { label: '삶·균형', color: '#14b8a6' },
-  { label: '관계·연결', color: '#d946ef' }
-];
 
 type Props = {
   showBackButton?: boolean;
@@ -33,20 +22,14 @@ export function InsightMapScreen({ showBackButton = false }: Props) {
     snapshot,
     cards,
     selectedNodeId,
-    focusNodeId,
-    depth,
     isLoading,
     isLoadingCards,
     error,
     loadGraph,
     loadCards,
     selectNode,
-    focusOnNode,
-    setDepth,
-    markCardRead,
     clearError
   } = useInsightMapStore();
-  const [activeTab, setActiveTab] = useState<InsightTab>('terrain');
 
   useEffect(() => {
     if (!snapshot) {
@@ -57,213 +40,117 @@ export function InsightMapScreen({ showBackButton = false }: Props) {
     }
   }, [cards.length, loadCards, loadGraph, snapshot]);
 
-  const selectedNode = useMemo(() => {
-    if (!snapshot || !selectedNodeId) return null;
-    return snapshot.nodes.find((node) => node.id === selectedNodeId) ?? null;
-  }, [selectedNodeId, snapshot]);
+  const latestCard = cards[0] ?? null;
+  const discoveryTitle = latestCard?.title ?? snapshot?.summary.title ?? '선택 지도를 불러오는 중';
+  const discoveryBody =
+    latestCard?.body ??
+    snapshot?.summary.body ??
+    '밸런스 게임을 조금 더 풀면, 선택들이 하나의 마음 지도로 연결돼요.';
 
   return (
-    <>
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <SafeAreaView style={styles.container}>
+      <ScrollView style={styles.scroller} contentContainerStyle={styles.content}>
         <View style={styles.header}>
           {showBackButton ? (
-            <Pressable style={styles.backButton} onPress={() => router.back()}>
-              <MaterialCommunityIcons name="chevron-left" size={28} color="#164e63" />
+            <Pressable style={styles.backButton} onPress={() => router.back()} accessibilityLabel="이전 화면으로 돌아가기">
+              <MaterialCommunityIcons name="chevron-left" size={28} color="#e0f2fe" />
             </Pressable>
           ) : null}
           <View style={styles.headerCopy}>
-            <Text style={styles.kicker}>나의 선택 지도</Text>
-            <Text style={styles.title}>성향 인사이트 맵</Text>
+            <Text style={styles.kicker}>Balance Island</Text>
+            <Text style={styles.title}>나의 마음 지도</Text>
           </View>
         </View>
 
         {error ? (
           <View style={styles.errorBanner}>
             <Text style={styles.errorText}>{error}</Text>
-            <Pressable onPress={clearError}>
-              <MaterialCommunityIcons name="close" size={20} color="#be123c" />
+            <Pressable onPress={clearError} accessibilityLabel="오류 메시지 닫기">
+              <MaterialCommunityIcons name="close" size={20} color="#fecdd3" />
             </Pressable>
           </View>
         ) : null}
 
-        <View style={styles.segmented}>
-          <TabButton label="발견" active={activeTab === 'discover'} onPress={() => setActiveTab('discover')} />
-          <TabButton label="섬 지형" active={activeTab === 'terrain'} onPress={() => setActiveTab('terrain')} />
-          <TabButton label="별자리" active={activeTab === 'links'} onPress={() => setActiveTab('links')} />
+        <View style={styles.mapShell}>
+          <View style={styles.spotlight}>
+            <View style={styles.spotlightIcon}>
+              {isLoadingCards ? (
+                <ActivityIndicator color="#67e8f9" />
+              ) : (
+                <MaterialCommunityIcons name="star-four-points" size={18} color="#67e8f9" />
+              )}
+            </View>
+            <View style={styles.spotlightCopy}>
+              <Text style={styles.cardLabel}>오늘의 발견</Text>
+              <Text style={styles.cardTitle}>{discoveryTitle}</Text>
+              <Text style={styles.summaryText}>{discoveryBody}</Text>
+            </View>
+          </View>
+
+          {snapshot ? (
+            <InsightGraphCanvas snapshot={snapshot} selectedNodeId={selectedNodeId} onSelectNode={selectNode} />
+          ) : (
+            <View style={styles.loadingPanel}>
+              <ActivityIndicator color="#67e8f9" />
+              <Text style={styles.loadingTitle}>마음 지도를 배치하는 중입니다.</Text>
+              <Text style={styles.emptyText}>선택과 성향의 연결을 한 화면에 정리하고 있어요.</Text>
+            </View>
+          )}
         </View>
 
-        {activeTab === 'discover' ? (
-          <View style={styles.panel}>
-            <View style={styles.panelHeader}>
-              <View>
-                <Text style={styles.cardLabel}>오늘의 발견</Text>
-                <Text style={styles.cardTitle}>선택에서 보이는 흐름</Text>
-              </View>
-              {isLoadingCards ? <ActivityIndicator color="#0ea5e9" /> : null}
+        {snapshot ? (
+          <View style={styles.textSummaryPanel}>
+            <View style={styles.textSummaryHeader}>
+              <MaterialCommunityIcons name="text-box-search-outline" size={18} color="#0f766e" />
+              <Text style={styles.textSummaryLabel}>지도 요약</Text>
             </View>
-            {cards.length === 0 ? (
-              <Text style={styles.emptyText}>질문에 답하면 오늘의 발견 카드가 생겨요.</Text>
-            ) : (
-              cards.map((card) => (
-                <Pressable
-                  key={card.id}
-                  style={[styles.insightCard, card.is_read ? styles.readInsightCard : null]}
-                  accessibilityLabel={`${card.title}. ${card.body}`}
-                  onPress={() => markCardRead(card.id)}
-                >
-                  <Text style={styles.insightTitle}>{card.title}</Text>
-                  <Text style={styles.insightBody}>{card.body}</Text>
-                  <View style={styles.confidenceRow}>
-                    <Text style={styles.confidenceLabel}>신뢰도</Text>
-                    <Text style={styles.confidenceValue}>{Math.round(card.confidence * 100)}%</Text>
-                  </View>
-                </Pressable>
-              ))
-            )}
-
-            {snapshot && snapshot.contradictions.length > 0 ? (
-              <View style={styles.contradictionSection}>
-                <Text style={styles.cardLabel}>상황별 다른 나</Text>
-                {snapshot.contradictions.map((item) => (
-                  <ContradictionCard key={item.id} contradiction={item} />
-                ))}
+            <Text style={styles.textSummaryTitle}>{snapshot.summary.title}</Text>
+            <Text style={styles.textSummaryBody}>{snapshot.summary.body}</Text>
+            {snapshot.contradictions.length > 0 ? (
+              <View style={styles.contextNote}>
+                <MaterialCommunityIcons name="source-branch" size={16} color="#0f766e" />
+                <Text style={styles.contextNoteText}>
+                  상황별 다른 선택 흐름 {snapshot.contradictions.length}개가 지도에 작은 배지로 표시돼요.
+                </Text>
               </View>
             ) : null}
-          </View>
-        ) : null}
-
-        {activeTab === 'terrain' ? (
-          <View style={styles.panel}>
-            <View style={styles.panelHeader}>
-              <View>
-                <Text style={styles.cardLabel}>섬 지형</Text>
-                <Text style={styles.cardTitle}>{snapshot?.summary.title ?? '지도를 불러오는 중'}</Text>
-              </View>
-              {isLoading ? <ActivityIndicator color="#0ea5e9" /> : null}
-            </View>
-            {snapshot ? (
-              <IslandTerrainView snapshot={snapshot} onSelectNode={selectNode} />
-            ) : (
-              <View style={styles.loadingPanel}>
-                <ActivityIndicator color="#0ea5e9" />
-                <Text style={styles.emptyText}>성향 지형을 솟아올리는 중입니다.</Text>
-              </View>
-            )}
-          </View>
-        ) : null}
-
-        {activeTab === 'links' ? (
-          <View style={styles.panel}>
-            <View style={styles.panelHeader}>
-              <View>
-                <Text style={styles.cardLabel}>별자리 연결</Text>
-                <Text style={styles.cardTitle}>{snapshot?.summary.title ?? '지도를 불러오는 중'}</Text>
-              </View>
-              {isLoading ? <ActivityIndicator color="#0ea5e9" /> : null}
-            </View>
-            <Text style={styles.summaryText}>{snapshot?.summary.body ?? '잠시만 기다려 주세요.'}</Text>
-
-            <View style={styles.depthRow}>
-              <DepthButton label="1단계" active={depth === 1} onPress={() => setDepth(1)} />
-              <DepthButton label="2단계" active={depth === 2} onPress={() => setDepth(2)} />
-            </View>
-
-            {focusNodeId ? (
-              <Pressable style={styles.resetFocusButton} onPress={() => focusOnNode(null)}>
-                <MaterialCommunityIcons name="arrow-expand-all" size={16} color="#0369a1" />
-                <Text style={styles.resetFocusText}>전체 별자리 보기</Text>
-              </Pressable>
-            ) : null}
-
-            <View style={styles.clusterLegend}>
-              {CLUSTER_LEGEND.map((c) => (
-                <View key={c.label} style={styles.clusterItem}>
-                  <View style={[styles.clusterDot, { backgroundColor: c.color, shadowColor: c.color }]} />
-                  <Text style={styles.clusterLabel}>{c.label}</Text>
-                </View>
-              ))}
-            </View>
-
-            {snapshot ? (
-              <InsightGraphCanvas snapshot={snapshot} selectedNodeId={selectedNodeId} onSelectNode={selectNode} />
-            ) : (
-              <View style={styles.loadingPanel}>
-                <ActivityIndicator color="#0ea5e9" />
-                <Text style={styles.emptyText}>별자리를 배치하는 중입니다.</Text>
-              </View>
-            )}
           </View>
         ) : null}
       </ScrollView>
-
-      <InsightNodeDetailSheet node={selectedNode} onClose={() => selectNode(null)} onFocus={focusOnNode} />
-    </>
-  );
-}
-
-function TabButton({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
-  return (
-    <Pressable style={[styles.tabButton, active ? styles.activeTabButton : null]} onPress={onPress}>
-      <Text style={[styles.tabText, active ? styles.activeTabText : null]}>{label}</Text>
-    </Pressable>
-  );
-}
-
-function DepthButton({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
-  return (
-    <Pressable style={[styles.depthButton, active ? styles.activeDepthButton : null]} onPress={onPress}>
-      <Text style={[styles.depthText, active ? styles.activeDepthText : null]}>{label}</Text>
-    </Pressable>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  activeDepthButton: { backgroundColor: '#0ea5e9' },
-  activeDepthText: { color: '#ffffff' },
-  activeTabButton: { backgroundColor: '#0ea5e9' },
-  activeTabText: { color: '#ffffff' },
   backButton: {
     alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderColor: '#bae6fd',
+    backgroundColor: 'rgba(15, 23, 42, 0.72)',
+    borderColor: 'rgba(103, 232, 249, 0.24)',
     borderRadius: 18,
     borderWidth: 1,
     height: 48,
     justifyContent: 'center',
     width: 48
   },
-  cardLabel: { color: '#0ea5e9', fontSize: 12, fontWeight: '900' },
-  cardTitle: { color: '#164e63', fontSize: 19, fontWeight: '900', marginTop: 4 },
-  confidenceLabel: { color: '#64748b', fontWeight: '800' },
-  confidenceRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
-  confidenceValue: { color: '#0ea5e9', fontWeight: '900' },
-  container: { backgroundColor: '#ecfeff', flex: 1 },
-  clusterLegend: { flexDirection: 'row', gap: 14, justifyContent: 'center', marginBottom: 12, marginTop: 2 },
-  clusterItem: { alignItems: 'center', flexDirection: 'row', gap: 6 },
-  clusterDot: { borderRadius: 999, height: 10, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 6, width: 10 },
-  clusterLabel: { color: '#475569', fontSize: 11, fontWeight: '800' },
-  contradictionSection: { borderTopColor: '#e2e8f0', borderTopWidth: 1, marginTop: 18, paddingTop: 16 },
-  resetFocusButton: {
+  cardLabel: { color: '#67e8f9', fontSize: 12, fontWeight: '900' },
+  cardTitle: { color: '#f8fafc', fontSize: 18, fontWeight: '900', marginTop: 4 },
+  container: { backgroundColor: '#07111f', flex: 1 },
+  content: { padding: 20, paddingBottom: 96, paddingTop: 20 },
+  contextNote: {
     alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: '#e0f2fe',
-    borderRadius: 999,
+    backgroundColor: '#ccfbf1',
+    borderRadius: 14,
     flexDirection: 'row',
-    gap: 6,
-    marginBottom: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 8
+    gap: 8,
+    marginTop: 14,
+    padding: 12
   },
-  resetFocusText: { color: '#0369a1', fontSize: 12, fontWeight: '900' },
-  content: { padding: 20, paddingBottom: 92, paddingTop: 56 },
-  depthButton: { alignItems: 'center', backgroundColor: '#e0f2fe', borderRadius: 999, flex: 1, paddingVertical: 9 },
-  depthRow: { flexDirection: 'row', gap: 8, marginBottom: 14, marginTop: 14 },
-  depthText: { color: '#075985', fontSize: 12, fontWeight: '900' },
-  emptyText: { color: '#64748b', fontWeight: '700', lineHeight: 20, marginTop: 14 },
+  contextNoteText: { color: '#0f766e', flex: 1, fontSize: 12, fontWeight: '800', lineHeight: 18 },
+  emptyText: { color: '#94a3b8', fontSize: 13, fontWeight: '700', lineHeight: 20, marginTop: 8, textAlign: 'center' },
   errorBanner: {
     alignItems: 'center',
-    backgroundColor: '#fff1f2',
-    borderColor: '#fecdd3',
+    backgroundColor: 'rgba(127, 29, 29, 0.45)',
+    borderColor: 'rgba(254, 205, 211, 0.35)',
     borderRadius: 16,
     borderWidth: 1,
     flexDirection: 'row',
@@ -272,29 +159,63 @@ const styles = StyleSheet.create({
     marginTop: 16,
     padding: 14
   },
-  errorText: { color: '#be123c', flex: 1, fontSize: 13, fontWeight: '800' },
+  errorText: { color: '#fecdd3', flex: 1, fontSize: 13, fontWeight: '800' },
   header: { alignItems: 'center', flexDirection: 'row', gap: 12 },
   headerCopy: { flex: 1 },
-  insightBody: { color: '#64748b', fontSize: 13, fontWeight: '700', lineHeight: 20, marginTop: 8 },
-  insightCard: { backgroundColor: '#f8fafc', borderColor: '#dbeafe', borderRadius: 18, borderWidth: 1, marginTop: 14, padding: 16 },
-  insightTitle: { color: '#164e63', fontSize: 16, fontWeight: '900' },
-  kicker: { color: '#0ea5e9', fontSize: 12, fontWeight: '900' },
-  loadingPanel: { alignItems: 'center', justifyContent: 'center', minHeight: 220 },
-  panel: { backgroundColor: '#ffffff', borderColor: '#bae6fd', borderRadius: 24, borderWidth: 1, marginTop: 16, padding: 18 },
-  panelHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  readInsightCard: { opacity: 0.72 },
-  segmented: {
-    backgroundColor: '#ffffff',
-    borderColor: '#bae6fd',
-    borderRadius: 18,
+  kicker: { color: '#67e8f9', fontSize: 12, fontWeight: '900' },
+  loadingPanel: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.58)',
+    borderColor: 'rgba(148, 163, 184, 0.18)',
+    borderRadius: 24,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minHeight: 360,
+    padding: 22
+  },
+  loadingTitle: { color: '#f8fafc', fontSize: 17, fontWeight: '900', marginTop: 14 },
+  mapShell: {
+    backgroundColor: '#08111f',
+    borderColor: 'rgba(103, 232, 249, 0.22)',
+    borderRadius: 28,
+    borderWidth: 1,
+    marginTop: 18,
+    overflow: 'hidden',
+    padding: 14
+  },
+  scroller: { flex: 1 },
+  spotlight: {
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(15, 23, 42, 0.72)',
+    borderColor: 'rgba(103, 232, 249, 0.2)',
+    borderRadius: 22,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 6,
-    marginTop: 20,
-    padding: 6
+    gap: 12,
+    marginBottom: 12,
+    padding: 14
   },
-  summaryText: { color: '#64748b', fontSize: 13, fontWeight: '700', lineHeight: 20, marginBottom: 10, marginTop: 10 },
-  tabButton: { alignItems: 'center', borderRadius: 14, flex: 1, paddingVertical: 10 },
-  tabText: { color: '#075985', fontSize: 13, fontWeight: '900' },
-  title: { color: '#164e63', fontSize: 25, fontWeight: '900', marginTop: 4 }
+  spotlightCopy: { flex: 1 },
+  spotlightIcon: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(8, 145, 178, 0.22)',
+    borderRadius: 15,
+    height: 34,
+    justifyContent: 'center',
+    width: 34
+  },
+  summaryText: { color: '#cbd5e1', fontSize: 13, fontWeight: '700', lineHeight: 20, marginTop: 8 },
+  textSummaryBody: { color: '#475569', fontSize: 13, fontWeight: '700', lineHeight: 21, marginTop: 8 },
+  textSummaryHeader: { alignItems: 'center', flexDirection: 'row', gap: 8 },
+  textSummaryLabel: { color: '#0f766e', fontSize: 12, fontWeight: '900' },
+  textSummaryPanel: {
+    backgroundColor: '#f8fafc',
+    borderColor: '#99f6e4',
+    borderRadius: 22,
+    borderWidth: 1,
+    marginTop: 16,
+    padding: 16
+  },
+  textSummaryTitle: { color: '#0f172a', fontSize: 17, fontWeight: '900', marginTop: 10 },
+  title: { color: '#f8fafc', fontSize: 28, fontWeight: '900', marginTop: 4 }
 });

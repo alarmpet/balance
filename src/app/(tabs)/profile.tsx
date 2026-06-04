@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, type DimensionValue } from 'react-native';
 import { router, type Href } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../store/authStore';
 import { useGamificationStore } from '../../store/gamificationStore';
 
@@ -57,7 +58,8 @@ export default function ProfileScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <SafeAreaView style={styles.container}>
+      <ScrollView style={styles.scroller} contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <View>
           <Text style={styles.kicker}>마이페이지</Text>
@@ -91,12 +93,19 @@ export default function ProfileScreen() {
         <View style={styles.guestCard}>
           <Text style={styles.guestTitle}>게스트 미리보기 모드</Text>
           <Text style={styles.guestText}>로그인하면 출석, 조개, 성향 펫, 테마 보상이 내 계정에 저장됩니다.</Text>
-          <Pressable style={styles.checkinButton} onPress={() => router.push(LOGIN_ROUTE)}>
+          <Pressable accessibilityRole="button" accessibilityLabel="로그인하고 보상 저장하기" style={styles.checkinButton} onPress={() => router.push(LOGIN_ROUTE)}>
             <Text style={styles.checkinText}>로그인하고 보상 저장하기</Text>
           </Pressable>
         </View>
       ) : (
-        <Pressable style={[styles.checkinButton, isMutating ? styles.disabledButton : null]} disabled={isMutating} onPress={() => claimCheckin()}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="출석 보상 받기"
+          accessibilityState={{ disabled: isMutating }}
+          style={[styles.checkinButton, isMutating ? styles.disabledButton : null]}
+          disabled={isMutating}
+          onPress={() => claimCheckin()}
+        >
           <Text style={styles.checkinText}>{isMutating ? '처리 중...' : '출석 보상 받기'}</Text>
         </Pressable>
       )}
@@ -104,11 +113,12 @@ export default function ProfileScreen() {
       {error ? <Text style={styles.inlineError}>{error}</Text> : null}
 
       {!isGuest ? (
-        <Pressable style={styles.logoutButton} onPress={handleSignOut}>
+        <Pressable accessibilityRole="button" accessibilityLabel="로그아웃" style={styles.logoutButton} onPress={handleSignOut}>
           <Text style={styles.logoutText}>로그아웃</Text>
         </Pressable>
       ) : null}
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -124,15 +134,15 @@ function Stat({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   center: {
     alignItems: 'center',
-    backgroundColor: '#fdf2f8',
+    backgroundColor: '#ecfeff',
     flex: 1,
     justifyContent: 'center',
     padding: 24
   },
   checkinButton: {
     alignItems: 'center',
-    backgroundColor: '#38bdf8',
-    borderColor: '#0ea5e9',
+    backgroundColor: '#0f766e',
+    borderColor: '#14b8a6',
     borderRadius: 18,
     borderWidth: 1,
     justifyContent: 'center',
@@ -145,13 +155,13 @@ const styles = StyleSheet.create({
     fontWeight: '900'
   },
   container: {
-    backgroundColor: '#fdf2f8',
+    backgroundColor: '#ecfeff',
     flex: 1
   },
   content: {
     padding: 20,
-    paddingBottom: 40,
-    paddingTop: 56
+    paddingBottom: 96,
+    paddingTop: 20
   },
   disabledButton: {
     opacity: 0.55
@@ -187,7 +197,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between'
   },
   heading: {
-    color: '#4a102a',
+    color: '#0f172a',
     fontSize: 28,
     fontWeight: '900',
     marginTop: 4
@@ -199,13 +209,13 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
   kicker: {
-    color: '#db2777',
+    color: '#0f766e',
     fontSize: 13,
     fontWeight: '900'
   },
   logoutButton: {
     alignItems: 'center',
-    backgroundColor: '#4a102a',
+    backgroundColor: '#0f172a',
     borderRadius: 18,
     justifyContent: 'center',
     marginTop: 12,
@@ -217,14 +227,14 @@ const styles = StyleSheet.create({
   },
   progressCard: {
     backgroundColor: '#ffffff',
-    borderColor: '#f9a8d4',
+    borderColor: '#99f6e4',
     borderRadius: 22,
     borderWidth: 1,
     marginTop: 16,
     padding: 18
   },
   progressFill: {
-    backgroundColor: '#f472b6',
+    backgroundColor: '#14b8a6',
     borderRadius: 999,
     height: '100%'
   },
@@ -234,12 +244,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between'
   },
   progressTitle: {
-    color: '#4a102a',
+    color: '#0f172a',
     fontSize: 16,
     fontWeight: '900'
   },
   progressTrack: {
-    backgroundColor: '#fce7f3',
+    backgroundColor: '#ccfbf1',
     borderRadius: 999,
     height: 14,
     marginTop: 14,
@@ -268,7 +278,7 @@ const styles = StyleSheet.create({
   shellBadge: {
     alignItems: 'center',
     backgroundColor: '#ffffff',
-    borderColor: '#f9a8d4',
+    borderColor: '#99f6e4',
     borderRadius: 20,
     borderWidth: 1,
     flexDirection: 'row',
@@ -277,18 +287,18 @@ const styles = StyleSheet.create({
     paddingVertical: 10
   },
   shellIcon: {
-    color: '#be185d',
+    color: '#0f766e',
     fontSize: 13,
     fontWeight: '900'
   },
   shellText: {
-    color: '#be185d',
+    color: '#0f766e',
     fontSize: 18,
     fontWeight: '900'
   },
   stat: {
     backgroundColor: '#ffffff',
-    borderColor: '#f9a8d4',
+    borderColor: '#99f6e4',
     borderRadius: 20,
     borderWidth: 1,
     flex: 1,
@@ -300,7 +310,7 @@ const styles = StyleSheet.create({
     fontWeight: '800'
   },
   statValue: {
-    color: '#be185d',
+    color: '#0f766e',
     fontSize: 24,
     fontWeight: '900',
     marginTop: 8
@@ -309,5 +319,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     marginTop: 20
-  }
+  },
+  scroller: { flex: 1 }
 });

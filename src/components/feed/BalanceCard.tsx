@@ -63,10 +63,10 @@ export default function BalanceCard({ question, onVote, onReaction, onOpenCommen
     <GlassView style={styles.card} intensity={20} borderRadius={28}>
       <View style={styles.header}>
         <View style={styles.headerText}>
-          <Text style={styles.category}>{question.category?.name ?? '밸런스'}</Text>
-          <Text style={styles.title}>{question.title}</Text>
+          <Text style={styles.category} numberOfLines={1}>{question.category?.name ?? '밸런스'}</Text>
+          <Text style={styles.title} numberOfLines={2}>{question.title}</Text>
         </View>
-        <Text style={styles.voteTotal}>{formatCount(totalVotes)}명 참여</Text>
+        <Text style={styles.voteTotal} numberOfLines={1}>{formatCount(totalVotes)}명 참여</Text>
       </View>
 
       {question.description ? <Text style={styles.description}>{question.description}</Text> : null}
@@ -149,24 +149,28 @@ export default function BalanceCard({ question, onVote, onReaction, onOpenCommen
         <ActionButton
           icon="heart"
           label={formatCount(question.reaction_like_count)}
+          accessibilityLabel={`좋아요 ${formatCount(question.reaction_like_count)}개`}
           active={question.userReaction === 'like'}
           onPress={() => onReaction(question.id, 'like')}
         />
         <ActionButton
           icon="happy"
           label={formatCount(question.reaction_fun_count)}
+          accessibilityLabel={`재밌어요 ${formatCount(question.reaction_fun_count)}개`}
           active={question.userReaction === 'fun'}
           onPress={() => onReaction(question.id, 'fun')}
         />
         <ActionButton
           icon="help-circle"
           label={formatCount(question.reaction_hard_count)}
+          accessibilityLabel={`고민돼요 ${formatCount(question.reaction_hard_count)}개`}
           active={question.userReaction === 'hard'}
           onPress={() => onReaction(question.id, 'hard')}
         />
         <ActionButton
           icon="chatbubble-ellipses"
           label={formatCount(question.comment_count)}
+          accessibilityLabel={`댓글 ${formatCount(question.comment_count)}개`}
           active={false}
           onPress={() => onOpenComments?.(question.id)}
         />
@@ -245,13 +249,20 @@ function OptionPanel({
 type ActionButtonProps = {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
+  accessibilityLabel: string;
   active: boolean;
   onPress: () => void;
 };
 
-function ActionButton({ icon, label, active, onPress }: ActionButtonProps) {
+function ActionButton({ icon, label, accessibilityLabel, active, onPress }: ActionButtonProps) {
   return (
-    <Pressable onPress={onPress} style={[styles.action, active && styles.actionActive]}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ selected: active }}
+      onPress={onPress}
+      style={[styles.action, active && styles.actionActive]}
+    >
       <Ionicons name={icon} size={16} color={active ? '#0f766e' : '#5f7f7a'} />
       <Text style={[styles.actionText, active && styles.actionTextActive]}>{label}</Text>
     </Pressable>
@@ -493,6 +504,7 @@ const styles = StyleSheet.create({
   },
   voteTotal: {
     color: '#475569',
+    flexShrink: 0,
     fontSize: 11,
     fontWeight: '800'
   },

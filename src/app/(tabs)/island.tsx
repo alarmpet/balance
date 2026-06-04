@@ -14,6 +14,7 @@ import {
   Animated,
   type DimensionValue
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { InsightMapPreview } from '../../components/insight/InsightMapPreview';
 import TodayDiscoveryCard from '../../components/island/TodayDiscoveryCard';
 import { PetOriginCard } from '../../components/island/PetOriginCard';
@@ -49,8 +50,7 @@ const TRAIT_COPY: Record<string, TraitCopy> = {
   calm: { label: '차분', title: '마지막 한 입을 아끼는 철학자' },
   express: { label: '표현', title: '반짝이는 리액션 장인' },
   curious: { label: '호기심', title: '새 길을 여는 관찰자' },
-  comfort_seeker: { label: '취향', title: '아늑함을 수집하는 감각가' },
-  planner: { label: '계획', title: '내일을 정리하는 항해사' },
+  comfort: { label: '익숙함', title: '편안함을 수집하는 감각가' },
   aesthetic: { label: '미감', title: '섬의 색을 고르는 큐레이터' }
 };
 
@@ -306,6 +306,7 @@ export default function IslandScreen() {
   const petEnergy = `${energyVal}%` as DimensionValue;
   const isGuest = snapshot.profile.id === 'guest';
   const actionDisabled = isMutating;
+  const petImage = getPetImage(snapshot) ?? LOCAL_PET_ISLAND;
 
   function runAuthAction(action: () => void) {
     if (isGuest) {
@@ -326,7 +327,8 @@ export default function IslandScreen() {
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <SafeAreaView style={styles.container}>
+      <ScrollView style={styles.scroller} contentContainerStyle={styles.content}>
         <View style={styles.topBar}>
           <View>
             <Text style={styles.kicker}>밸런스 아일랜드</Text>
@@ -364,18 +366,18 @@ export default function IslandScreen() {
                 <View style={styles.logoCircle}>
                   <MaterialCommunityIcons name="island" size={14} color="#0f766e" />
                 </View>
-                <Text style={styles.logoBadgeText}>MY ISLAND</Text>
+                <Text style={styles.logoBadgeText}>나의 섬</Text>
               </View>
               <View style={styles.myIslandStats}>
                 <View style={styles.myIslandStatItem}>
-                  <Text style={styles.myIslandStatLabel}>MOOD: {moodVal}%</Text>
+                  <Text style={styles.myIslandStatLabel}>기분 {moodVal}%</Text>
                   <View style={styles.miniTrack}>
                     <View style={[styles.miniFill, { width: petMood, backgroundColor: '#10b981' }]} />
                   </View>
                   <Text style={styles.miniIcon}>🙂</Text>
                 </View>
                 <View style={styles.myIslandStatItem}>
-                  <Text style={styles.myIslandStatLabel}>ENERGY: {energyVal}%</Text>
+                  <Text style={styles.myIslandStatLabel}>에너지 {energyVal}%</Text>
                   <View style={styles.miniTrack}>
                     <View style={[styles.miniFill, { width: petEnergy, backgroundColor: '#f97316' }]} />
                   </View>
@@ -389,9 +391,9 @@ export default function IslandScreen() {
             <GlassView style={styles.statusCard} intensity={15} borderRadius={20}>
               <View style={styles.statusHeaderRow}>
                 <Ionicons name="paw" size={12} color="#10b981" style={{ marginRight: 4 }} />
-                <Text style={styles.statusCardLabel}>PET MOOD</Text>
+                <Text style={styles.statusCardLabel}>펫 기분</Text>
               </View>
-              <Text style={styles.statusCardValue}>{moodVal >= 70 ? 'VERY HAPPY' : 'RESTING'}</Text>
+              <Text style={styles.statusCardValue}>{moodVal >= 70 ? '무척 신나요' : '쉬는 중이에요'}</Text>
               <View style={styles.statusTrack}>
                 <View style={[styles.statusFill, { width: petMood, backgroundColor: '#10b981' }]} />
               </View>
@@ -401,9 +403,9 @@ export default function IslandScreen() {
             <GlassView style={styles.statusCard} intensity={15} borderRadius={20}>
               <View style={styles.statusHeaderRow}>
                 <Ionicons name="flash" size={12} color="#f97316" style={{ marginRight: 4 }} />
-                <Text style={styles.statusCardLabel}>ENERGY LEVEL</Text>
+                <Text style={styles.statusCardLabel}>활동 에너지</Text>
               </View>
-              <Text style={styles.statusCardValue}>{energyVal >= 70 ? 'READY FOR ADVENTURE' : 'NEEDS CARE'}</Text>
+              <Text style={styles.statusCardValue}>{energyVal >= 70 ? '탐험 준비 완료' : '돌봄이 필요해요'}</Text>
               <View style={styles.statusTrack}>
                 <View style={[styles.statusFill, { width: petEnergy, backgroundColor: '#f97316' }]} />
               </View>
@@ -434,6 +436,9 @@ export default function IslandScreen() {
               ]}
             >
               <Image source={LOCAL_PET_ISLAND} style={styles.premiumIslandImage} contentFit="cover" />
+              <View style={styles.petPortrait}>
+                <Image source={petImage} style={styles.petPortraitImage} contentFit="contain" />
+              </View>
               <Animated.View
                 style={[
                   styles.floatingHearts,
@@ -464,7 +469,7 @@ export default function IslandScreen() {
                 <Image source={LOCAL_SHELL_ICON} style={{ width: 26, height: 26 }} contentFit="contain" />
               </View>
               <View style={styles.currencyInfo}>
-                <Text style={styles.currencyLabel}>SHELL CURRENCY</Text>
+                <Text style={styles.currencyLabel}>조개 재화</Text>
                 <Text style={styles.currencyValue}>{shellBalance}</Text>
               </View>
             </GlassView>
@@ -474,7 +479,7 @@ export default function IslandScreen() {
                 <Image source={LOCAL_GEM_CHEST_ICON} style={{ width: 26, height: 26 }} contentFit="contain" />
               </View>
               <View style={styles.currencyInfo}>
-                <Text style={styles.currencyLabel}>TREASURE CHEST</Text>
+                <Text style={styles.currencyLabel}>보물 상자</Text>
                 <Text style={styles.currencyValue}>준비 중</Text>
               </View>
             </GlassView>
@@ -485,34 +490,6 @@ export default function IslandScreen() {
 
         {activeMode === 'discover' && (
           <View style={styles.modeContainer}>
-            <View style={[styles.hero, { borderColor: skyPhase.badgeBg, backgroundColor: skyPhase.top }]}>
-              <View style={[styles.sky, { backgroundColor: skyPhase.top }]}>
-                <View style={[styles.skyBand, { backgroundColor: skyPhase.mid }]} />
-                <View style={[styles.sun, { backgroundColor: skyPhase.sun }]} />
-                <View style={[styles.cloudSmall, { opacity: skyPhase.cloudOpacity }]} />
-                <View style={[styles.cloudLarge, { opacity: skyPhase.cloudOpacity }]} />
-              </View>
-              
-              <View style={styles.islandBase}>
-                <Image source={LOCAL_PET_ISLAND} style={{ width: 140, height: 100 }} contentFit="contain" />
-              </View>
-              <Text style={[styles.levelBadge, { backgroundColor: skyPhase.badgeBg, color: skyPhase.badgeText, borderColor: skyPhase.badgeBg }]}>
-                섬 Lv.{snapshot.island.island_level}
-              </Text>
-              <Text style={[styles.title, { color: skyPhase.text }]}>{islandTitle}</Text>
-              <Text style={[styles.description, { color: skyPhase.subText }]}>
-                지금까지 {snapshot.profile.total_participation_count}개의 선택이 이 섬의 성격을 만들었어요.
-              </Text>
-              {snapshot.equippedTheme ? (
-                <View style={[styles.equippedTheme, { backgroundColor: skyPhase.badgeBg, borderColor: skyPhase.badgeBg }]}>
-                  <MaterialCommunityIcons name="palette-swatch" size={18} color={skyPhase.badgeText} />
-                  <Text style={[styles.equippedThemeText, { color: skyPhase.badgeText }]}>
-                    {snapshot.equippedTheme.skin.display_name} LV.{snapshot.equippedTheme.inventory.level}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-
             <TodayDiscoveryCard />
 
             <PetOriginCard snapshot={snapshot} />
@@ -588,25 +565,25 @@ export default function IslandScreen() {
 
         {activeMode === 'decorate' && (
           <View style={styles.modeContainer}>
-            {/* 1. MY ISLAND Header Summary */}
+            {/* 1. Island header summary */}
             <GlassView style={styles.myIslandHeader} intensity={18} borderRadius={22}>
               <View style={styles.myIslandRow}>
                 <View style={styles.logoBadgeContainer}>
                   <View style={styles.logoCircle}>
                     <MaterialCommunityIcons name="island" size={14} color="#0f766e" />
                   </View>
-                  <Text style={styles.logoBadgeText}>MY ISLAND</Text>
+                  <Text style={styles.logoBadgeText}>나의 섬</Text>
                 </View>
                 <View style={styles.myIslandStats}>
                   <View style={styles.myIslandStatItem}>
-                    <Text style={styles.myIslandStatLabel}>MOOD: {moodVal}%</Text>
+                    <Text style={styles.myIslandStatLabel}>기분 {moodVal}%</Text>
                     <View style={styles.miniTrack}>
                       <View style={[styles.miniFill, { width: petMood, backgroundColor: '#10b981' }]} />
                     </View>
                     <Text style={{ fontSize: 10 }}>😊</Text>
                   </View>
                   <View style={styles.myIslandStatItem}>
-                    <Text style={styles.myIslandStatLabel}>ENERGY: {energyVal}%</Text>
+                    <Text style={styles.myIslandStatLabel}>에너지 {energyVal}%</Text>
                     <View style={styles.miniTrack}>
                       <View style={[styles.miniFill, { width: petEnergy, backgroundColor: '#f97316' }]} />
                     </View>
@@ -616,30 +593,30 @@ export default function IslandScreen() {
               </View>
             </GlassView>
 
-            {/* 2. PET MOOD / ENERGY LEVEL Double Panels */}
+            {/* 2. Pet mood and energy panels */}
             <View style={styles.statusRow}>
               <GlassView style={styles.statusCard} intensity={15} borderRadius={20}>
                 <View style={styles.statusHeaderRow}>
                   <Ionicons name="paw" size={12} color="#10b981" style={{ marginRight: 4 }} />
-                  <Text style={styles.statusCardLabel}>PET MOOD</Text>
+                  <Text style={styles.statusCardLabel}>펫 기분</Text>
                 </View>
-                <Text style={styles.statusCardValue}>VERY HAPPY</Text>
+                <Text style={styles.statusCardValue}>{moodVal >= 70 ? '무척 신나요' : '쉬는 중이에요'}</Text>
                 <View style={styles.statusTrack}>
                   <View style={[styles.statusFill, { width: petMood, backgroundColor: '#10b981' }]} />
                 </View>
-                <Text style={styles.statusProgressText}>{snapshot.petState?.mood ?? snapshot.avatarState.mood} / 100</Text>
+                <Text style={styles.statusProgressText}>{moodVal} / 100</Text>
               </GlassView>
 
               <GlassView style={styles.statusCard} intensity={15} borderRadius={20}>
                 <View style={styles.statusHeaderRow}>
                   <Ionicons name="flash" size={12} color="#f97316" style={{ marginRight: 4 }} />
-                  <Text style={styles.statusCardLabel}>ENERGY LEVEL</Text>
+                  <Text style={styles.statusCardLabel}>활동 에너지</Text>
                 </View>
-                <Text style={styles.statusCardValue}>READY FOR ADVENTURE</Text>
+                <Text style={styles.statusCardValue}>{energyVal >= 70 ? '탐험 준비 완료' : '돌봄이 필요해요'}</Text>
                 <View style={styles.statusTrack}>
                   <View style={[styles.statusFill, { width: petEnergy, backgroundColor: '#f97316' }]} />
                 </View>
-                <Text style={styles.statusProgressText}>{snapshot.petState?.energy ?? snapshot.avatarState.energy} / 100</Text>
+                <Text style={styles.statusProgressText}>{energyVal} / 100</Text>
               </GlassView>
             </View>
 
@@ -663,7 +640,7 @@ export default function IslandScreen() {
                 }
               ]}>
                 <Image 
-                  source={LOCAL_PET_ISLAND} 
+                  source={petImage}
                   style={styles.cozyIslandImage} 
                   contentFit="contain" 
                 />
@@ -685,14 +662,14 @@ export default function IslandScreen() {
               </Text>
             </View>
 
-            {/* 4. Shell Currency / Treasure Chest Double Panels */}
+            {/* 4. Currency panels */}
             <View style={styles.currencyRow}>
               <GlassView style={styles.currencyCard} intensity={15} borderRadius={18}>
                 <View style={styles.currencyIconWrapper}>
                   <Image source={LOCAL_SHELL_ICON} style={{ width: 26, height: 26 }} contentFit="contain" />
                 </View>
                 <View style={styles.currencyInfo}>
-                  <Text style={styles.currencyLabel}>SHELL CURRENCY</Text>
+                  <Text style={styles.currencyLabel}>조개 재화</Text>
                   <Text style={[styles.currencyValue, styles.currencyValueGold]}>{shellBalance}</Text>
                 </View>
               </GlassView>
@@ -702,7 +679,7 @@ export default function IslandScreen() {
                   <Image source={LOCAL_GEM_CHEST_ICON} style={{ width: 26, height: 26 }} contentFit="contain" />
                 </View>
                 <View style={styles.currencyInfo}>
-                  <Text style={styles.currencyLabel}>TREASURE CHEST</Text>
+                  <Text style={styles.currencyLabel}>보물 상자</Text>
                   <Text style={styles.currencyValue}>준비 중</Text>
                 </View>
               </GlassView>
@@ -744,6 +721,7 @@ export default function IslandScreen() {
           </View>
         )}
       </ScrollView>
+      </SafeAreaView>
 
       <ThemeDrawModal results={lastThemeDrawResults} onClose={clearThemeDrawResults} />
       <ThemeProbabilitySheet visible={isProbabilityVisible} onClose={() => setIsProbabilityVisible(false)} poolSlug="standard-theme" />
@@ -925,7 +903,7 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
     paddingBottom: 44,
-    paddingTop: 56
+    paddingTop: 18
   },
   description: {
     color: '#4f7d89',
@@ -1006,16 +984,6 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '900',
     marginTop: 4
-  },
-  hero: {
-    alignItems: 'center',
-    borderColor: '#bae6fd',
-    borderRadius: 28,
-    borderWidth: 1,
-    display: 'none',
-    marginTop: 20,
-    overflow: 'hidden',
-    padding: 24
   },
   guestBanner: {
     alignItems: 'center',
@@ -1352,6 +1320,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800'
   },
+  scroller: {
+    flex: 1
+  },
   summaryText: {
     color: '#64748b',
     fontSize: 13,
@@ -1506,6 +1477,24 @@ const styles = StyleSheet.create({
     opacity: 0.98,
     width: '100%'
   },
+  petPortrait: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.72)',
+    borderColor: 'rgba(255,255,255,0.85)',
+    borderRadius: 28,
+    borderWidth: 1,
+    bottom: 86,
+    height: 88,
+    justifyContent: 'center',
+    position: 'absolute',
+    right: 24,
+    width: 88,
+    zIndex: 8
+  },
+  petPortraitImage: {
+    height: 72,
+    width: 72
+  },
   floatingHearts: {
     position: 'absolute',
     top: -10,
@@ -1534,7 +1523,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 22,
     paddingBottom: 18,
-    paddingTop: 54,
+    paddingTop: 48,
     position: 'absolute',
     right: 22,
     zIndex: 3

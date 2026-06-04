@@ -14,6 +14,7 @@ type FeedState = {
   questions: FeedQuestion[];
   currentSort: FeedSort;
   isLoading: boolean;
+  hasLoaded: boolean;
   error: string | null;
   loadFeedQuestions: (sort?: FeedSort) => Promise<void>;
   voteOnQuestion: (questionId: string, selectedOption: OptionSide) => Promise<void>;
@@ -25,6 +26,7 @@ export const useFeedStore = create<FeedState>((set, get) => ({
   questions: [],
   currentSort: 'popular',
   isLoading: false,
+  hasLoaded: false,
   error: null,
 
   async loadFeedQuestions(sort = get().currentSort) {
@@ -32,10 +34,11 @@ export const useFeedStore = create<FeedState>((set, get) => ({
 
     try {
       const questions = await fetchFeedQuestions(sort);
-      set({ questions, isLoading: false });
+      set({ questions, isLoading: false, hasLoaded: true });
     } catch (error) {
       set({
         isLoading: false,
+        hasLoaded: true,
         error: error instanceof Error ? error.message : '피드를 불러오지 못했습니다.'
       });
     }

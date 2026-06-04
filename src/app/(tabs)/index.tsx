@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Platform, RefreshControl, StyleSheet, Text, View, Animated } from 'react-native';
+import { ActivityIndicator, FlatList, Platform, RefreshControl, StyleSheet, Text, View, Animated } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import BalanceCard from '../../components/feed/BalanceCard';
 import ChoiceEchoSheet from '../../components/feed/ChoiceEchoSheet';
 import { useFeedStore } from '../../store/feedStore';
@@ -23,7 +24,7 @@ type Particle = {
 };
 
 export default function FeedScreen() {
-  const { questions, isLoading, error, loadFeedQuestions, voteOnQuestion, reactToQuestion } = useFeedStore();
+  const { questions, isLoading, hasLoaded, error, loadFeedQuestions, voteOnQuestion, reactToQuestion } = useFeedStore();
   const prefetched = useRef(new Set<string>());
   const [isEchoVisible, setIsEchoVisible] = useState(false);
   const [echoData, setEchoData] = useState<ChoiceEchoResult | null>(null);
@@ -157,7 +158,7 @@ export default function FeedScreen() {
         question={item}
         onVote={handleVote}
         onReaction={handleReaction}
-        onOpenComments={() => Alert.alert('댓글', '댓글 화면은 다음 단계에서 연결합니다.')}
+        onOpenComments={() => analyticsService.track('comments_open_soon', { questionId: item.id })}
       />
     );
   }, [handleReaction, handleVote]);
@@ -172,7 +173,7 @@ export default function FeedScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* 파스텔 보케 그라데이션 배경 (gradients.feedBokeh 토큰) */}
       <LinearGradient
         colors={THEME.gradients.feedBokeh}
@@ -181,12 +182,6 @@ export default function FeedScreen() {
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
-      {/* Background color spots matching the mockup */}
-      <View style={styles.spot1} pointerEvents="none" />
-      <View style={styles.spot2} pointerEvents="none" />
-      <View style={styles.spot3} pointerEvents="none" />
-      <View style={styles.spot4} pointerEvents="none" />
-
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <Text style={styles.logoText}>
@@ -237,7 +232,13 @@ export default function FeedScreen() {
         contentContainerStyle={styles.listContent}
         data={questions}
         keyExtractor={(item) => item.id}
-        ListEmptyComponent={<Text style={styles.empty}>표시할 질문이 없습니다.</Text>}
+        ListEmptyComponent={
+          hasLoaded && !isLoading && !error ? (
+            <Text style={styles.empty}>오늘 풀 수 있는 질문을 다 풀었어요! 새 질문이 올라오면 알려드릴게요. 🎉</Text>
+          ) : (
+            <Text style={styles.empty}>표시할 질문이 없습니다.</Text>
+          )
+        }
         onViewableItemsChanged={onViewableItemsChanged}
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => loadFeedQuestions()} />}
         renderItem={renderItem}
@@ -265,7 +266,7 @@ export default function FeedScreen() {
           {p.emoji}
         </Animated.Text>
       ))}
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -280,58 +281,6 @@ const styles = StyleSheet.create({
   centerText: {
     color: '#52716d',
     fontWeight: '700'
-  },
-  spot1: {
-    position: 'absolute',
-    left: -100,
-    top: -100,
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: '#ffdadb',
-    opacity: 0.55,
-    // @ts-ignore
-    filter: 'blur(80px)',
-    webkitFilter: 'blur(80px)'
-  },
-  spot2: {
-    position: 'absolute',
-    right: -100,
-    top: 100,
-    width: 350,
-    height: 350,
-    borderRadius: 175,
-    backgroundColor: '#d0ebff',
-    opacity: 0.6,
-    // @ts-ignore
-    filter: 'blur(90px)',
-    webkitFilter: 'blur(90px)'
-  },
-  spot3: {
-    position: 'absolute',
-    left: -80,
-    bottom: 150,
-    width: 280,
-    height: 280,
-    borderRadius: 140,
-    backgroundColor: '#f1e1ff',
-    opacity: 0.5,
-    // @ts-ignore
-    filter: 'blur(75px)',
-    webkitFilter: 'blur(75px)'
-  },
-  spot4: {
-    position: 'absolute',
-    right: -50,
-    bottom: -50,
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: '#fffbcb',
-    opacity: 0.5,
-    // @ts-ignore
-    filter: 'blur(70px)',
-    webkitFilter: 'blur(70px)'
   },
   container: {
     backgroundColor: '#fff5ec',
@@ -354,7 +303,7 @@ const styles = StyleSheet.create({
   header: {
     paddingBottom: 12,
     paddingHorizontal: 20,
-    paddingTop: 54
+    paddingTop: 14
   },
   headerTop: {
     flexDirection: 'row',
@@ -364,7 +313,7 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 24,
     fontWeight: '900',
-    letterSpacing: -0.5
+    letterSpacing: 0
   },
   levelChip: {
     alignItems: 'center',

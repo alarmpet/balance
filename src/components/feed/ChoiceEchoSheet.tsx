@@ -41,7 +41,12 @@ export default function ChoiceEchoSheet({ visible, onClose, echoData }: ChoiceEc
       onRequestClose={onClose}
     >
       <View style={styles.backdrop}>
-        <Pressable style={styles.dismissArea} onPress={onClose} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="선택의 메아리 닫기"
+          style={styles.dismissArea}
+          onPress={onClose}
+        />
         <View style={styles.sheet}>
           <View style={styles.dragIndicator} />
 
@@ -82,10 +87,15 @@ export default function ChoiceEchoSheet({ visible, onClose, echoData }: ChoiceEc
           </View>
 
           <View style={styles.buttonRow}>
-            <Pressable style={styles.closeButton} onPress={onClose}>
+            <Pressable accessibilityRole="button" accessibilityLabel="닫기" style={styles.closeButton} onPress={onClose}>
               <Text style={styles.closeButtonText}>닫기</Text>
             </Pressable>
-            <Pressable style={styles.mapButton} onPress={handleOpenMap}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="내 성향 지도 보기"
+              style={styles.mapButton}
+              onPress={handleOpenMap}
+            >
               <MaterialCommunityIcons name="map-marker-distance" size={18} color="#ffffff" />
               <Text style={styles.mapButtonText}>내 지도 보기</Text>
             </Pressable>
@@ -228,7 +238,7 @@ const styles = StyleSheet.create({
   rarityPercent: {
     fontSize: 30,
     fontWeight: '900',
-    letterSpacing: -1
+    letterSpacing: 0
   },
   rarityTextArea: {
     flex: 1,

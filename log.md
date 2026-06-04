@@ -46,3 +46,7 @@ YYYY-MM-DD HH:mm | command | summary | linked files
 2026-06-04 12:10 | save | 인사이트 맵 단순화 계획서 작성(3탭 폐기 → 단일 마음 지도, Obsidian×마인드맵 통합, 시안 #3) | [[docs/2026-06-04-unified-insight-map-plan]]
 2026-06-04 12:40 | save | zero-cost AI ops 계획서 라이브 검증 갱신(trait 키 canonical 정합, Edge 미배포=$0 확인, 보안 교훈 반영, env 위치 정정, 정규화 Task8) | [[docs/2026-06-04-zero-cost-ai-ops-plan]]
 2026-06-04 12:55 | save | Task8 펫 trait 키 canonical 정규화 라이브 적용(comfort_seeker→comfort, planner→plan 병합) + repo 마이그레이션 | [[supabase/migrations/202606040700_normalize_pet_trait_keys]], [[timeline]]
+2026-06-04 13:10 | save | 밸런스 질문 대폭 확장·성향 분류·중복 방지 계획서 초안 작성 | [[AI-Sessions/wiki/projects/balance-question-expansion-plan]]
+2026-06-04 14:15 | save | 성향 5번째 축 confirm: comfort↔curious (curious 질문 획득 trait 승격, 사용자 승인). insight 라벨 마이그레이션 라이브 적용 | [[AI-Sessions/wiki/decisions/comfort-curious-fifth-axis]]
+2026-06-04 14:40 | save | 밸런스 질문 1차 확장 배치1: 원작 116개 추가(5축 매핑·멱등 시드), 공식 질문 30→146, trait 10키 전부 커버 | [[data/question-bank/food]], [[scripts/seed-question-bank]], [[timeline]]
+2026-06-04 15:10 | save | 외부소스 조사(IPIP 퍼블릭도메인 근거) + 배치2 32개 균형 보강, 공식 질문 146→178, 축 분포 61~80 균형화 | [[AI-Sessions/wiki/sources/external-question-sources-survey]], [[timeline]]

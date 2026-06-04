@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type TabIconName = keyof typeof Ionicons.glyphMap;
 
@@ -10,6 +11,9 @@ function tabIcon(name: TabIconName) {
 }
 
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
+  const bottomInset = Math.max(8, insets.bottom);
+
   return (
     <Tabs
       screenOptions={{
@@ -17,16 +21,30 @@ export default function TabsLayout() {
         tabBarActiveTintColor: '#0f766e',
         tabBarInactiveTintColor: '#8aa3a1',
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '700'
+          fontSize: 11,
+          fontWeight: '800',
+          marginTop: 2
         },
         tabBarStyle: {
-          backgroundColor: '#f8fffb',
-          borderTopColor: '#d9f3ed',
-          height: 64,
-          paddingBottom: 8,
-          paddingTop: 8
-        }
+          backgroundColor: 'rgba(248, 255, 251, 0.94)',
+          borderColor: 'rgba(153, 246, 228, 0.7)',
+          borderRadius: 22,
+          borderTopColor: 'rgba(153, 246, 228, 0.7)',
+          borderWidth: 1,
+          height: 60 + bottomInset,
+          marginBottom: Math.max(8, bottomInset / 2),
+          marginHorizontal: 14,
+          paddingBottom: bottomInset,
+          paddingTop: 8,
+          shadowColor: '#0f172a',
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.08,
+          shadowRadius: 18
+        },
+        tabBarItemStyle: {
+          borderRadius: 16
+        },
+        tabBarHideOnKeyboard: true
       }}
     >
       <Tabs.Screen name="index" options={{ title: '피드', tabBarIcon: tabIcon('albums') }} />
