@@ -18,12 +18,9 @@ CREATE TABLE IF NOT EXISTS public.schema_migrations (
   name text,
   applied_at timestamptz NOT NULL DEFAULT now()
 );
-
 ALTER TABLE public.schema_migrations ENABLE ROW LEVEL SECURITY;
-
 REVOKE ALL ON public.schema_migrations FROM anon;
 REVOKE ALL ON public.schema_migrations FROM authenticated;
-
 -- Backfill known prior migrations. Idempotent: only inserts missing versions
 -- and never overwrites an existing applied_at.
 INSERT INTO public.schema_migrations (version, name) VALUES
@@ -35,6 +32,9 @@ INSERT INTO public.schema_migrations (version, name) VALUES
   ('202606021900', 'auth_profile_metadata'),
   ('202606030530', 'ai_edge_rate_limits'),
   ('202606030900', 'expand_pet_asset_batch'),
-  ('202606040400', 'schema_migration_tracking')
+  ('202606040400', 'schema_migration_tracking'),
+  ('202606040500', 'trait_contradictions'),
+  ('202606040600', 'harden_internal_function_execute'),
+  ('202606041900', 'question_submission_queue'),
+  ('202606041930', 'security_advisory_rls_search_path')
 ON CONFLICT (version) DO NOTHING;
-</content>

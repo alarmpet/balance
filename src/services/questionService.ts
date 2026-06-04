@@ -1,11 +1,20 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { hasSupabaseConfig } from '../lib/env';
 import { supabase } from '../lib/supabaseClient';
-import type { Database, Json } from '../types/database.types';
+import type { Database, Json, QuestionRow } from '../types/database.types';
 
 export type OptionSide = 'A' | 'B';
 export type ReactionType = 'like' | 'fun' | 'hard';
 export type FeedSort = 'popular' | 'latest' | 'trending';
+
+export type UserQuestionSubmission = {
+  title: string;
+  optionA: string;
+  optionB: string;
+  categorySlug: string;
+  description?: string | null;
+  isAnonymous?: boolean;
+};
 
 export type FeedQuestion = {
   id: string;
@@ -38,15 +47,20 @@ export type FeedQuestion = {
 
 const rpcClient = supabase as SupabaseClient | null;
 
-export async function fetchFeedQuestions(sort: FeedSort = 'popular', limit = 30): Promise<FeedQuestion[]> {
+export async function fetchFeedQuestions(
+  sort: FeedSort = 'popular',
+  limit = 30,
+  excludeAnswered = true
+): Promise<FeedQuestion[]> {
   if (!supabase || !hasSupabaseConfig()) {
-    throw new Error('Supabase 프로젝트 설정이 필요합니다. 브라우저에서 Supabase 인증을 완료한 뒤 .env를 채워 주세요.');
+    throw new Error('Supabase 설정이 필요합니다. 브라우저에서 인증을 완료하고 .env를 확인해 주세요.');
   }
 
   const { data, error } = await rpcClient!.rpc('fetch_feed_questions', {
     p_limit: limit,
     p_cursor_created_at: null,
-    p_sort: sort
+    p_sort: sort,
+    p_exclude_answered: excludeAnswered
   });
 
   if (error) throw error;
@@ -80,7 +94,7 @@ export async function fetchFeedQuestions(sort: FeedSort = 'popular', limit = 30)
 
 export async function submitVote(questionId: string, selectedOption: OptionSide): Promise<void> {
   if (!supabase) {
-    throw new Error('Supabase 프로젝트 설정이 필요합니다.');
+    throw new Error('Supabase 설정이 필요합니다.');
   }
 
   const { error } = await rpcClient!.rpc('submit_vote', {
@@ -94,7 +108,7 @@ export async function submitVote(questionId: string, selectedOption: OptionSide)
 
 export async function submitReaction(questionId: string, reactionType: ReactionType): Promise<void> {
   if (!supabase) {
-    throw new Error('Supabase 프로젝트 설정이 필요합니다.');
+    throw new Error('Supabase 설정이 필요합니다.');
   }
 
   const { error } = await rpcClient!.rpc('submit_reaction', {
@@ -103,6 +117,24 @@ export async function submitReaction(questionId: string, reactionType: ReactionT
   });
 
   if (error) throw error;
+}
+
+export async function submitUserQuestion(input: UserQuestionSubmission): Promise<QuestionRow> {
+  if (!supabase || !hasSupabaseConfig()) {
+    throw new Error('Supabase 설정이 필요합니다. 로그인 후 다시 시도해 주세요.');
+  }
+
+  const { data, error } = await rpcClient!.rpc('submit_user_question', {
+    p_title: input.title.trim(),
+    p_option_a_title: input.optionA.trim(),
+    p_option_b_title: input.optionB.trim(),
+    p_category_slug: input.categorySlug,
+    p_description: input.description?.trim() || null,
+    p_is_anonymous: input.isAnonymous ?? false
+  });
+
+  if (error) throw error;
+  return data as QuestionRow;
 }
 
 function normalizeCategory(value: Json | null): FeedQuestion['category'] {

@@ -524,6 +524,7 @@ export type Database = {
           p_limit?: number;
           p_cursor_created_at?: string | null;
           p_sort?: 'popular' | 'latest' | 'trending';
+          p_exclude_answered?: boolean;
         };
         Returns: FeedQuestionRpcRow[];
       };
@@ -541,6 +542,17 @@ export type Database = {
           p_reaction_type: string;
         };
         Returns: QuestionReactionRow;
+      };
+      submit_user_question: {
+        Args: {
+          p_title: string;
+          p_option_a_title: string;
+          p_option_b_title: string;
+          p_category_slug?: string;
+          p_description?: string | null;
+          p_is_anonymous?: boolean;
+        };
+        Returns: QuestionRow;
       };
       claim_daily_checkin: {
         Args: Record<string, never>;

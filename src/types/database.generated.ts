@@ -1668,6 +1668,7 @@ export type Database = {
       fetch_feed_questions: {
         Args: {
           p_cursor_created_at?: string
+          p_exclude_answered?: boolean
           p_limit?: number
           p_sort?: string
         }

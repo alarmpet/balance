@@ -1,10 +1,12 @@
+export type CategorySlug = 'food' | 'life' | 'romance' | 'career' | 'culture';
+
 export type CategoryInfo = {
-  slug: string;
+  slug: CategorySlug | 'uncategorized';
   name: string;
   color: string;
 };
 
-export const CATEGORIES: Record<string, CategoryInfo> = {
+export const CATEGORIES: Record<CategorySlug, CategoryInfo> = {
   food: {
     slug: 'food',
     name: '푸드',
@@ -32,12 +34,13 @@ export const CATEGORIES: Record<string, CategoryInfo> = {
   }
 };
 
+export const CATEGORY_OPTIONS = Object.values(CATEGORIES);
+
 export function getCategoryBySlug(slug: string | null | undefined): CategoryInfo {
   if (!slug) return { slug: 'uncategorized', name: '밸런스', color: '#6b7280' };
-  const normalized = slug.trim().toLowerCase();
-  return CATEGORIES[normalized] ?? { slug: normalized, name: '밸런스', color: '#6b7280' };
+  const normalized = slug.trim().toLowerCase() as CategorySlug;
+  return CATEGORIES[normalized] ?? { slug: 'uncategorized', name: '밸런스', color: '#6b7280' };
 }
-
 export function getCategoryByName(name: string | null | undefined): CategoryInfo {
   if (!name) return { slug: 'uncategorized', name: '밸런스', color: '#6b7280' };
   const trimmed = name.trim();
