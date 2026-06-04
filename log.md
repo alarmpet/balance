@@ -34,6 +34,7 @@ YYYY-MM-DD HH:mm | command | summary | linked files
 2026-06-04 06:30 | save | 디자인 시스템 업그레이드 계획서 작성 (3개 시안 해부, 토큰 감사/갭, Figma·Stitch·MCP 파이프라인, 컴포넌트 백로그) | [[docs/2026-06-04-design-system-upgrade-plan]]
 2026-06-04 06:45 | save | 디자인 D9 토큰 파운데이션(gradients/glow/elevation/typo) + D2 밸런스카드 골드 결과바 적용 | [[src/theme/gradients]], [[src/theme/styles]], [[src/components/feed/BalanceCard]], [[timeline]]
 2026-06-04 07:00 | save | 디자인 D1 피드 XP/레벨 헤더 칩(게임화 스냅샷 연동) | [[src/app/(tabs)/index]], [[timeline]]
+2026-06-04 07:30 | save | 디자인 D4 섬 통화 카드 깊이/골드 + D6 별자리 클러스터 범례 | [[src/app/(tabs)/island]], [[src/screens/InsightMapScreen]], [[timeline]]
 
 
 

@@ -581,5 +581,14 @@
 - 검증: `npm run typecheck` 통과, `npm run build` 성공. 프리뷰에서 게스트 "Lv.1 0/100" 헤더 칩 정상 렌더 확인.
 - 후속: D4(섬 듀얼 게이지/Gem), D6(네온 클러스터+콜아웃+Map View).
 
+## 2026-06-04 07:30 KST - 디자인 D4(섬 통화 카드 깊이/골드) + D6(별자리 클러스터 범례)
+
+- 작업: 디자인 계획서 D4·D6의 안전·정직 증분.
+- 범위:
+  - `src/app/(tabs)/island.tsx` (통화 카드에 elevation 깊이 + Shell 값 골드 강조. Gem은 데이터 백킹이 없어 "준비 중" 정직 유지 — 가짜 수치 표기 금지)
+  - `src/screens/InsightMapScreen.tsx` (별자리 탭에 클러스터 범례: 푸드·건강(주황)/삶·균형(민트)/관계·연결(자홍), THEME.glowByCluster 색과 정렬. 복잡한 네온 캔버스는 회귀 위험으로 미개조)
+- 검증: `npm run typecheck` 통과, `npm run build` 성공, 프리뷰에서 별자리 범례 정상 렌더 확인.
+- 한계/후속: D6의 근거 콜아웃·Map View 토글은 InsightGraphCanvas 내부 개조가 필요해 보류(향후 캔버스 정독 후 진행). Gem 통화는 서버 잔액 도입 시 표기.
+
 
 

@@ -683,7 +683,7 @@ export default function IslandScreen() {
                 </View>
                 <View style={styles.currencyInfo}>
                   <Text style={styles.currencyLabel}>SHELL CURRENCY</Text>
-                  <Text style={styles.currencyValue}>{shellBalance}</Text>
+                  <Text style={[styles.currencyValue, styles.currencyValueGold]}>{shellBalance}</Text>
                 </View>
               </GlassView>
 
@@ -1577,6 +1577,11 @@ const styles = StyleSheet.create({
     padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 5,
     gap: 10
   },
   currencyIconWrapper: {
@@ -1602,6 +1607,9 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#0f172a',
     marginTop: 2
+  },
+  currencyValueGold: {
+    color: '#b45309'
   },
   controlPanel: {
     backgroundColor: 'rgba(255, 255, 255, 0.4)',

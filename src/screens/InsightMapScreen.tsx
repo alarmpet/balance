@@ -17,6 +17,13 @@ import { useInsightMapStore } from '../store/insightMapStore';
 
 type InsightTab = 'discover' | 'terrain' | 'links';
 
+// 별자리 클러스터 범례(시안의 라벨 클러스터). 색은 THEME.glowByCluster와 정렬.
+const CLUSTER_LEGEND = [
+  { label: '푸드·건강', color: '#f59e0b' },
+  { label: '삶·균형', color: '#14b8a6' },
+  { label: '관계·연결', color: '#d946ef' }
+];
+
 type Props = {
   showBackButton?: boolean;
 };
@@ -168,6 +175,15 @@ export function InsightMapScreen({ showBackButton = false }: Props) {
               </Pressable>
             ) : null}
 
+            <View style={styles.clusterLegend}>
+              {CLUSTER_LEGEND.map((c) => (
+                <View key={c.label} style={styles.clusterItem}>
+                  <View style={[styles.clusterDot, { backgroundColor: c.color, shadowColor: c.color }]} />
+                  <Text style={styles.clusterLabel}>{c.label}</Text>
+                </View>
+              ))}
+            </View>
+
             {snapshot ? (
               <InsightGraphCanvas snapshot={snapshot} selectedNodeId={selectedNodeId} onSelectNode={selectNode} />
             ) : (
@@ -222,6 +238,10 @@ const styles = StyleSheet.create({
   confidenceRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
   confidenceValue: { color: '#0ea5e9', fontWeight: '900' },
   container: { backgroundColor: '#ecfeff', flex: 1 },
+  clusterLegend: { flexDirection: 'row', gap: 14, justifyContent: 'center', marginBottom: 12, marginTop: 2 },
+  clusterItem: { alignItems: 'center', flexDirection: 'row', gap: 6 },
+  clusterDot: { borderRadius: 999, height: 10, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 6, width: 10 },
+  clusterLabel: { color: '#475569', fontSize: 11, fontWeight: '800' },
   contradictionSection: { borderTopColor: '#e2e8f0', borderTopWidth: 1, marginTop: 18, paddingTop: 16 },
   resetFocusButton: {
     alignItems: 'center',
