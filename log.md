@@ -43,3 +43,4 @@ YYYY-MM-DD HH:mm | command | summary | linked files
 
 
 
+2026-06-04 12:10 | save | 인사이트 맵 단순화 계획서 작성(3탭 폐기 → 단일 마음 지도, Obsidian×마인드맵 통합, 시안 #3) | [[docs/2026-06-04-unified-insight-map-plan]]
