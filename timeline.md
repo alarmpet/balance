@@ -590,5 +590,18 @@
 - 검증: `npm run typecheck` 통과, `npm run build` 성공, 프리뷰에서 별자리 범례 정상 렌더 확인.
 - 한계/후속: D6의 근거 콜아웃·Map View 토글은 InsightGraphCanvas 내부 개조가 필요해 보류(향후 캔버스 정독 후 진행). Gem 통화는 서버 잔액 도입 시 표기.
 
+## 2026-06-04 08:30 KST - UI/UX 라이브러리 도입 (gradient·haptics·blur·reanimated·gesture)
+
+- 작업: 디자인 계획서 §3-A 도구 파이프라인. 시안 구현 토대 라이브러리 설치 및 일부 적용. 전부 `npx expo install`로 SDK 51 호환 버전 설치.
+- 설치: expo-linear-gradient, expo-haptics, expo-blur, react-native-reanimated, react-native-gesture-handler.
+- 적용:
+  - `src/app/(tabs)/index.tsx` (피드 배경에 LinearGradient = gradients.feedBokeh 토큰 적용; 투표 시 expo-haptics 라이트 임팩트, 웹 가드)
+  - `src/components/common/GlassView.tsx` (네이티브에 BlurView 추가 = 진짜 프로스티드 글래스. 웹 경로는 backdropFilter 그대로 유지 — 무회귀)
+  - `babel.config.js` (react-native-reanimated/plugin 추가, plugins 마지막)
+  - `src/app/_layout.tsx` (gesture-handler 엔트리 import 최상단)
+- 검증: `npm run typecheck` 통과, `npm run build`(expo export, reanimated babel 포함) 성공, 프리뷰에서 부팅·피드·그라데이션(135deg feedBokeh) 정상 + 콘솔 에러 0건.
+- 한계: 네이티브 BlurView/haptics/reanimated 모션은 dev build에서만 시각 검증 가능(웹은 검증됨). reanimated/gesture/blur는 향후 bottom-sheet/moti/lottie 도입과 모션 고도화의 토대.
+- 주의: 이 네이티브 모듈들은 Expo Go가 아닌 dev build(EAS/prebuild) 필요. SDK 51은 구버전이라 추후 업그레이드 검토 권장.
+
 
 

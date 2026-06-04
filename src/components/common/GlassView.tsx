@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, ViewProps, Platform } from 'react-native';
+import { BlurView } from 'expo-blur';
 
 interface GlassViewProps extends ViewProps {
   intensity?: number; // Blur intensity in pixels
@@ -41,6 +42,15 @@ export default function GlassView({
       ]}
       {...props}
     >
+      {/* 네이티브: 진짜 프로스티드 글래스(BlurView). 웹은 위 backdropFilter 사용. */}
+      {!isWeb && (
+        <BlurView
+          intensity={Math.min(100, intensity * 2)}
+          tint="light"
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
+      )}
       {children}
     </View>
   );

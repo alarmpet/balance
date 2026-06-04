@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, RefreshControl, StyleSheet, Text, View, Animated } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Platform, RefreshControl, StyleSheet, Text, View, Animated } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import BalanceCard from '../../components/feed/BalanceCard';
 import ChoiceEchoSheet from '../../components/feed/ChoiceEchoSheet';
@@ -119,6 +121,9 @@ export default function FeedScreen() {
     if (!question) return;
 
     void voteOnQuestion(questionId, option);
+    if (Platform.OS !== 'web') {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
 
     const result = generateChoiceEcho(question, option);
     setEchoData(result);
@@ -168,6 +173,14 @@ export default function FeedScreen() {
 
   return (
     <View style={styles.container}>
+      {/* 파스텔 보케 그라데이션 배경 (gradients.feedBokeh 토큰) */}
+      <LinearGradient
+        colors={THEME.gradients.feedBokeh}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
       {/* Background color spots matching the mockup */}
       <View style={styles.spot1} pointerEvents="none" />
       <View style={styles.spot2} pointerEvents="none" />
