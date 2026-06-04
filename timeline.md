@@ -664,3 +664,32 @@
 - 적용(Supabase MCP, 라이브): comfort_seeker→comfort(충돌 없음), planner→plan(충돌 종 b842e3c7은 GREATEST affinity 1.5로 병합 후 중복 삭제). 멱등.
 - 검증: pet trait 키 = adventure,aesthetic,calm,comfort,curious,express,flow,plan,safe,social,solo (comfort_seeker/planner 제거 확인). aesthetic/curious는 질문 미획득 펫 전용 축 → 제품 결정으로 유지.
 - repo: supabase/migrations/202606040700_normalize_pet_trait_keys.sql
+
+## 2026-06-04 14:00 — 밸런스 질문 확장 Step 1: 중복 제외 + 소진 UX
+- 문제: fetch_feed_questions(202606012330)는 답변 질문을 맨 뒤로 '정렬'만 하고 제외 안 함 → 질문 적을 때 재노출.
+- 변경: p_exclude_answered boolean DEFAULT true 파라미터 추가, WHERE (NOT p_exclude_answered OR vv.selected_option IS NULL)로 투표한 질문 제외. RETURNS 시그니처 동일.
+- repo: supabase/migrations/20260604140000_feed_exclude_answered.sql
+- 클라이언트: questionService.fetchFeedQuestions(sort,limit,excludeAnswered=true), feedStore.hasLoaded 추가, index.tsx 소진 시 "오늘 풀 질문 다 풀었어요" 빈 상태. database(.generated).types.ts Args 갱신.
+- 적용(Supabase MCP, 라이브 ztcexgnelqtdzinfgoja): apply_migration feed_exclude_answered 성공. 4-arg 시그니처 확인, anon 피드 30행 정상.
+- 검증: npx tsc --noEmit EXIT 0.
+
+## 2026-06-04 14:15 — Step 2: 성향 5번째 축 comfort↔curious 확정
+- 결정: curious를 질문 획득 trait으로 승격 → comfort(익숙함)↔curious(호기심) 5번째 양극 축. 사용자(AskUserQuestion) 승인.
+- 근거: trait_key CHECK 제약 없음(DDL 불필요), 모순 로직 trait별 일반 동작이라 자동 호환, curious 펫 매칭 활성화.
+- 변경: compute_user_trait_contradictions CASE 라벨 comfort '취향'→'익숙함', curious '호기심' 추가.
+- repo: supabase/migrations/20260604141500_curious_axis_labels.sql / 결정문서 AI-Sessions/wiki/decisions/comfort-curious-fifth-axis.md
+- 적용(Supabase MCP, 라이브): apply_migration curious_axis_labels 성공(최초 1회 자동 차단→사용자 승인 후 재적용).
+
+## 2026-06-04 14:40 — Step 3: 밸런스 질문 1차 대폭 확장 (배치 1)
+- 원작(재창작) 질문 116개 추가: food 25, life 24, romance 23, career 22, culture 22. 저작권/ToS 안전(스크래핑 X, 재창작 원칙).
+- 5축 trait 매핑(comfort↔curious 포함). 검증기(scripts/seed-question-bank.mjs): 빈값/trait 화이트리스트/weight 1.0~1.5/A≠B trait → 116 생성, 0 거부.
+- 멱등 시드: id=md5(seed_key)::uuid, ON CONFLICT 업서트. temp table+VALUES 패턴. Supabase MCP로 카테고리별 5회 적용.
+- 결과(라이브 검증): 공식 질문 30→146. 카테고리 28~31 균형. trait 10키 전부 커버(plan43/flow37/express36/safe34/adventure26/calm26/curious25/social22/comfort22/solo21). 축별 표본 43~80.
+- 검증: fetch_feed_questions 50행(cap) 반환, 신규 질문+trait 서빙 확인. npx tsc EXIT 0.
+- repo: data/question-bank/{food,life,romance,career,culture}.json, scripts/seed-question-bank.mjs
+
+## 2026-06-04 15:10 — Step 4: 외부 소스 조사 + 배치 2 (균형 보강)
+- 외부 수집 조사: 직접 재배포 가능한 한국어 밸런스 데이터셋 없음. 영어 WYR repo는 라이선스 미표기+오락성(성향 신호 약). IPIP(퍼블릭 도메인 Big Five)를 trait 앵커로 재창작이 합법·정합 최선. → AI-Sessions/wiki/sources/external-question-sources-survey.md
+- 배치 2: 과소 축(solo/social, comfort/curious, calm) 집중 32개 추가. NEW_ONLY 모드로 신규만 멱등 적용.
+- 결과(라이브): 공식 질문 146→178(원본30+뱅크148). 축 표본 plan/flow80, calm/express74, comfort/curious72, solo/social69, safe/adventure61 — 분포 43~80 → 61~80로 균형 개선.
+- repo: data/question-bank/*.json(확장), scripts/seed-question-bank.mjs(NEW_ONLY 모드)
