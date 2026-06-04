@@ -30,7 +30,25 @@ export async function fetchInsightGraph(focusNodeId: string | null = null, depth
   });
 
   if (error) throw error;
-  return normalizeInsightGraph(data);
+  const snapshot = normalizeInsightGraph(data);
+
+  // 모순 발견(상황별 다른 나)을 별도 RPC로 병합한다.
+  // 코어 함수(get_personality_insight_graph)를 수정하지 않고 클라이언트에서 합치는 방식.
+  // 함수가 아직 types에 없어 캐스팅으로 호출하며, 실패해도 비치명적(빈 배열 유지).
+  try {
+    const { data: contradictionData } = await (rpcClient as unknown as {
+      rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown }>;
+    }).rpc('compute_user_trait_contradictions', {});
+    if (Array.isArray(contradictionData)) {
+      snapshot.contradictions = contradictionData
+        .map(normalizeContradiction)
+        .filter(Boolean) as InsightContradiction[];
+    }
+  } catch {
+    // 모순 데이터 병합 실패는 무시(섬 지도 자체는 정상 표시).
+  }
+
+  return snapshot;
 }
 
 export async function fetchInsightCards(): Promise<UserInsightCardRow[]> {

@@ -639,5 +639,14 @@
 - 남은 advisory(후속): bookmarks/follows/comment_reactions RLS 정책 부재, 함수 search_path 2건, public 확장 2건, leaked password protection 비활성.
 - 검증: `npm run typecheck` 통과(generated 타입 포함). 라이브 SQL 검증 쿼리로 권한/함수 동작 확인.
 
+## 2026-06-04 11:00 KST - 모순 발견 end-to-end 완성 (클라이언트 병합 방식)
+
+- 작업: 로그인 사용자도 '상황별 다른 나'가 실데이터로 뜨도록 연결.
+- 결정: 코어 RPC `get_personality_insight_graph`를 CREATE OR REPLACE로 수정하려 했으나 auto-mode 가드가 거부(프로덕션 공유 함수 변경은 명시 동의 범위 밖). → 더 낮은 위험 경로로 전환.
+- 구현: `src/services/insightMapService.ts` fetchInsightGraph에서 `compute_user_trait_contradictions` RPC를 별도 호출해 snapshot.contradictions에 병합(코어 함수 무수정, 실패 시 비치명적). 게스트는 기존 샘플 유지.
+- 검증: `npm run typecheck`/`npm run build` 통과. 게스트 경로 영향 없음.
+- 남음: Edge Function 배포는 함수 시크릿(OPENAI_API_KEY) 설정이 선행돼야 해 사용자 핸드오프 유지.
+- Figma: MCP 스킬은 로드됐으나 실제 호출 도구(use_figma 등)가 세션에 노출되지 않아 디자인 자동화는 보류(Dev Mode MCP 서버 실행/파일 오픈 또는 재시작 필요).
+
 
 
