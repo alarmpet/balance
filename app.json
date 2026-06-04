@@ -6,6 +6,13 @@
     "scheme": "balanceisland",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "ios": {
+      "bundleIdentifier": "com.alarmpet.balanceisland",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.alarmpet.balanceisland"
+    },
     "web": {
       "bundler": "metro",
       "output": "single"

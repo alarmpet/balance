@@ -615,5 +615,17 @@
 - 검증: `npm run typecheck` 통과, `npm run build`(expo export) 성공, `expo-doctor` 통과, 프리뷰 부팅 정상.
 - 결론: dev build 준비 완료(사용자 실행 대기), bottom-sheet/SDK는 업그레이드 게이트로 묶임.
 
+## 2026-06-04 09:40 KST - dev build 선행: 번들 식별자 + prebuild 검증 + system-ui
+
+- 작업: dev build를 막던 설정 공백을 메우고 네이티브 생성이 정상 동작함을 검증.
+- 범위:
+  - `app.json` (빌드 필수인 `ios.bundleIdentifier`/`android.package` = com.alarmpet.balanceisland 추가, ios.supportsTablet)
+  - `npx expo prebuild --platform android` **성공**("Finished prebuild") — reanimated/gesture/blur/dev-client/router/font/secure-store 등 모든 config plugin이 네이티브로 정상 반영됨을 확인(=dev build 어셈블 가능 신호).
+  - 관리형(CNG) 유지: 생성된 `android/` 제거, `.gitignore`에 `/android` `/ios` 추가.
+  - prebuild 어드바이저리 해소: `expo-system-ui` 설치(userInterfaceStyle 네이티브 적용).
+  - `package.json` scripts: prebuild가 android/ios를 `expo run:*`로 갱신(네이티브 앱에 맞는 정확한 명령) — 유지.
+- 검증: `npx expo-doctor` 17/17 통과, `npm run build`(expo export) 성공.
+- 결과: **이제 `eas build --profile development`가 설정상 막힘 없이 실행 가능**(사용자가 eas login 후 실행). 에이전트는 클라우드/인증이 필요한 빌드 자체는 미실행.
+
 
 
