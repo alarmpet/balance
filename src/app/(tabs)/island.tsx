@@ -1,5 +1,6 @@
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router, type Href } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -22,6 +23,7 @@ import IslandModeTabs, { type IslandMode } from '../../components/island/IslandM
 import ThemeProbabilitySheet from '../../components/island/ThemeProbabilitySheet';
 import { analyticsService } from '../../services/analyticsService';
 import { useGamificationStore } from '../../store/gamificationStore';
+import { THEME } from '../../theme/styles';
 import type { GamificationSnapshot } from '../../services/gamificationService';
 import type { ThemeDrawResultRow } from '../../types/database.types';
 import GlassView from '../../components/common/GlassView';
@@ -316,6 +318,14 @@ export default function IslandScreen() {
 
   return (
     <>
+      {/* 석양→바다 그라데이션 배경 (gradients.islandSunset 토큰, 시안 #2) */}
+      <LinearGradient
+        colors={THEME.gradients.islandSunset}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <View style={styles.topBar}>
           <View>
@@ -909,7 +919,7 @@ const styles = StyleSheet.create({
     width: 54
   },
   container: {
-    backgroundColor: '#ecfeff',
+    backgroundColor: 'transparent',
     flex: 1
   },
   content: {

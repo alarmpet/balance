@@ -648,5 +648,12 @@
 - 남음: Edge Function 배포는 함수 시크릿(OPENAI_API_KEY) 설정이 선행돼야 해 사용자 핸드오프 유지.
 - Figma: MCP 스킬은 로드됐으나 실제 호출 도구(use_figma 등)가 세션에 노출되지 않아 디자인 자동화는 보류(Dev Mode MCP 서버 실행/파일 오픈 또는 재시작 필요).
 
+## 2026-06-04 11:40 KST - 디자인 계속: 섬 석양 그라데이션 배경 + Figma 연결 메모
+
+- Figma: 일차 MCP 연결 확인됨(whoami: 신향섭/petblo12, 단 플랜이 starter/View 시트 → Code Connect 불가, 쓰기/변수추출 제한 가능). 단, UI 디자인 방향은 이미 design-system 계획서(D1~D9)에 있으므로 Figma 없이도 코드 구현 진행.
+- 구현: `src/app/(tabs)/island.tsx` — 섬 화면 배경에 LinearGradient(gradients.islandSunset) 적용(시안 #2 석양→바다), container 투명화. 프리뷰에서 렌더 확인.
+- 보안: `figmatoken.txt`(사용자가 repo에 저장한 Figma PAT)를 .gitignore에 추가(커밋 방지). 토큰 내용은 읽지 않음. 현재 연결은 OAuth라 이 토큰은 불필요(Framelink용).
+- 검증: typecheck/expo export 통과, 프리뷰 부팅·그라데이션 확인.
+
 
 
