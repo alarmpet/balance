@@ -45,6 +45,7 @@
 
 - [[AI-Sessions/wiki/decisions/oauth-provider-selection|OAuth Provider Selection]] — 소셜 로그인 공급자 선정 및 우선순위
 - [[AI-Sessions/wiki/decisions/bipi-model-adoption|BIPI Model Adoption]] — 자체 4축 성향 모델(BIPI) 채택 의사결정
+- [[AI-Sessions/wiki/decisions/2026-06-04-trendy-self-discovery-direction|Trendy Self-Discovery Direction]] — 밸런스게임→자기발견→시각화→수집 통합 제품 방향 (2026-06-04 딥리서치)
 
 
 ## Design

@@ -490,6 +490,96 @@
 - 이유: 단순 플랫 스타일이었던 이전 UI/UX를 사용자가 업로드한 3D 시안의 깊이감과 네온 글로우, 정밀 타이포그래피에 100% 매칭시켜 프리미엄 밸류를 제공하기 위함.
 - 검증: `npm run typecheck` (통과), `npm run validate:wiki` (통과), `npm run validate:pet-assets` (통과).
 
+## 2026-06-04 03:55 KST - Phase 0 기반 토목공사 (코드 측) 착수 및 완료
+
+- 작업: 트렌디 자기발견 업그레이드 계획서 §6 Phase 0 중 코드/로컬에서 안전하게 가능한 항목 구현.
+- 범위:
+  - `supabase/migrations/202606040400_schema_migration_tracking.sql` (migration 적용 추적 테이블 `schema_migrations` 신규 + 기존 8개 버전 백필, comprehensive-review C3 대응)
+  - `src/components/feed/BalanceCard.tsx` (외부 Unsplash 이미지 로딩 실패 시 카테고리 톤 placeholder 폴백 + 200ms 페이드, research.md S1 완화)
+  - `scripts/migrate-feed-images-to-storage.mjs` (외부 이미지 → Supabase Storage 자체 호스팅 마이그레이션 도구 신규; dry-run으로 외부 이미지 57개 확인)
+  - `docs/2026-06-04-phase0-foundation-handoff.md` (Phase 0 완료/인수인계 문서; 라이브 적용 명령 포함)
+- 검증/확인:
+  - `schema.sql:1-4` 파괴적 DROP 차단 경고 이미 존재 → 추가 조치 불필요 확인.
+  - `handle_new_user`가 `NEW.email`을 참조하지 않아 이메일 없는 Kakao 사용자도 안전함을 코드로 확인.
+  - `npm run typecheck` 통과, `npm run validate:wiki` 통과.
+- 이유: 계획서 대전제("기능 추가보다 기반 안정화 우선")에 따라 출시 전 리스크(C3 migration 추적, S1 외부 이미지 의존)를 코드 측에서 먼저 제거.
+- 후속(사용자 실행 필요): Edge rate limit DB 적용+배포+스모크, 이미지 자체 호스팅 스크립트 실행, 모바일 딥링크 QA — 상세는 handoff 문서 참조.
+
+## 2026-06-04 04:20 KST - Phase 1 핵심 루프 구현 (희귀도 노출 · 펫 말풍선 · 오늘의 딜레마 테마)
+
+- 작업: 트렌디 자기발견 업그레이드 계획서 §6 Phase 1의 핵심 경험 3종을 클라이언트 측에서 구현(DB 스키마 변경 없이 MVP).
+- 범위:
+  - `src/utils/choiceEcho.ts` (희귀도 계산 추가: 같은 선택 비율을 사용자 표 포함해 산출, 표본<10이면 '개척자' 프레이밍. 5단계 tier(pioneer/unicorn/minority/even/majority)와 tier 기반 펫 말풍선 라인 생성)
+  - `src/components/feed/ChoiceEchoSheet.tsx` (tier 색상 기반 희귀도 배지 + 큰 퍼센트 + 펫 말풍선 버블 렌더)
+  - `src/app/(tabs)/index.tsx` (vote_submit 애널리틱스에 rarityTier/rarityPercent 추가 — 계획서 A/B #3 측정용; 오늘의 딜레마 테마 배너를 피드 헤더에 추가)
+  - `src/utils/dailyTheme.ts` (요일별 성향 축 매핑, BIPI 4축과 정렬, 신규)
+- 이유: 투표 후 감정/의미 보상을 강화하고('나도 몰랐던 나' 즉시 체감), 희귀도를 바이럴 훅으로 노출하며, 복귀 이유(오늘의 테마)를 제공하기 위함.
+- 톤 가드: 모든 카피는 비진단·비처벌 톤 유지(펫은 그립게 만들되 벌주지 않음).
+- 검증: `npm run typecheck` 통과, `npm run validate:wiki` 통과, `npm run validate:pet-assets` 통과.
+- 후속(권장): 펫 말풍선을 trait streak 기반으로 심화, 오늘의 딜레마 테마를 DB 큐레이션/이벤트로 확장, 희귀도를 공유 카드에도 노출.
+
+## 2026-06-04 04:55 KST - Phase 2 직관적 자기지도 구현 (섬 지형 · 별자리 · semantic zoom · 모순 발견)
+
+- 작업: 트렌디 자기발견 업그레이드 계획서 §6 Phase 2의 시각화 점진 공개와 모순 발견을 구현. 서버 의존 부분은 마이그레이션으로 핸드오프.
+- 범위(클라이언트):
+  - `src/components/insight/IslandTerrainView.tsx` (성향을 추상 그래프 대신 '섬 지형'으로 보여주는 직관 모드, 점수 비율로 지형 크기 성장, 1·2위 근접 시 '균형의 다리' 표현, 신규)
+  - `src/components/insight/ContradictionCard.tsx` (모순 발견을 '상황별 다른 나'로 긍정 프레이밍하는 비교 카드, 신규)
+  - `src/screens/InsightMapScreen.tsx` (탭 재구성: 발견/섬 지형/별자리 — 점진 공개. 기본 탭을 섬 지형으로, 발견 탭에 모순 카드, 별자리 탭에 전체 보기 리셋 추가)
+  - `src/store/insightMapStore.ts` (`focusOnNode` 액션 추가 — semantic zoom)
+  - `src/components/insight/InsightNodeDetailSheet.tsx` ('이 노드로 확대' 버튼으로 semantic zoom 진입)
+  - `src/services/insightMapService.ts`, `src/types/database.types.ts`, `src/data/guestInsightGraph.ts` (InsightContradiction 타입 + snapshot.contradictions 옵셔널 필드 + 파싱 + 게스트 샘플)
+- 범위(서버 핸드오프):
+  - `supabase/migrations/202606040500_trait_contradictions.sql` (카테고리별 BIPI 분리로 모순을 계산하는 `compute_user_trait_contradictions` RPC; 표본>=3, 격차>=35p, 상위 2개. 라이브 적용/검증은 사용자 몫 — handoff 문서 §2-5)
+- 이유: Obsidian 그래프를 그대로 모바일에 이식하면 복잡하므로, 섬 지형(직관)→별자리(추상) 점진 공개로 인지부하를 통제하고, '나도 몰랐던 나'의 핵심 aha인 모순 발견을 제공하기 위함.
+- 검증: `npm run typecheck` 통과, `npm run validate:wiki` 통과, `npm run validate:pet-assets` 통과. (실기기/프리뷰 시각 검증은 미실시)
+- 후속(사용자): `202606040500_trait_contradictions.sql` 적용 + `get_personality_insight_graph`에 contradictions 키 병합(handoff §2-5).
+
+## 2026-06-04 05:30 KST - Phase 3 소유욕 엔진 (내 성향이 만든 펫 서사) + 웹 빌드 검증
+
+- 작업: 트렌디 자기발견 업그레이드 계획서 §6 Phase 3의 핵심 차별점("수집을 자기발견의 보상으로 번역")을 클라이언트로 구현. 경제 잔여 항목은 핸드오프.
+- 범위(클라이언트):
+  - `src/components/island/PetOriginCard.tsx` (펫을 "내 성향이 만든, 세상에 단 하나뿐인 동반자"로 서사화. 상위 성향 2개 + 희귀도 배지 + 소유 프레이밍. 펫 미배정 시 수집 동기 CTA 상태, 신규)
+  - `src/app/(tabs)/island.tsx` (discover 모드에 PetOriginCard 통합: 오늘의 발견 ↔ 인사이트 지도 사이)
+- 범위(서버 핸드오프 — handoff §2-6): 천장(pity) 진행도 표시, 주간 챌린지 티켓, 시즌 한정+재편입, 중복→산호 가루. (기존 테마 가챠 확률/보장/중복 공시 UI는 이미 구현됨)
+- 검증:
+  - `npm run typecheck` 통과, `npm run build`(expo export) 성공 — 전체 번들 정상.
+  - 프리뷰(dist 정적 서빙, localhost:4321)에서 실제 구동 확인: Phase 1 오늘의 딜레마 배너(🎭 차분 vs 표현, 목요일), Phase 2 섬 지형(안정의 마을 + 균형의 다리)·발견 탭 모순 발견 카드(연애 80% vs 커리어 30% 표현), Phase 3 PetOriginCard(게스트 CTA 상태) 모두 정상 렌더, 콘솔 에러 0건.
+  - 한계: Choice Echo 희귀도 배지·펫 말풍선과 PetOriginCard의 펫 배정 서사 상태는 로그인+투표/펫배정이 필요해 시각 미확인(코드 경로는 빌드로 검증). 스크린샷은 RN-Web 애니메이션 루프로 타임아웃되어 DOM 텍스트 추출로 검증.
+- 이유: 일반 가챠앱과의 결정적 차별점인 "내 성향이 만든 펫"을 제품에 새겨, 소유욕과 자기발견을 결합하기 위함.
+
+## 2026-06-04 06:00 KST - Phase 3.5 정서·바이럴 (펫 일기 + 주간 리캡 + 텍스트 공유)
+
+- 작업: 트렌디 자기발견 업그레이드 계획서 §6 Phase 3.5의 데이터 스토리텔링/정서 채널을 클라이언트로 구현. 서버·네이티브 의존 항목은 핸드오프.
+- 범위(클라이언트):
+  - `src/utils/traitLabels.ts` (성향 키→라벨 공유 유틸, 중복 제거, 신규)
+  - `src/components/island/PetDiaryCard.tsx` (펫이 그날의 상위 성향+참여로 짧은 일기를 남김, 하루 단위 결정적, 비진단 톤, 신규)
+  - `src/components/island/WeeklyRecapCard.tsx` (Wrapped식 요약: 누적 선택·최상위 성향·연속 참여+펫 한마디. 무의존 텍스트 공유(RN Share/navigator.share). 데이터 없으면 미노출. 신규)
+  - `src/services/analyticsService.ts` (`share_card_generate`/`share_card_complete` 이벤트 추가 — 계획서 KPI)
+  - `src/app/(tabs)/island.tsx` (discover 모드에 PetDiaryCard·WeeklyRecapCard 통합)
+- 범위(핸드오프 — handoff §2-7): 정확한 주간 윈도우 집계, 펫 일기 서버 자동생성/보관(pet_diary_entries), 공유 이미지 export(view-shot/html2canvas), 시간여행(user_personality_snapshots 비교).
+- 검증:
+  - `npm run typecheck` 통과, `npm run build`(expo export) 성공.
+  - 프리뷰에서 PetDiaryCard 게스트 빈 상태("오늘은 아직 주인을 못 만났어…", 6월 4일) 정상 렌더 확인. WeeklyRecapCard는 게스트(데이터 0)에서 의도대로 미노출 — 로그인 데이터 시 표시.
+  - 한계: 로그인 데이터가 필요한 리캡 본문/공유 동작은 시각 미확인(코드 경로는 빌드로 검증).
+- 이유: "데이터를 돌려주면 자발적으로 공유한다"(Wrapped 공식)로 바이럴을 만들고, 펫 일기로 인사이트를 감성 채널로 전달하기 위함.
+
+## 2026-06-04 06:45 KST - 디자인 시스템 업그레이드 D9(토큰 파운데이션) + D2(골드 결과바)
+
+- 작업: 디자인 시스템 업그레이드 계획서(docs/2026-06-04-design-system-upgrade-plan.md)의 선행 토큰 작업과 첫 시그니처 컴포넌트 적용.
+- 범위:
+  - `src/theme/gradients.ts` (feedBokeh/islandSunset/insightNebula 그라데이션 토큰, 신규)
+  - `src/theme/styles.ts` (THEME에 gradients 연결 + glowByCluster(food/life/romance 네온), elevation(e1~e3), accentColors(gold), typography display/stat/badge 추가 — 모두 비파괴적)
+  - `src/components/feed/BalanceCard.tsx` (결과 바: 승리 측을 골드로 강조 — progressBarFillWin, percentLabelWin(흰색), votesInfoWin(앰버). 시안의 단일 트랙 골드 강조와 정합)
+- 검증: `npm run typecheck` 통과, `npm run build`(expo export) 성공, `validate:wiki`/`validate:pet-assets` 통과.
+- 한계: 결과 바는 투표(로그인) 후에만 노출되어 게스트 프리뷰로는 시각 미확인. 빌드/타입으로 검증.
+- 후속: D1(XP 헤더), D4(섬 듀얼 게이지/Gem 통화), D6(네온 클러스터 라벨+근거 콜아웃+Map View)로 토큰 적용 확대.
+
+## 2026-06-04 07:00 KST - 디자인 D1 (피드 XP/레벨 헤더 칩)
+
+- 작업: 디자인 계획서 D1. 피드 상단에 실제 레벨/XP 칩 추가(시안의 Level 헤더 정합).
+- 범위: `src/app/(tabs)/index.tsx` — useGamificationStore 연동(스냅샷 없으면 loadSnapshot), 헤더에 Lv.N + XP 미니 바(experience/level×100) + 표기 칩 렌더. 데이터 없으면 미노출.
+- 검증: `npm run typecheck` 통과, `npm run build` 성공. 프리뷰에서 게스트 "Lv.1 0/100" 헤더 칩 정상 렌더 확인.
+- 후속: D4(섬 듀얼 게이지/Gem), D6(네온 클러스터+콜아웃+Map View).
 
 
 
