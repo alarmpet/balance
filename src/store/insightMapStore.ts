@@ -18,6 +18,7 @@ type InsightMapState = {
   loadGraph: (focusNodeId?: string | null, depth?: number) => Promise<void>;
   loadCards: () => Promise<void>;
   selectNode: (nodeId: string | null) => void;
+  focusOnNode: (nodeId: string | null) => Promise<void>;
   setDepth: (depth: number) => Promise<void>;
   markCardRead: (insightId: string) => Promise<void>;
   clearError: () => void;
@@ -64,6 +65,12 @@ export const useInsightMapStore = create<InsightMapState>((set, get) => ({
 
   selectNode(nodeId) {
     set({ selectedNodeId: nodeId, focusNodeId: nodeId });
+  },
+
+  // semantic zoom: 선택한 노드를 중심으로 그래프를 다시 불러와 주변 연결만 확대한다.
+  async focusOnNode(nodeId) {
+    set({ selectedNodeId: null });
+    await get().loadGraph(nodeId, get().depth);
   },
 
   async setDepth(depth) {

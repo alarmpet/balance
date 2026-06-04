@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { guestInsightCards, guestInsightGraph } from '../data/guestInsightGraph';
 import { supabase } from '../lib/supabaseClient';
 import type {
+  InsightContradiction,
   InsightGraphEdge,
   InsightGraphEdgeKind,
   InsightGraphNode,
@@ -71,12 +72,32 @@ function normalizeInsightGraph(value: Json): InsightGraphSnapshot {
   const edges = Array.isArray(record.edges) ? record.edges.map(normalizeEdge).filter(Boolean) : [];
   const summary = normalizeSummary(record.summary);
   const meta = normalizeMeta(record.meta);
+  const contradictions = Array.isArray(record.contradictions)
+    ? record.contradictions.map(normalizeContradiction).filter(Boolean)
+    : [];
 
   return {
     nodes: nodes as InsightGraphNode[],
     edges: edges as InsightGraphEdge[],
     summary,
-    meta
+    meta,
+    contradictions: contradictions as InsightContradiction[]
+  };
+}
+
+function normalizeContradiction(value: Json): InsightContradiction | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const record = value as Record<string, Json | undefined>;
+  if (!record.id || !record.trait_label || !record.high_category || !record.low_category) return null;
+
+  return {
+    id: String(record.id),
+    trait_label: String(record.trait_label),
+    high_category: String(record.high_category),
+    high_percent: toNumber(record.high_percent, 0),
+    low_category: String(record.low_category),
+    low_percent: toNumber(record.low_percent, 0),
+    message: record.message ? String(record.message) : ''
   };
 }
 

@@ -6,6 +6,8 @@ import BalanceCard from '../../components/feed/BalanceCard';
 import ChoiceEchoSheet from '../../components/feed/ChoiceEchoSheet';
 import { useFeedStore } from '../../store/feedStore';
 import { generateChoiceEcho, type ChoiceEchoResult } from '../../utils/choiceEcho';
+import { getDailyTheme } from '../../utils/dailyTheme';
+import { useGamificationStore } from '../../store/gamificationStore';
 import { analyticsService } from '../../services/analyticsService';
 import type { FeedQuestion, OptionSide, ReactionType } from '../../services/questionService';
 import { THEME } from '../../theme/styles';
@@ -24,11 +26,27 @@ export default function FeedScreen() {
   const [isEchoVisible, setIsEchoVisible] = useState(false);
   const [echoData, setEchoData] = useState<ChoiceEchoResult | null>(null);
   const [particles, setParticles] = useState<Particle[]>([]);
+  const totalVotes = questions.reduce((sum, question) => sum + question.vote_count_a + question.vote_count_b, 0);
+  const votedCount = questions.filter((question) => question.userVote).length;
+  const dailyTheme = getDailyTheme();
+  const gamificationSnapshot = useGamificationStore((state) => state.snapshot);
+  const loadGamification = useGamificationStore((state) => state.loadSnapshot);
+  const level = gamificationSnapshot?.avatarState.level ?? null;
+  const xp = gamificationSnapshot?.avatarState.experience ?? 0;
+  // 다음 레벨까지의 간단한 XP 임계(레벨×100). 서버 곡선이 생기면 교체.
+  const xpGoal = level ? level * 100 : 0;
+  const xpRatio = xpGoal > 0 ? Math.max(0, Math.min(1, xp / xpGoal)) : 0;
 
   useEffect(() => {
     loadFeedQuestions();
     analyticsService.track('feed_impression');
   }, [loadFeedQuestions]);
+
+  useEffect(() => {
+    if (!gamificationSnapshot) {
+      void loadGamification();
+    }
+  }, [gamificationSnapshot, loadGamification]);
 
   const spawnParticles = useCallback((emoji: string, startX: number) => {
     const id = Math.random().toString();
@@ -109,7 +127,9 @@ export default function FeedScreen() {
     analyticsService.track('vote_submit', {
       questionId,
       category: question.category?.slug,
-      option
+      option,
+      rarityTier: result.rarityTier,
+      rarityPercent: result.rarityPercent
     });
   }, [questions, voteOnQuestion]);
 
@@ -160,6 +180,15 @@ export default function FeedScreen() {
             <Text style={{ color: '#0f766e', fontWeight: '900' }}>Balance </Text>
             <Text style={{ color: '#fb923c', fontWeight: '900' }}>Island</Text>
           </Text>
+          {level ? (
+            <View style={styles.levelChip}>
+              <Text style={styles.levelChipLabel}>Lv.{level}</Text>
+              <View style={styles.levelXpTrack}>
+                <View style={[styles.levelXpFill, { width: `${Math.round(xpRatio * 100)}%` }]} />
+              </View>
+              <Text style={styles.levelXpText}>{xp}/{xpGoal}</Text>
+            </View>
+          ) : null}
           <View style={styles.profileBadge}>
             <View style={styles.avatarPlaceholder}>
               <Ionicons name="person" size={14} color="rgba(255,255,255,0.7)" />
@@ -170,14 +199,23 @@ export default function FeedScreen() {
         {/* Glassmorphic Stats bar matching mockup */}
         <View style={styles.headerStats}>
           <View style={styles.statsItem}>
-            <Text style={styles.statsLabel}>Level 12</Text>
-            <Text style={styles.statsSub}>Cozy Life</Text>
+            <Text style={styles.statsLabel}>{questions.length}개 질문</Text>
+            <Text style={styles.statsSub}>오늘의 밸런스</Text>
           </View>
           <View style={styles.statsDivider} />
           <View style={styles.statsItem}>
-            <Text style={styles.statsLabel}>78 | 425</Text>
-            <Text style={styles.statsSub}>210° 40% 90%</Text>
+            <Text style={styles.statsLabel}>{totalVotes.toLocaleString('ko-KR')}표</Text>
+            <Text style={styles.statsSub}>{votedCount}개 선택 완료</Text>
           </View>
+        </View>
+
+        <View style={styles.themeBanner}>
+          <Text style={styles.themeEmoji}>{dailyTheme.emoji}</Text>
+          <View style={styles.themeTextArea}>
+            <Text style={styles.themeLabel}>{dailyTheme.label}</Text>
+            <Text style={styles.themeName}>{dailyTheme.name}</Text>
+          </View>
+          <Text style={styles.themeBlurb} numberOfLines={2}>{dailyTheme.blurb}</Text>
         </View>
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </View>
@@ -315,6 +353,39 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: -0.5
   },
+  levelChip: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    borderColor: 'rgba(255,255,255,0.6)',
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5
+  },
+  levelChipLabel: {
+    color: '#0f766e',
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  levelXpTrack: {
+    backgroundColor: 'rgba(15,23,42,0.1)',
+    borderRadius: 999,
+    height: 5,
+    overflow: 'hidden',
+    width: 48
+  },
+  levelXpFill: {
+    backgroundColor: '#fb923c',
+    borderRadius: 999,
+    height: '100%'
+  },
+  levelXpText: {
+    color: '#64748b',
+    fontSize: 9,
+    fontWeight: '800'
+  },
   profileBadge: {
     width: 32,
     height: 32,
@@ -349,6 +420,42 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 10,
     elevation: 2
+  },
+  themeBanner: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(251, 146, 60, 0.12)',
+    borderColor: 'rgba(251, 146, 60, 0.3)',
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12
+  },
+  themeEmoji: {
+    fontSize: 24
+  },
+  themeTextArea: {
+    gap: 1
+  },
+  themeLabel: {
+    color: '#c2410c',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.3
+  },
+  themeName: {
+    color: '#0f172a',
+    fontSize: 15,
+    fontWeight: '900'
+  },
+  themeBlurb: {
+    color: '#9a3412',
+    flex: 1,
+    fontSize: 11,
+    fontWeight: '700',
+    textAlign: 'right'
   },
   statsItem: {
     alignItems: 'center',

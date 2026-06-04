@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { FeedQuestion, OptionSide, ReactionType } from '../../services/questionService';
-import GlassView from '../common/GlassView';
 import { THEME } from '../../theme/styles';
+import GlassView from '../common/GlassView';
 
 type Props = {
   question: FeedQuestion;
@@ -14,7 +15,7 @@ type Props = {
 
 const LOCAL_FEED_IMAGES: Record<string, any> = {
   'fried-chicken': require('../../../assets/feed/fried-chicken.png'),
-  'shaved-ice': require('../../../assets/feed/shaved-ice.png'),
+  'shaved-ice': require('../../../assets/feed/shaved-ice.png')
 };
 
 function percent(count: number, total: number) {
@@ -30,27 +31,25 @@ function formatCount(count: number) {
 
 function getOptionImage(imageUrl: string | null, title: string, side: 'A' | 'B') {
   if (imageUrl) {
-    if (imageUrl.includes('fried-chicken') || imageUrl.includes('chicken') || imageUrl.includes('치킨')) {
+    const lowerUrl = imageUrl.toLowerCase();
+    if (lowerUrl.includes('fried-chicken') || lowerUrl.includes('chicken')) {
       return LOCAL_FEED_IMAGES['fried-chicken'];
     }
-    if (imageUrl.includes('shaved-ice') || imageUrl.includes('ice') || imageUrl.includes('빙수')) {
+    if (lowerUrl.includes('shaved-ice') || lowerUrl.includes('ice')) {
       return LOCAL_FEED_IMAGES['shaved-ice'];
     }
     return { uri: imageUrl };
   }
-  
-  // Keyword match fallbacks for mockup simulation
-  const lower = title.toLowerCase();
-  if (lower.includes('치킨') || lower.includes('chicken') || lower.includes('후라이드') || lower.includes('crispy')) {
+
+  const lowerTitle = title.toLowerCase();
+  if (lowerTitle.includes('chicken') || lowerTitle.includes('fried') || lowerTitle.includes('치킨')) {
     return LOCAL_FEED_IMAGES['fried-chicken'];
   }
-  if (lower.includes('빙수') || lower.includes('ice') || lower.includes('팥빙수') || lower.includes('shaved')) {
+  if (lowerTitle.includes('ice') || lowerTitle.includes('shaved') || lowerTitle.includes('빙수')) {
     return LOCAL_FEED_IMAGES['shaved-ice'];
   }
-  
-  // Generic fallback if empty, return based on side for beautiful mockup testing
-  if (side === 'A') return LOCAL_FEED_IMAGES['fried-chicken'];
-  return LOCAL_FEED_IMAGES['shaved-ice'];
+
+  return side === 'A' ? LOCAL_FEED_IMAGES['fried-chicken'] : LOCAL_FEED_IMAGES['shaved-ice'];
 }
 
 export default function BalanceCard({ question, onVote, onReaction, onOpenComments }: Props) {
@@ -58,26 +57,16 @@ export default function BalanceCard({ question, onVote, onReaction, onOpenCommen
   const aPercent = percent(question.vote_count_a, totalVotes);
   const bPercent = percent(question.vote_count_b, totalVotes);
   const hasVoted = Boolean(question.userVote);
-
-  // Mockup values for simulation if totalVotes is 0, to make it look premium
-  const votesA = totalVotes === 0 ? 14310 : question.vote_count_a;
-  const votesB = totalVotes === 0 ? 11690 : question.vote_count_b;
-  const simTotal = votesA + votesB;
-  const pctA = percent(votesA, simTotal);
-  const pctB = percent(votesB, simTotal);
+  const aWins = question.vote_count_a >= question.vote_count_b;
 
   return (
-    <GlassView 
-      style={styles.card}
-      intensity={20}
-      borderRadius={28}
-    >
+    <GlassView style={styles.card} intensity={20} borderRadius={28}>
       <View style={styles.header}>
         <View style={styles.headerText}>
           <Text style={styles.category}>{question.category?.name ?? '밸런스'}</Text>
           <Text style={styles.title}>{question.title}</Text>
         </View>
-        <Text style={styles.voteTotal}>{formatCount(totalVotes === 0 ? simTotal : totalVotes)}명 참여</Text>
+        <Text style={styles.voteTotal}>{formatCount(totalVotes)}명 참여</Text>
       </View>
 
       {question.description ? <Text style={styles.description}>{question.description}</Text> : null}
@@ -90,12 +79,9 @@ export default function BalanceCard({ question, onVote, onReaction, onOpenCommen
           imageUrl={question.option_a_image_url}
           selected={question.userVote === 'A'}
           disabled={hasVoted}
-          percentValue={pctA}
-          showResult={hasVoted}
           onPress={() => onVote(question.id, 'A')}
         />
 
-        {/* Central VS Line Divider */}
         <View style={styles.vsContainer} pointerEvents="none">
           <View style={styles.vsLine} />
           <View style={styles.vsCircle}>
@@ -111,45 +97,51 @@ export default function BalanceCard({ question, onVote, onReaction, onOpenCommen
           imageUrl={question.option_b_image_url}
           selected={question.userVote === 'B'}
           disabled={hasVoted}
-          percentValue={pctB}
-          showResult={hasVoted}
           onPress={() => onVote(question.id, 'B')}
         />
       </View>
 
-      {/* Progress Bar / Vote Button */}
       {hasVoted ? (
         <View style={styles.resultsWrapper}>
           <View style={styles.resultsHeaderRow}>
             <View style={styles.goldVsBadge}>
               <Text style={styles.goldVsText}>VS</Text>
             </View>
-            
+
             <View style={styles.progressBarTrack}>
-              <View style={[styles.progressBarFillA, { width: `${pctA}%` }]} />
-              <View style={[styles.progressBarFillB, { width: `${pctB}%` }]} />
-              
-              <Text style={styles.percentLabelA}>{pctA}%</Text>
-              <Text style={styles.percentLabelB}>{pctB}%</Text>
+              <View
+                style={[
+                  styles.progressBarFillA,
+                  { width: `${aPercent}%` },
+                  aWins ? styles.progressBarFillWin : null
+                ]}
+              />
+              <View
+                style={[
+                  styles.progressBarFillB,
+                  { width: `${bPercent}%` },
+                  !aWins ? styles.progressBarFillWin : null
+                ]}
+              />
+              <Text style={[styles.percentLabelA, aWins ? styles.percentLabelWin : null]}>{aPercent}%</Text>
+              <Text style={[styles.percentLabelB, !aWins ? styles.percentLabelWin : null]}>{bPercent}%</Text>
             </View>
           </View>
 
           <View style={styles.resultsInfoRow}>
-            <Text style={styles.votesInfoText}>{votesA.toLocaleString('ko-KR')} votes</Text>
-            <Text style={styles.votesInfoText}>{votesB.toLocaleString('ko-KR')} votes</Text>
+            <Text style={[styles.votesInfoText, aWins ? styles.votesInfoWin : null]}>
+              {question.vote_count_a.toLocaleString('ko-KR')}표
+            </Text>
+            <Text style={[styles.votesInfoText, !aWins ? styles.votesInfoWin : null]}>
+              {question.vote_count_b.toLocaleString('ko-KR')}표
+            </Text>
           </View>
         </View>
       ) : (
         <View style={styles.votePromptContainer}>
-          <Pressable 
-            style={styles.voteNowButton} 
-            onPress={() => {
-              // Automatically vote for Option A if user clicks "VOTE NOW" without selecting
-              onVote(question.id, 'A');
-            }}
-          >
-            <Text style={styles.voteNowButtonText}>VOTE NOW</Text>
-          </Pressable>
+          <View style={styles.voteNowButton}>
+            <Text style={styles.voteNowButtonText}>선택하면 결과가 열려요</Text>
+          </View>
         </View>
       )}
 
@@ -190,8 +182,6 @@ type OptionPanelProps = {
   imageUrl: string | null;
   selected: boolean;
   disabled: boolean;
-  percentValue: number;
-  showResult: boolean;
   onPress: () => void;
 };
 
@@ -205,6 +195,8 @@ function OptionPanel({
   onPress
 }: OptionPanelProps) {
   const optionImage = getOptionImage(imageUrl, title, side);
+  // 외부(예: Unsplash) 이미지 로딩 실패 시 카드가 깨지지 않도록 카테고리 톤 placeholder로 폴백한다.
+  const [imageFailed, setImageFailed] = useState(false);
 
   return (
     <Pressable
@@ -212,7 +204,7 @@ function OptionPanel({
       accessibilityLabel={`${side} 선택지 ${title}`}
       disabled={disabled}
       onPress={onPress}
-      style={{ flex: 1 }}
+      style={styles.optionPressable}
     >
       <GlassView
         style={[
@@ -225,12 +217,24 @@ function OptionPanel({
         backgroundColor={selected ? 'rgba(255, 255, 255, 0.7)' : 'rgba(255, 255, 255, 0.35)'}
       >
         <View style={styles.optionImageContainer}>
-          <Image source={optionImage} style={styles.optionImage} contentFit="cover" />
+          {imageFailed ? (
+            <View style={[styles.optionImage, styles.optionImageFallback]}>
+              <Ionicons name="image-outline" size={28} color="rgba(255,255,255,0.75)" />
+            </View>
+          ) : (
+            <Image
+              source={optionImage}
+              style={styles.optionImage}
+              contentFit="cover"
+              transition={200}
+              onError={() => setImageFailed(true)}
+            />
+          )}
         </View>
         <View style={styles.optionInfoArea}>
           <Text style={styles.optionTitle} numberOfLines={2}>{title}</Text>
           <Text style={styles.optionDescription} numberOfLines={1}>
-            {description || (side === 'A' ? 'Outfit, Semi-Bold, 18px' : 'Outfit, Semi-Bold, 18px')}
+            {description || '선택 후 내 성향 지도에 반영됩니다'}
           </Text>
         </View>
       </GlassView>
@@ -247,10 +251,7 @@ type ActionButtonProps = {
 
 function ActionButton({ icon, label, active, onPress }: ActionButtonProps) {
   return (
-    <Pressable 
-      onPress={onPress} 
-      style={[styles.action, active && styles.actionActive]}
-    >
+    <Pressable onPress={onPress} style={[styles.action, active && styles.actionActive]}>
       <Ionicons name={icon} size={16} color={active ? '#0f766e' : '#5f7f7a'} />
       <Text style={[styles.actionText, active && styles.actionTextActive]}>{label}</Text>
     </Pressable>
@@ -262,8 +263,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.45)',
     borderColor: 'rgba(255, 255, 255, 0.4)',
-    borderWidth: 1,
     borderRadius: 14,
+    borderWidth: 1,
     flex: 1,
     flexDirection: 'row',
     gap: 5,
@@ -298,73 +299,80 @@ const styles = StyleSheet.create({
     shadowColor: '#0f172a',
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.06,
-    shadowRadius: 20,
-    elevation: 4
+    shadowRadius: 20
   },
   category: {
     color: '#0f766e',
     fontSize: 12,
-    fontWeight: '900',
-    textTransform: 'uppercase'
+    fontWeight: '900'
   },
   description: {
     color: '#334155',
     fontSize: 14,
+    fontWeight: '500',
     lineHeight: 20,
-    marginTop: 8,
-    fontWeight: '500'
+    marginTop: 8
+  },
+  goldVsBadge: {
+    alignItems: 'center',
+    backgroundColor: '#fef3c7',
+    borderColor: '#fcd34d',
+    borderRadius: 16,
+    borderWidth: 1,
+    height: 32,
+    justifyContent: 'center',
+    width: 32
+  },
+  goldVsText: {
+    color: '#b45309',
+    fontSize: 11,
+    fontWeight: '900'
   },
   header: {
+    alignItems: 'flex-start',
     flexDirection: 'row',
     gap: 12,
-    justifyContent: 'space-between',
-    alignItems: 'flex-start'
+    justifyContent: 'space-between'
   },
   headerText: {
     flex: 1
   },
-  options: {
-    flexDirection: 'row',
-    gap: 14,
-    marginTop: 18,
-    position: 'relative',
-    alignItems: 'stretch'
-  },
   option: {
-    flex: 1,
+    borderColor: 'rgba(255, 255, 255, 0.45)',
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.45)',
-    padding: 6,
+    flex: 1,
+    justifyContent: 'space-between',
     minHeight: 230,
-    justifyContent: 'space-between'
+    padding: 6
+  },
+  optionImage: {
+    height: '100%',
+    width: '100%'
+  },
+  optionImageFallback: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    justifyContent: 'center'
+  },
+  optionImageContainer: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    borderRadius: 20,
+    height: 130,
+    overflow: 'hidden',
+    width: '100%'
+  },
+  optionInfoArea: {
+    paddingBottom: 8,
+    paddingHorizontal: 8,
+    paddingTop: 10
+  },
+  optionPressable: {
+    flex: 1
   },
   optionSelected: {
     borderColor: 'rgba(251, 146, 60, 0.8)',
-    borderWidth: 1.5,
-    shadowColor: '#fb923c',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8
-  },
-  optionUnselectedDisabled: {
-    opacity: 0.65
-  },
-  optionImageContainer: {
-    width: '100%',
-    height: 130,
-    borderRadius: 20,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.25)'
-  },
-  optionImage: {
-    width: '100%',
-    height: '100%'
-  },
-  optionInfoArea: {
-    paddingTop: 10,
-    paddingHorizontal: 8,
-    paddingBottom: 8
+    borderWidth: 1.5
   },
   optionTitle: {
     color: '#0f172a',
@@ -378,80 +386,35 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 3
   },
-  vsContainer: {
-    position: 'absolute',
-    left: '50%',
-    top: 0,
-    bottom: 0,
-    width: 32,
-    marginLeft: -16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10
+  optionUnselectedDisabled: {
+    opacity: 0.65
   },
-  vsLine: {
-    width: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
-    flex: 1
+  options: {
+    alignItems: 'stretch',
+    flexDirection: 'row',
+    gap: 14,
+    marginTop: 18,
+    position: 'relative'
   },
-  vsCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    borderColor: 'rgba(255, 255, 255, 0.8)',
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 2
+  percentLabelA: {
+    alignSelf: 'center',
+    color: '#0f172a',
+    fontSize: 12,
+    fontWeight: '900',
+    left: 14,
+    position: 'absolute'
   },
-  vsText: {
+  percentLabelB: {
+    alignSelf: 'center',
     color: '#475569',
-    fontSize: 10,
-    fontWeight: '900'
+    fontSize: 12,
+    fontWeight: '900',
+    position: 'absolute',
+    right: 14
   },
-  resultsWrapper: {
-    marginTop: 16
-  },
-  resultsHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8
-  },
-  goldVsBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#fef3c7',
-    borderColor: '#fcd34d',
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#d97706',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4
-  },
-  goldVsText: {
-    color: '#b45309',
-    fontSize: 11,
-    fontWeight: '900'
-  },
-  progressBarTrack: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 999,
-    height: 32,
-    flexDirection: 'row',
-    overflow: 'hidden',
-    position: 'relative',
-    borderColor: 'rgba(255, 255, 255, 0.35)',
-    borderWidth: 1
+  percentLabelWin: {
+    color: '#ffffff',
+    fontSize: 13
   },
   progressBarFillA: {
     backgroundColor: '#ffffff',
@@ -463,58 +426,35 @@ const styles = StyleSheet.create({
     height: '100%',
     opacity: 0.4
   },
-  percentLabelA: {
-    position: 'absolute',
-    left: 14,
-    alignSelf: 'center',
-    color: '#0f172a',
-    fontSize: 12,
-    fontWeight: '900'
+  progressBarFillWin: {
+    backgroundColor: THEME.accentColors.gold,
+    opacity: 1
   },
-  percentLabelB: {
-    position: 'absolute',
-    right: 14,
-    alignSelf: 'center',
-    color: '#475569',
-    fontSize: 12,
-    fontWeight: '900'
+  progressBarTrack: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.35)',
+    borderRadius: 999,
+    borderWidth: 1,
+    flex: 1,
+    flexDirection: 'row',
+    height: 32,
+    overflow: 'hidden',
+    position: 'relative'
+  },
+  resultsHeaderRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8
   },
   resultsInfoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginTop: 6,
     paddingLeft: 40,
-    paddingRight: 10,
-    marginTop: 6
+    paddingRight: 10
   },
-  votesInfoText: {
-    color: '#475569',
-    fontSize: 11,
-    fontWeight: '800'
-  },
-  votePromptContainer: {
-    marginTop: 18,
-    alignItems: 'center'
-  },
-  voteNowButton: {
-    backgroundColor: '#ffffff',
-    borderColor: 'rgba(255, 255, 255, 0.8)',
-    borderWidth: 1,
-    borderRadius: 999,
-    height: 40,
-    paddingHorizontal: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2
-  },
-  voteNowButtonText: {
-    color: '#0f172a',
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 0.5
+  resultsWrapper: {
+    marginTop: 16
   },
   title: {
     color: '#0f172a',
@@ -523,9 +463,69 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     marginTop: 2
   },
+  voteNowButton: {
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 40,
+    justifyContent: 'center',
+    paddingHorizontal: 24
+  },
+  voteNowButtonText: {
+    color: '#0f172a',
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  votePromptContainer: {
+    alignItems: 'center',
+    marginTop: 18
+  },
+  votesInfoText: {
+    color: '#475569',
+    fontSize: 11,
+    fontWeight: '800'
+  },
+  votesInfoWin: {
+    color: '#b45309',
+    fontWeight: '900'
+  },
   voteTotal: {
     color: '#475569',
     fontSize: 11,
     fontWeight: '800'
+  },
+  vsCircle: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    borderColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 14,
+    borderWidth: 1,
+    height: 28,
+    justifyContent: 'center',
+    marginVertical: 6,
+    width: 28
+  },
+  vsContainer: {
+    alignItems: 'center',
+    bottom: 0,
+    justifyContent: 'center',
+    left: '50%',
+    marginLeft: -16,
+    position: 'absolute',
+    top: 0,
+    width: 32,
+    zIndex: 10
+  },
+  vsLine: {
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    flex: 1,
+    width: 1
+  },
+  vsText: {
+    color: '#475569',
+    fontSize: 10,
+    fontWeight: '900'
   }
 });

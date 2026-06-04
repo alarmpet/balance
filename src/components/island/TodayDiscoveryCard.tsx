@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { useInsightMapStore } from '../../store/insightMapStore';
 import { analyticsService } from '../../services/analyticsService';
 
@@ -14,7 +14,7 @@ export default function TodayDiscoveryCard() {
 
   const handleOpenMap = () => {
     analyticsService.track('today_discovery_map_open');
-    router.push('/insight-map');
+    router.push('/insight' as Href);
   };
 
   if (isLoadingCards) {

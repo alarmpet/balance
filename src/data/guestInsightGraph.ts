@@ -126,7 +126,19 @@ export const guestInsightGraph: InsightGraphSnapshot = {
     depth: 1,
     node_limit: 40,
     window_days: 30
-  }
+  },
+  contradictions: [
+    {
+      id: 'guest-contradiction-1',
+      trait_label: '표현',
+      high_category: '연애',
+      high_percent: 80,
+      low_category: '커리어',
+      low_percent: 30,
+      message:
+        '연애에서는 솔직하게 표현하지만 일할 때는 신중한 편이에요. 일관성이 없는 게 아니라, 상황에 맞게 나를 조절하는 당신의 지혜예요.'
+    }
+  ]
 };
 
 export const guestInsightCards: UserInsightCardRow[] = [

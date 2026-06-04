@@ -32,6 +32,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="index" options={{ title: '피드', tabBarIcon: tabIcon('albums') }} />
       <Tabs.Screen name="create" options={{ title: '작성', tabBarIcon: tabIcon('create') }} />
       <Tabs.Screen name="island" options={{ title: '섬', tabBarIcon: tabIcon('leaf') }} />
+      <Tabs.Screen name="insight" options={{ title: '인사이트', tabBarIcon: tabIcon('sparkles') }} />
       <Tabs.Screen name="profile" options={{ title: '마이', tabBarIcon: tabIcon('person-circle') }} />
     </Tabs>
   );

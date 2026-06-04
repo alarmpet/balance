@@ -15,6 +15,9 @@ import {
 } from 'react-native';
 import { InsightMapPreview } from '../../components/insight/InsightMapPreview';
 import TodayDiscoveryCard from '../../components/island/TodayDiscoveryCard';
+import { PetOriginCard } from '../../components/island/PetOriginCard';
+import { PetDiaryCard } from '../../components/island/PetDiaryCard';
+import { WeeklyRecapCard } from '../../components/island/WeeklyRecapCard';
 import IslandModeTabs, { type IslandMode } from '../../components/island/IslandModeTabs';
 import ThemeProbabilitySheet from '../../components/island/ThemeProbabilitySheet';
 import { analyticsService } from '../../services/analyticsService';
@@ -260,6 +263,16 @@ export default function IslandScreen() {
 
   const islandTitle = useMemo(() => (snapshot ? getIslandTitle(snapshot.traits) : ''), [snapshot]);
   const topTraits = useMemo(() => (snapshot ? getTopTraits(snapshot.traits) : []), [snapshot]);
+  const heroSky = {
+    top: '#fb7185',
+    mid: '#38bdf8',
+    sun: '#fde68a',
+    text: '#ffffff',
+    subText: '#eff6ff',
+    badgeBg: 'rgba(255, 255, 255, 0.25)',
+    badgeText: '#ffffff',
+    cloudOpacity: 0.42
+  };
 
   if (error && !snapshot) {
     return (
@@ -334,11 +347,135 @@ export default function IslandScreen() {
           </View>
         ) : null}
 
+        <View style={styles.premiumIslandFrame}>
+          <GlassView style={styles.myIslandHeader} intensity={18} borderRadius={22}>
+            <View style={styles.myIslandRow}>
+              <View style={styles.logoBadgeContainer}>
+                <View style={styles.logoCircle}>
+                  <MaterialCommunityIcons name="island" size={14} color="#0f766e" />
+                </View>
+                <Text style={styles.logoBadgeText}>MY ISLAND</Text>
+              </View>
+              <View style={styles.myIslandStats}>
+                <View style={styles.myIslandStatItem}>
+                  <Text style={styles.myIslandStatLabel}>MOOD: {moodVal}%</Text>
+                  <View style={styles.miniTrack}>
+                    <View style={[styles.miniFill, { width: petMood, backgroundColor: '#10b981' }]} />
+                  </View>
+                  <Text style={styles.miniIcon}>🙂</Text>
+                </View>
+                <View style={styles.myIslandStatItem}>
+                  <Text style={styles.myIslandStatLabel}>ENERGY: {energyVal}%</Text>
+                  <View style={styles.miniTrack}>
+                    <View style={[styles.miniFill, { width: petEnergy, backgroundColor: '#f97316' }]} />
+                  </View>
+                  <Text style={styles.miniIcon}>⚡</Text>
+                </View>
+              </View>
+            </View>
+          </GlassView>
+
+          <View style={styles.statusRow}>
+            <GlassView style={styles.statusCard} intensity={15} borderRadius={20}>
+              <View style={styles.statusHeaderRow}>
+                <Ionicons name="paw" size={12} color="#10b981" style={{ marginRight: 4 }} />
+                <Text style={styles.statusCardLabel}>PET MOOD</Text>
+              </View>
+              <Text style={styles.statusCardValue}>{moodVal >= 70 ? 'VERY HAPPY' : 'RESTING'}</Text>
+              <View style={styles.statusTrack}>
+                <View style={[styles.statusFill, { width: petMood, backgroundColor: '#10b981' }]} />
+              </View>
+              <Text style={styles.statusProgressText}>{moodVal} / 100</Text>
+            </GlassView>
+
+            <GlassView style={styles.statusCard} intensity={15} borderRadius={20}>
+              <View style={styles.statusHeaderRow}>
+                <Ionicons name="flash" size={12} color="#f97316" style={{ marginRight: 4 }} />
+                <Text style={styles.statusCardLabel}>ENERGY LEVEL</Text>
+              </View>
+              <Text style={styles.statusCardValue}>{energyVal >= 70 ? 'READY FOR ADVENTURE' : 'NEEDS CARE'}</Text>
+              <View style={styles.statusTrack}>
+                <View style={[styles.statusFill, { width: petEnergy, backgroundColor: '#f97316' }]} />
+              </View>
+              <Text style={styles.statusProgressText}>{energyVal} / 100</Text>
+            </GlassView>
+          </View>
+
+          <View style={[styles.cozyHero, styles.premiumCozyHero, { borderColor: heroSky.badgeBg, backgroundColor: heroSky.top }]}>
+            <View style={[styles.sky, { backgroundColor: heroSky.top }]}>
+              <View style={[styles.skyBand, styles.premiumSkyBand, { backgroundColor: heroSky.mid }]} />
+              <View style={[styles.sun, styles.premiumSun, { backgroundColor: heroSky.sun }]} />
+              <View style={[styles.cloudSmall, styles.premiumCloudSmall, { opacity: heroSky.cloudOpacity }]} />
+              <View style={[styles.cloudLarge, styles.premiumCloudLarge, { opacity: heroSky.cloudOpacity }]} />
+            </View>
+
+            <Animated.View
+              style={[
+                styles.cozyIslandBase,
+                styles.premiumIslandBase,
+                {
+                  transform: [{
+                    translateY: heartAnimY.interpolate({
+                      inputRange: [-55, 0],
+                      outputRange: [-8, 0]
+                    })
+                  }]
+                }
+              ]}
+            >
+              <Image source={LOCAL_PET_ISLAND} style={styles.premiumIslandImage} contentFit="cover" />
+              <Animated.View
+                style={[
+                  styles.floatingHearts,
+                  {
+                    opacity: heartOpacity,
+                    transform: [{ translateY: heartAnimY }]
+                  }
+                ]}
+              >
+                <Text style={styles.floatingHeartText}>💕</Text>
+              </Animated.View>
+            </Animated.View>
+
+            <View style={styles.premiumHeroCopy}>
+              <Text style={[styles.cozyLevelBadge, styles.premiumLevelBadge, { backgroundColor: heroSky.badgeBg, color: heroSky.badgeText, borderColor: heroSky.badgeBg }]}>
+                섬 Lv.{snapshot.island.island_level}
+              </Text>
+              <Text style={[styles.title, styles.premiumHeroTitle, { color: heroSky.text }]}>{islandTitle}</Text>
+              <Text style={[styles.description, styles.premiumHeroDescription, { color: heroSky.subText }]}>
+                지금까지 {snapshot.profile.total_participation_count}개의 선택이 이 섬의 성격을 만들었어요.
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.currencyRow}>
+            <GlassView style={styles.currencyCard} intensity={15} borderRadius={18}>
+              <View style={styles.currencyIconWrapper}>
+                <Image source={LOCAL_SHELL_ICON} style={{ width: 26, height: 26 }} contentFit="contain" />
+              </View>
+              <View style={styles.currencyInfo}>
+                <Text style={styles.currencyLabel}>SHELL CURRENCY</Text>
+                <Text style={styles.currencyValue}>{shellBalance}</Text>
+              </View>
+            </GlassView>
+
+            <GlassView style={styles.currencyCard} intensity={15} borderRadius={18}>
+              <View style={styles.currencyIconWrapper}>
+                <Image source={LOCAL_GEM_CHEST_ICON} style={{ width: 26, height: 26 }} contentFit="contain" />
+              </View>
+              <View style={styles.currencyInfo}>
+                <Text style={styles.currencyLabel}>TREASURE CHEST</Text>
+                <Text style={styles.currencyValue}>준비 중</Text>
+              </View>
+            </GlassView>
+          </View>
+        </View>
+
         <IslandModeTabs activeMode={activeMode} onChangeMode={setActiveMode} />
 
         {activeMode === 'discover' && (
           <View style={styles.modeContainer}>
-            <View style={[styles.hero, { borderColor: skyPhase.badgeBg }]}>
+            <View style={[styles.hero, { borderColor: skyPhase.badgeBg, backgroundColor: skyPhase.top }]}>
               <View style={[styles.sky, { backgroundColor: skyPhase.top }]}>
                 <View style={[styles.skyBand, { backgroundColor: skyPhase.mid }]} />
                 <View style={[styles.sun, { backgroundColor: skyPhase.sun }]} />
@@ -368,7 +505,13 @@ export default function IslandScreen() {
 
             <TodayDiscoveryCard />
 
-            <InsightMapPreview snapshot={snapshot} onOpen={() => router.push('/insight-map')} />
+            <PetOriginCard snapshot={snapshot} />
+
+            <PetDiaryCard snapshot={snapshot} />
+
+            <WeeklyRecapCard snapshot={snapshot} />
+
+            <InsightMapPreview snapshot={snapshot} onOpen={() => router.push('/insight' as Href)} />
 
             <View style={styles.traitPanel}>
               <View style={styles.panelHeader}>
@@ -429,7 +572,7 @@ export default function IslandScreen() {
               )}
             </View>
 
-            <InsightMapPreview snapshot={snapshot} onOpen={() => router.push('/insight-map')} />
+            <InsightMapPreview snapshot={snapshot} onOpen={() => router.push('/insight' as Href)} />
           </View>
         )}
 
@@ -491,7 +634,7 @@ export default function IslandScreen() {
             </View>
 
             {/* 3. Sunset Cozy Island (Hero representation) with floating animation */}
-            <View style={[styles.cozyHero, { borderColor: skyPhase.badgeBg }]}>
+            <View style={[styles.cozyHero, { borderColor: skyPhase.badgeBg, backgroundColor: skyPhase.top }]}>
               <View style={[styles.sky, { backgroundColor: skyPhase.top }]}>
                 <View style={[styles.skyBand, { backgroundColor: skyPhase.mid }]} />
                 <View style={[styles.sun, { backgroundColor: skyPhase.sun }]} />
@@ -550,7 +693,7 @@ export default function IslandScreen() {
                 </View>
                 <View style={styles.currencyInfo}>
                   <Text style={styles.currencyLabel}>TREASURE CHEST</Text>
-                  <Text style={styles.currencyValue}>3 Gems</Text>
+                  <Text style={styles.currencyValue}>준비 중</Text>
                 </View>
               </GlassView>
             </View>
@@ -856,10 +999,10 @@ const styles = StyleSheet.create({
   },
   hero: {
     alignItems: 'center',
-    backgroundColor: '#ffffff',
     borderColor: '#bae6fd',
     borderRadius: 28,
     borderWidth: 1,
+    display: 'none',
     marginTop: 20,
     overflow: 'hidden',
     padding: 24
@@ -1168,6 +1311,24 @@ const styles = StyleSheet.create({
   modeContainer: {
     width: '100%'
   },
+  miniIcon: {
+    fontSize: 10
+  },
+  premiumIslandFrame: {
+    alignSelf: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    borderColor: 'rgba(255, 255, 255, 0.55)',
+    borderRadius: 34,
+    borderWidth: 1,
+    marginTop: 18,
+    maxWidth: 460,
+    padding: 14,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.12,
+    shadowRadius: 30,
+    width: '100%'
+  },
   probabilityLink: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -1302,8 +1463,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ffffff',
     position: 'relative'
+  },
+  premiumCozyHero: {
+    height: 360,
+    marginTop: 14
   },
   cozyIslandBase: {
     alignItems: 'center',
@@ -1313,15 +1477,33 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 160
   },
+  premiumIslandBase: {
+    bottom: 0,
+    height: '100%',
+    left: 0,
+    marginTop: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    zIndex: 2
+  },
   cozyIslandImage: {
     width: 220,
     height: 160
+  },
+  premiumIslandImage: {
+    height: '100%',
+    opacity: 0.98,
+    width: '100%'
   },
   floatingHearts: {
     position: 'absolute',
     top: -10,
     alignSelf: 'center',
     zIndex: 99
+  },
+  floatingHeartText: {
+    fontSize: 28
   },
   cozyLevelBadge: {
     backgroundColor: '#fef3c7',
@@ -1335,6 +1517,51 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     position: 'absolute',
     bottom: 12
+  },
+  premiumHeroCopy: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.18)',
+    bottom: 0,
+    left: 22,
+    paddingBottom: 18,
+    paddingTop: 54,
+    position: 'absolute',
+    right: 22,
+    zIndex: 3
+  },
+  premiumHeroDescription: {
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 4
+  },
+  premiumHeroTitle: {
+    fontSize: 23,
+    lineHeight: 29,
+    marginTop: 8
+  },
+  premiumLevelBadge: {
+    bottom: 0,
+    position: 'relative'
+  },
+  premiumSkyBand: {
+    height: 128,
+    opacity: 0.58
+  },
+  premiumSun: {
+    height: 72,
+    left: 28,
+    top: 180,
+    width: 72
+  },
+  premiumCloudLarge: {
+    right: 36,
+    top: 52,
+    width: 108
+  },
+  premiumCloudSmall: {
+    left: 34,
+    top: 70,
+    width: 72
   },
   currencyRow: {
     flexDirection: 'row',

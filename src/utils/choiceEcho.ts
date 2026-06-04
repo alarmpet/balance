@@ -1,12 +1,89 @@
 import type { FeedQuestion, OptionSide } from '../services/questionService';
 import { getCategoryBySlug } from '../constants/categories';
 
+export type RarityTier = 'pioneer' | 'unicorn' | 'minority' | 'even' | 'majority';
+
 export type ChoiceEchoResult = {
   text: string;
   categoryName: string;
   categoryColor: string;
   optionTitle: string;
+  // 희귀도(바이럴 훅): 같은 선택을 한 사람의 비율. 표본이 적으면 percent는 null.
+  rarityPercent: number | null;
+  rarityTier: RarityTier;
+  rarityHeadline: string;
+  rarityFlavor: string;
+  // 펫 말풍선 반응(가벼운 교감). 진단형/처벌형 표현은 사용하지 않는다.
+  petLine: string;
 };
+
+// 표본이 이보다 적으면 비율이 왜곡되므로 '개척자' 프레이밍으로 전환한다.
+const MIN_SAMPLE_FOR_RARITY = 10;
+
+function resolveRarity(
+  question: FeedQuestion,
+  side: OptionSide
+): Pick<ChoiceEchoResult, 'rarityPercent' | 'rarityTier' | 'rarityHeadline' | 'rarityFlavor'> {
+  // 사용자가 방금 던진 표를 포함해서 계산한다(낙관적 반영).
+  const chosen = (side === 'A' ? question.vote_count_a : question.vote_count_b) + 1;
+  const total = question.vote_count_a + question.vote_count_b + 1;
+
+  if (total < MIN_SAMPLE_FOR_RARITY) {
+    const others = total - 1;
+    return {
+      rarityPercent: null,
+      rarityTier: 'pioneer',
+      rarityHeadline: others <= 0 ? '첫 번째 선택' : `아직 ${others}명만 답한 질문`,
+      rarityFlavor: '당신은 이 질문의 개척자예요 🧭'
+    };
+  }
+
+  const percent = Math.round((chosen / total) * 100);
+
+  let tier: RarityTier;
+  let flavor: string;
+  if (percent <= 15) {
+    tier = 'unicorn';
+    flavor = '아주 희귀한 선택이에요 🦄';
+  } else if (percent <= 35) {
+    tier = 'minority';
+    flavor = '소수파의 취향이네요 ✨';
+  } else if (percent <= 65) {
+    tier = 'even';
+    flavor = '의견이 팽팽하게 갈렸어요 ⚖️';
+  } else {
+    tier = 'majority';
+    flavor = '많은 사람과 통하는 선택이에요 🤝';
+  }
+
+  return {
+    rarityPercent: percent,
+    rarityTier: tier,
+    rarityHeadline: `같은 선택을 한 사람 ${percent}%`,
+    rarityFlavor: flavor
+  };
+}
+
+function resolvePetLine(categorySlug: string, tier: RarityTier, optionTitle: string): string {
+  if (tier === 'pioneer') {
+    return '오~ 아무도 안 간 길을 먼저 가네! 두근거려 🐾';
+  }
+  if (tier === 'unicorn') {
+    return `'${optionTitle}'? 너 진짜 특별한 취향이다! 나 신났어 🐾`;
+  }
+  if (tier === 'minority') {
+    return '소신 있는 선택, 나는 그런 네가 좋더라 🐾';
+  }
+
+  const byCategory: Record<string, string> = {
+    food: '오늘 입맛 취향이 한 스푼 더 쌓였어! 🐾',
+    life: '우리 섬 리듬이 조금 더 또렷해지는 기분이야 🐾',
+    romance: '마음의 결이 살짝 보였어. 흥미로운걸? 🐾',
+    career: '일에서의 너다운 방식이 그려지고 있어 🐾',
+    culture: '취향의 색깔이 한 칸 더 칠해졌어 🐾'
+  };
+  return byCategory[categorySlug] ?? '방금 선택, 네 지도에 잘 담아뒀어 🐾';
+}
 
 export function generateChoiceEcho(question: FeedQuestion, side: OptionSide): ChoiceEchoResult {
   const categoryInfo = getCategoryBySlug(question.category?.slug);
@@ -52,10 +129,15 @@ export function generateChoiceEcho(question: FeedQuestion, side: OptionSide): Ch
   const footnote = '몇 번 더 고르면 섬에서 더 선명한 흐름으로 보여줄게요.';
   const text = `${mainComment}\n\n${footnote}`;
 
+  const rarity = resolveRarity(question, side);
+  const petLine = resolvePetLine(categorySlug, rarity.rarityTier, optionTitle);
+
   return {
     text,
     categoryName: categoryInfo.name,
     categoryColor: categoryInfo.color,
-    optionTitle
+    optionTitle,
+    ...rarity,
+    petLine
   };
 }

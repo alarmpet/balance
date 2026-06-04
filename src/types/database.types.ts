@@ -423,6 +423,18 @@ export type InsightGraphEdge = {
   label: string | null;
 };
 
+// 모순 발견(상황별 다른 나): 같은 성향 축이 카테고리별로 다르게 나타나는 경우를
+// 긍정적으로 표현한다. 카테고리별 BIPI 분리 계산 결과(서버 RPC)에서 채워진다.
+export type InsightContradiction = {
+  id: string;
+  trait_label: string; // 예: "표현"
+  high_category: string; // 높게 나타난 카테고리 표시명 (예: "연애")
+  high_percent: number; // 0-100
+  low_category: string; // 낮게 나타난 카테고리 표시명 (예: "커리어")
+  low_percent: number; // 0-100
+  message: string; // 비진단·긍정 프레이밍 문구
+};
+
 export type InsightGraphSnapshot = {
   nodes: InsightGraphNode[];
   edges: InsightGraphEdge[];
@@ -437,6 +449,8 @@ export type InsightGraphSnapshot = {
     node_limit: number;
     window_days: number;
   };
+  // 서버가 아직 제공하지 않으면 빈 배열(클라이언트는 비어 있어도 안전).
+  contradictions: InsightContradiction[];
 };
 
 export type FeedQuestionRpcRow = {

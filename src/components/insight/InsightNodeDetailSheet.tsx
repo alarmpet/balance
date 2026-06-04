@@ -5,9 +5,11 @@ import type { InsightGraphNode } from '../../types/database.types';
 type InsightNodeDetailSheetProps = {
   node: InsightGraphNode | null;
   onClose: () => void;
+  onFocus?: (nodeId: string) => void;
 };
 
-export function InsightNodeDetailSheet({ node, onClose }: InsightNodeDetailSheetProps) {
+export function InsightNodeDetailSheet({ node, onClose, onFocus }: InsightNodeDetailSheetProps) {
+  const canFocus = Boolean(node && onFocus && (node.kind === 'trait' || node.kind === 'category'));
   return (
     <Modal visible={Boolean(node)} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.backdrop}>
@@ -30,6 +32,12 @@ export function InsightNodeDetailSheet({ node, onClose }: InsightNodeDetailSheet
             <Text style={styles.scoreLabel}>지도 점수</Text>
             <Text style={styles.scoreValue}>{Math.round((node?.score ?? 0) * 10) / 10}</Text>
           </View>
+          {canFocus && node ? (
+            <Pressable style={styles.focusButton} onPress={() => onFocus?.(node.id)}>
+              <MaterialCommunityIcons name="magnify-plus-outline" size={18} color="#ffffff" />
+              <Text style={styles.focusButtonText}>이 노드로 확대해서 보기</Text>
+            </Pressable>
+          ) : null}
         </View>
       </View>
     </Modal>
@@ -80,6 +88,21 @@ const styles = StyleSheet.create({
     height: 38,
     justifyContent: 'center',
     width: 38
+  },
+  focusButton: {
+    alignItems: 'center',
+    backgroundColor: '#0ea5e9',
+    borderRadius: 16,
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'center',
+    marginTop: 12,
+    minHeight: 50
+  },
+  focusButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '900'
   },
   handle: {
     alignSelf: 'center',

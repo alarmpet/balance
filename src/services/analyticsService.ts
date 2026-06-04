@@ -9,6 +9,8 @@ export type AnalyticsEventName =
   | 'theme_draw_probability_open'
   | 'theme_draw_submit'
   | 'island_mode_change'
+  | 'share_card_generate'
+  | 'share_card_complete'
   | 'day_n_return';
 
 export type AnalyticsPayload = Record<string, string | number | boolean | null | undefined>;

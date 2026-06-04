@@ -1,7 +1,6 @@
 import { memo, useMemo, useState } from 'react';
-// @ts-ignore
-import Svg, { Circle, G, Line, Text as SvgText, Defs, Filter, FeGaussianBlur, FeMerge, FeMergeNode, Path, Image as SvgImage } from 'react-native-svg';
-import { StyleSheet, Text, View, Dimensions } from 'react-native';
+import Svg, { Circle, G, Line, Text as SvgText, Path } from 'react-native-svg';
+import { StyleSheet, Text, View, Dimensions, Platform } from 'react-native';
 import { hierarchy, tree } from 'd3-hierarchy';
 import type { InsightGraphEdge, InsightGraphNode, InsightGraphSnapshot } from '../../types/database.types';
 import GlassView from '../common/GlassView';
@@ -31,10 +30,10 @@ const CENTER_Y = HEIGHT / 2;
 
 // Constellation label coordinates for background visual effect
 const CONSTELLATIONS = [
-  { name: 'Orion', x: 50, y: 70 },
-  { name: 'Draco', x: 230, y: 65 },
-  { name: 'Orion', x: 60, y: 290 },
-  { name: 'Ursa Major', x: 270, y: 280 }
+  { name: '취향자리', x: 50, y: 70 },
+  { name: '균형자리', x: 230, y: 65 },
+  { name: '감각자리', x: 60, y: 290 },
+  { name: '연결자리', x: 270, y: 280 }
 ];
 
 // Star background positions
@@ -94,13 +93,13 @@ function getNodeColor(label: string, kind: string): string {
 
 function getTooltipContent(node: PositionedNode) {
   const label = node.label;
-  const isPulsing = node.size > 25 ? ' (Pulsing)' : '';
+  const isPulsing = node.size > 25 ? ' (강하게 연결됨)' : '';
   
   if (node.kind === 'pet') {
     return {
       title: `${label}${isPulsing}`,
       desc: '나의 자아 성찰 은하의 중심핵입니다. 모든 성향들이 이 곳으로 수렴됩니다.',
-      flow: 'Flow: Infinite'
+      flow: '연결 흐름: 중심'
     };
   }
 
@@ -108,7 +107,7 @@ function getTooltipContent(node: PositionedNode) {
     return {
       title: `${label}${isPulsing}`,
       desc: '식습관 및 건강 분석 노드. 답변을 통해 활성화된 나의 영양 가치관입니다.',
-      flow: 'Flow: Strong'
+      flow: '연결 흐름: 강함'
     };
   }
 
@@ -116,14 +115,14 @@ function getTooltipContent(node: PositionedNode) {
     return {
       title: `${label}${isPulsing}`,
       desc: '로맨스 및 인간관계 가치관 노드. 타인과의 감정 소통 방식을 대변합니다.',
-      flow: 'Flow: High'
+      flow: '연결 흐름: 높음'
     };
   }
 
   return {
     title: `${label}${isPulsing}`,
     desc: '라이프스타일과 웰니스 가치관 노드. 일상의 균형과 신체 활동을 결정짓습니다.',
-    flow: 'Flow: Balanced'
+    flow: '연결 흐름: 균형'
   };
 }
 
@@ -136,7 +135,7 @@ export function InsightGraphCanvas({ snapshot, selectedNodeId, onSelectNode }: I
   }, [selectedNodeId, layout.nodesById]);
 
   const profile = useAuthStore((state) => state.profile);
-  const universeName = profile ? (profile.nickname || 'Islander') : 'Guest';
+  const universeName = profile ? (profile.nickname || '나') : '나';
 
   return (
     <View style={styles.frame}>
@@ -147,35 +146,11 @@ export function InsightGraphCanvas({ snapshot, selectedNodeId, onSelectNode }: I
 
       {/* Header Info Overlay */}
       <View style={styles.canvasHeader} pointerEvents="none">
-        <Text style={styles.canvasTitle}>Your Starry Mind</Text>
-        <Text style={styles.canvasSubtitle}>Neon white/connections connected</Text>
+        <Text style={styles.canvasTitle}>나의 성향 우주</Text>
+        <Text style={styles.canvasSubtitle}>선택들이 만든 가치 지도</Text>
       </View>
 
       <Svg width="100%" height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} accessibilityLabel={snapshot.summary.title}>
-        <Defs>
-          <Filter id="glowOrange" x="-40%" y="-40%" width="180%" height="180%">
-            <FeGaussianBlur stdDeviation="8" result="blur" />
-            <FeMerge>
-              <FeMergeNode in="blur" />
-              <FeMergeNode in="SourceGraphic" />
-            </FeMerge>
-          </Filter>
-          <Filter id="glowCyan" x="-40%" y="-40%" width="180%" height="180%">
-            <FeGaussianBlur stdDeviation="8" result="blur" />
-            <FeMerge>
-              <FeMergeNode in="blur" />
-              <FeMergeNode in="SourceGraphic" />
-            </FeMerge>
-          </Filter>
-          <Filter id="glowPink" x="-40%" y="-40%" width="180%" height="180%">
-            <FeGaussianBlur stdDeviation="8" result="blur" />
-            <FeMerge>
-              <FeMergeNode in="blur" />
-              <FeMergeNode in="SourceGraphic" />
-            </FeMerge>
-          </Filter>
-        </Defs>
-
         {/* Faint Stars Background */}
         {BG_STARS.map((star, i) => (
           <Circle key={`star-${i}`} cx={star.x} cy={star.y} r={star.r} fill="#ffffff" opacity={0.35} />
@@ -186,8 +161,6 @@ export function InsightGraphCanvas({ snapshot, selectedNodeId, onSelectNode }: I
           d="M275,30 A14,14 0 0,0 293,48 A12,12 0 1,1 275,30" 
           fill="#f8fafc" 
           opacity={0.8} 
-          // @ts-ignore
-          filter="url(#glowCyan)"
         />
 
         {/* Background Constellation Texts */}
@@ -326,17 +299,16 @@ const GraphNode = memo(function GraphNode({
   onSelectNode: (nodeId: string | null) => void;
 }) {
   const radius = isCenter ? 26 : Math.max(10, Math.min(22, node.size / 2));
-  
-  // Apply neon filter
-  let filterId = 'glowCyan';
-  if (nodeColor === '#f97316') {
-    filterId = 'glowOrange';
-  } else if (nodeColor === '#ec4899') {
-    filterId = 'glowPink';
-  }
+
+  // On web, use onClick to avoid react-native-svg's SvgTouchableMixin
+  // which injects unsupported responder props into the DOM
+  const pressHandler = () => onSelectNode(selected ? null : node.id);
+  const pressProps: any = Platform.OS === 'web'
+    ? { onClick: pressHandler }
+    : { onPress: pressHandler };
 
   return (
-    <G onPress={() => onSelectNode(selected ? null : node.id)}>
+    <G {...pressProps}>
       {/* Glow outer ring */}
       <Circle
         cx={node.x}
@@ -346,8 +318,6 @@ const GraphNode = memo(function GraphNode({
         stroke={nodeColor}
         strokeWidth={selected ? 3.5 : 1.5}
         opacity={selected ? 0.95 : 0.55}
-        // @ts-ignore
-        filter={`url(#${filterId})`}
       />
       
       {/* Inner Node Core */}
@@ -377,7 +347,7 @@ const GraphNode = memo(function GraphNode({
         fontWeight="800"
         textAnchor="middle"
       >
-        {isCenter ? `${universeName}'s Universe` : shortenLabel(node.label)}
+        {isCenter ? `${universeName}의 우주` : shortenLabel(node.label)}
       </SvgText>
     </G>
   );

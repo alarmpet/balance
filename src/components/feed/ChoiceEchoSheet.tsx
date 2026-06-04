@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import type { ChoiceEchoResult } from '../../utils/choiceEcho';
 import { analyticsService } from '../../services/analyticsService';
 import { THEME } from '../../theme/styles';
@@ -11,8 +11,18 @@ type ChoiceEchoSheetProps = {
   echoData: ChoiceEchoResult | null;
 };
 
+const RARITY_COLORS: Record<string, string> = {
+  pioneer: '#6366f1',
+  unicorn: '#a855f7',
+  minority: '#0ea5e9',
+  even: '#f59e0b',
+  majority: '#10b981'
+};
+
 export default function ChoiceEchoSheet({ visible, onClose, echoData }: ChoiceEchoSheetProps) {
   if (!echoData) return null;
+
+  const rarityColor = RARITY_COLORS[echoData.rarityTier] ?? '#0f766e';
 
   const handleOpenMap = () => {
     analyticsService.track('choice_echo_map_open', {
@@ -20,7 +30,7 @@ export default function ChoiceEchoSheet({ visible, onClose, echoData }: ChoiceEc
       option: echoData.optionTitle
     });
     onClose();
-    router.push('/insight-map');
+    router.push('/insight' as Href);
   };
 
   return (
@@ -48,6 +58,21 @@ export default function ChoiceEchoSheet({ visible, onClose, echoData }: ChoiceEc
             <View style={styles.choiceBox}>
               <Text style={styles.choiceLabel}>선택한 답변</Text>
               <Text style={styles.choiceTitle}>"{echoData.optionTitle}"</Text>
+            </View>
+
+            <View style={[styles.rarityBox, { borderColor: rarityColor + '55', backgroundColor: rarityColor + '14' }]}>
+              {echoData.rarityPercent !== null && (
+                <Text style={[styles.rarityPercent, { color: rarityColor }]}>{echoData.rarityPercent}%</Text>
+              )}
+              <View style={styles.rarityTextArea}>
+                <Text style={[styles.rarityHeadline, { color: rarityColor }]}>{echoData.rarityHeadline}</Text>
+                <Text style={styles.rarityFlavor}>{echoData.rarityFlavor}</Text>
+              </View>
+            </View>
+
+            <View style={styles.petBubble}>
+              <MaterialCommunityIcons name="paw" size={18} color="#b45309" style={styles.echoIcon} />
+              <Text style={styles.petText}>{echoData.petLine}</Text>
             </View>
 
             <View style={styles.echoMessageBox}>
@@ -163,6 +188,51 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 16,
     paddingHorizontal: 20
+  },
+  petBubble: {
+    alignItems: 'center',
+    backgroundColor: '#fffbeb',
+    borderColor: '#fde68a',
+    borderRadius: THEME.shapes.borderRadiusCard,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12
+  },
+  petText: {
+    color: '#92400e',
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 19
+  },
+  rarityBox: {
+    alignItems: 'center',
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14
+  },
+  rarityFlavor: {
+    color: '#475569',
+    fontSize: 12,
+    fontWeight: '700'
+  },
+  rarityHeadline: {
+    fontSize: 15,
+    fontWeight: '900'
+  },
+  rarityPercent: {
+    fontSize: 30,
+    fontWeight: '900',
+    letterSpacing: -1
+  },
+  rarityTextArea: {
+    flex: 1,
+    gap: 3
   },
   mapButton: {
     alignItems: 'center',
