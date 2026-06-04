@@ -657,3 +657,10 @@
 
 
 
+
+## 2026-06-04 12:55 KST - Task 8: 펫 trait 키 canonical 정규화 (라이브 적용)
+
+- 작업: zero-cost 계획 Task 8. pet_species_traits의 비표준 키(comfort_seeker/planner)를 canonical(comfort/plan)로 정규화. assign_personality_pet 매칭 버그(펫은 comfort_seeker/planner, user_traits는 comfort/plan → 두 축 매칭 실패) 수정.
+- 적용(Supabase MCP, 라이브): comfort_seeker→comfort(충돌 없음), planner→plan(충돌 종 b842e3c7은 GREATEST affinity 1.5로 병합 후 중복 삭제). 멱등.
+- 검증: pet trait 키 = adventure,aesthetic,calm,comfort,curious,express,flow,plan,safe,social,solo (comfort_seeker/planner 제거 확인). aesthetic/curious는 질문 미획득 펫 전용 축 → 제품 결정으로 유지.
+- repo: supabase/migrations/202606040700_normalize_pet_trait_keys.sql
