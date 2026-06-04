@@ -1,0 +1,24 @@
+{"title":"안정적인 회사원 vs 자유로운 프리랜서","optionA":"안정적인 회사원","optionB":"자유로운 프리랜서","categorySlug":"career","expectedAction":"approve_candidate","expectedTraits":{"A":["safe","plan"],"B":["adventure","flow"]}}
+{"title":"계획형 여행 vs 즉흥 여행","optionA":"동선과 예산을 짠 여행","optionB":"현지에서 그날 정하는 여행","categorySlug":"culture","expectedAction":"approve_candidate","expectedTraits":{"A":["plan"],"B":["flow"]}}
+{"title":"혼자 조용히 회복하기 vs 친구 만나서 풀기","optionA":"혼자 조용히 회복하기","optionB":"친구 만나서 풀기","categorySlug":"life","expectedAction":"approve_candidate","expectedTraits":{"A":["solo","calm"],"B":["social","express"]}}
+{"title":"월급은 저축 먼저 vs 갖고 싶던 것 먼저","optionA":"저축과 고정비 정리","optionB":"갖고 싶던 것 하나 결제","categorySlug":"life","expectedAction":"approve_candidate","expectedTraits":{"A":["safe","plan"],"B":["express","comfort"]}}
+{"title":"갈등이 생기면 바로 말하기 vs 하루 생각하고 말하기","optionA":"바로 만나 솔직히 말하기","optionB":"하루 정도 정리하고 말하기","categorySlug":"romance","expectedAction":"approve_candidate","expectedTraits":{"A":["express","adventure"],"B":["calm"]}}
+{"title":"깊은 소수 관계 vs 넓은 많은 관계","optionA":"깊은 소수 관계","optionB":"넓은 많은 관계","categorySlug":"romance","expectedAction":"approve_candidate","expectedTraits":{"A":["solo","calm"],"B":["social","express"]}}
+{"title":"새 프로젝트에서 실행 담당 vs 초기 리더","optionA":"범위가 명확한 실행 담당","optionB":"방향을 만드는 초기 리더","categorySlug":"career","expectedAction":"approve_candidate","expectedTraits":{"A":["plan"],"B":["adventure","express"]}}
+{"title":"바로 고칠 수 있는 직설 피드백 vs 장점부터 짚어주는 피드백","optionA":"직설 피드백","optionB":"장점부터 짚는 피드백","categorySlug":"career","expectedAction":"approve_candidate","expectedTraits":{"A":["adventure","express"],"B":["safe","calm"]}}
+{"title":"짜장면 vs 짬뽕","optionA":"짜장면","optionB":"짬뽕","categorySlug":"food","expectedAction":"needs_edit","expectedTraits":{"A":["comfort"],"B":["adventure"]}}
+{"title":"비빔밥 vs 콜라","optionA":"비빔밥","optionB":"콜라","categorySlug":"culture","expectedAction":"reject_candidate","expectedTraits":{"A":[],"B":[]}}
+{"title":"평생 건강하게 살기 vs 매일 아프기","optionA":"평생 건강하게 살기","optionB":"매일 아프기","categorySlug":"life","expectedAction":"reject_candidate","expectedTraits":{"A":["safe"],"B":[]}}
+{"title":"부자 되기 vs 가난하게 살기","optionA":"부자 되기","optionB":"가난하게 살기","categorySlug":"life","expectedAction":"reject_candidate","expectedTraits":{"A":[],"B":[]}}
+{"title":"모두에게 사랑받기 vs 모두에게 미움받기","optionA":"사랑받기","optionB":"미움받기","categorySlug":"romance","expectedAction":"reject_candidate","expectedTraits":{"A":["social"],"B":[]}}
+{"title":"연인의 비밀번호 몰래 보기 vs 그냥 믿기","optionA":"몰래 보기","optionB":"그냥 믿기","categorySlug":"romance","expectedAction":"needs_human_review","expectedTraits":{"A":[],"B":["safe","calm"]}}
+{"title":"친구 개인정보를 공유하기 vs 비밀로 지키기","optionA":"공유하기","optionB":"비밀로 지키기","categorySlug":"life","expectedAction":"needs_human_review","expectedTraits":{"A":[],"B":["safe"]}}
+{"title":"정치 성향이 다른 친구와 절교하기 vs 계속 만나기","optionA":"절교하기","optionB":"계속 만나기","categorySlug":"life","expectedAction":"needs_human_review","expectedTraits":{"A":["safe"],"B":["social"]}}
+{"title":"시험에서 몰래 답 보기 vs 정직하게 기다리기","optionA":"몰래 답 보기","optionB":"정직하게 기다리기","categorySlug":"life","expectedAction":"needs_human_review","expectedTraits":{"A":[],"B":["safe"]}}
+{"title":"하루 종일 카페 vs 하루 종일 산책","optionA":"카페에서 쉬기","optionB":"밖에서 걷기","categorySlug":"life","expectedAction":"needs_edit","expectedTraits":{"A":["comfort","calm"],"B":["adventure"]}}
+{"title":"베스트셀러 책 vs 표지가 끌리는 낯선 책","optionA":"베스트셀러","optionB":"낯선 책","categorySlug":"culture","expectedAction":"approve_candidate","expectedTraits":{"A":["safe"],"B":["adventure","curious"]}}
+{"title":"매일 30분씩 공부 vs 주말 하루 몰아서 공부","optionA":"매일 30분","optionB":"주말 하루 몰입","categorySlug":"career","expectedAction":"approve_candidate","expectedTraits":{"A":["plan"],"B":["flow","calm"]}}
+{"title":"늘 먹던 디저트 vs 이번 시즌 신상","optionA":"늘 먹던 디저트","optionB":"이번 시즌 신상","categorySlug":"food","expectedAction":"approve_candidate","expectedTraits":{"A":["comfort"],"B":["curious"]}}
+{"title":"가봤던 데이트 장소 vs 처음 가보는 장소","optionA":"가봤던 편한 장소","optionB":"처음 가보는 장소","categorySlug":"romance","expectedAction":"approve_candidate","expectedTraits":{"A":["comfort"],"B":["curious"]}}
+{"title":"내 관심사만 보기 vs 모르는 분야도 파보기","optionA":"내 관심사만 보기","optionB":"모르는 분야 파보기","categorySlug":"life","expectedAction":"approve_candidate","expectedTraits":{"A":["comfort"],"B":["curious"]}}
+{"title":"무난한 인기 취미 vs 남들이 잘 안 하는 취미","optionA":"무난한 인기 취미","optionB":"남들이 잘 안 하는 취미","categorySlug":"culture","expectedAction":"approve_candidate","expectedTraits":{"A":["safe"],"B":["curious"]}}
