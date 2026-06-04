@@ -9,6 +9,23 @@
 
 ---
 
+## 0. 라이브 DB 적용 완료 (2026-06-04, Supabase MCP) ✅
+
+Supabase MCP 연결 후 라이브 프로젝트 `balance`(ztcexgnelqtdzinfgoja)에 직접 적용·검증:
+
+- 🔒 **경제 보안 구멍 차단(중요)**: `apply_shell_delta`가 auth 가드 없이 anon에게 노출돼 **임의 계정 셸 무한 발급**이 가능했음(advisor 0028). 내부 함수 4종(`apply_shell_delta`, `ensure_user_gamification_state`, `handle_new_user`, `rls_auto_enable`)의 anon/authenticated/PUBLIC EXECUTE를 회수. `has_function_privilege`로 차단 확인, `submit_vote` 등 정상 함수는 authenticated 실행 유지. (repo: `202606040600_harden_internal_function_execute.sql`)
+- ✅ **모순 발견 RPC 적용**: `compute_user_trait_contradictions` 라이브 생성, authenticated 전용. 빈 입력 검증 통과. (repo: `202606040500_trait_contradictions.sql`)
+- ✅ **타입 동기화**: 라이브 스키마 기준 `src/types/database.generated.ts` 생성(수동 `database.types.ts`와 비교/동기화용 참조).
+- ℹ️ **확인된 사실**: rate limit DB(`ai_edge_rate_limit_events` + `check_ai_rate_limit`)는 **이미 라이브에 존재**(§2-2의 DB 단계 완료, Edge Function 배포만 남음). `user_personality_snapshots` 테이블 존재(시간여행용).
+
+### 남은 보안 advisory (후속, 낮은~중간)
+- `rls_enabled_no_policy`: `bookmarks`/`follows`/`comment_reactions` 등 — RLS만 켜고 정책이 없어 해당 기능이 동작 못 함. 기능 활성화 시 사용자 본인 경계 정책 추가 필요.
+- `function_search_path_mutable`: `set_updated_at`, `match_questions_by_embedding` → `SET search_path` 추가 권장.
+- `extension_in_public`: `vector`, `pg_trgm`를 별도 스키마로 이동 권장.
+- `auth_leaked_password_protection` 비활성 → 대시보드에서 활성 권장.
+
+---
+
 ## 1. 코드 측 완료 (이번 세션, 검증됨)
 
 | 항목 | 상태 | 산출물 / 근거 |

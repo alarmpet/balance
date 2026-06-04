@@ -627,5 +627,17 @@
 - 검증: `npx expo-doctor` 17/17 통과, `npm run build`(expo export) 성공.
 - 결과: **이제 `eas build --profile development`가 설정상 막힘 없이 실행 가능**(사용자가 eas login 후 실행). 에이전트는 클라우드/인증이 필요한 빌드 자체는 미실행.
 
+## 2026-06-04 10:30 KST - Supabase MCP로 라이브 DB 작업 (보안 핫픽스 + 모순 RPC + 타입)
+
+- 작업: Supabase MCP 연결 후 라이브 `balance`(ztcexgnelqtdzinfgoja)에 직접 적용. 사용자 승인(보안수정+모순RPC+타입재생성) 하에 진행.
+- 🔒 보안 핫픽스(중요): security advisor에서 `apply_shell_delta`가 auth.uid() 가드 없이 anon 실행 가능(임의 계정 셸 무한 발급 구멍) 확인 → 내부 함수 4종(apply_shell_delta/ensure_user_gamification_state/handle_new_user/rls_auto_enable)의 anon/authenticated/PUBLIC EXECUTE 회수. has_function_privilege로 차단 검증, submit_vote 등 정상 RPC는 authenticated 유지.
+  - repo: `supabase/migrations/202606040600_harden_internal_function_execute.sql`
+- 모순 발견 RPC: `compute_user_trait_contradictions` 라이브 적용(authenticated 전용), 빈 입력 [] 검증.
+  - repo: `202606040500_trait_contradictions.sql`(커스텀 schema_migrations INSERT 제거 — Supabase 네이티브 추적 사용)
+- 타입: 라이브 스키마 기준 `src/types/database.generated.ts` 생성(수동 타입 동기화 참조용, 직접 import 안 함).
+- 확인: rate limit DB는 이미 라이브 존재(Edge Function 배포만 남음), user_personality_snapshots 존재.
+- 남은 advisory(후속): bookmarks/follows/comment_reactions RLS 정책 부재, 함수 search_path 2건, public 확장 2건, leaked password protection 비활성.
+- 검증: `npm run typecheck` 통과(generated 타입 포함). 라이브 SQL 검증 쿼리로 권한/함수 동작 확인.
+
 
 

@@ -1,8 +1,6 @@
 -- 모순 발견(상황별 다른 나): 카테고리별로 같은 성향 축이 다르게 나타나는 경우를 계산한다.
--- Apply after 202606040400_schema_migration_tracking.sql.
---
--- ⚠️ 라이브 적용 전 검토 권장: 이 함수는 로컬에서 라이브 DB 대조 없이 작성되었습니다.
--- 적용 후 실제 데이터로 결과(퍼센트/표본/문구)를 한 번 검증하세요.
+-- ✅ 2026-06-04 라이브(ztcexgnelqtdzinfgoja)에 Supabase MCP로 적용 완료(네이티브 마이그레이션 추적).
+--    빈 입력 검증(compute_user_trait_contradictions → [])까지 확인됨.
 --
 -- 결과 JSON 배열은 클라이언트 InsightContradiction 타입과 1:1로 맞춥니다:
 --   { id, trait_label, high_category, high_percent, low_category, low_percent, message }
@@ -111,7 +109,3 @@ $$;
 
 REVOKE ALL ON FUNCTION public.compute_user_trait_contradictions(uuid) FROM anon;
 GRANT EXECUTE ON FUNCTION public.compute_user_trait_contradictions(uuid) TO authenticated;
-
-INSERT INTO public.schema_migrations (version, name)
-VALUES ('202606040500', 'trait_contradictions')
-ON CONFLICT (version) DO NOTHING;
