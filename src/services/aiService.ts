@@ -42,7 +42,7 @@ export async function refineQuestionWithAI(input: {
     tags: [input.category, '밸런스', 'MVP'],
     trait_mapping: [
       { option_side: 'A', trait_key: 'curious', weight: 1.2 },
-      { option_side: 'B', trait_key: 'comfort_seeker', weight: 1.2 }
+      { option_side: 'B', trait_key: 'comfort', weight: 1.2 }
     ]
   };
 }

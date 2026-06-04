@@ -9,8 +9,7 @@ export const TRAIT_LABELS: Record<string, string> = {
   calm: '차분',
   express: '표현',
   curious: '호기심',
-  comfort_seeker: '취향',
-  planner: '계획',
+  comfort: '익숙함',
   aesthetic: '미감'
 };
 
