@@ -20,6 +20,7 @@ import TodayDiscoveryCard from '../../components/island/TodayDiscoveryCard';
 import { PetOriginCard } from '../../components/island/PetOriginCard';
 import { PetDiaryCard } from '../../components/island/PetDiaryCard';
 import { WeeklyRecapCard } from '../../components/island/WeeklyRecapCard';
+import { IslandTypeCard } from '../../components/island/IslandTypeCard';
 import IslandModeTabs, { type IslandMode } from '../../components/island/IslandModeTabs';
 import ThemeProbabilitySheet from '../../components/island/ThemeProbabilitySheet';
 import { analyticsService } from '../../services/analyticsService';
@@ -339,6 +340,8 @@ export default function IslandScreen() {
             <Text style={styles.walletText}>{shellBalance}</Text>
           </View>
         </View>
+
+        <IslandTypeCard />
 
         {error ? (
           <View style={styles.errorBanner}>

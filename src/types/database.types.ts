@@ -554,6 +554,64 @@ export type Database = {
         };
         Returns: QuestionRow;
       };
+      find_similar_questions: {
+        Args: {
+          p_title: string;
+          p_threshold?: number;
+          p_limit?: number;
+        };
+        Returns: { id: string; title: string; status: string; similarity: number }[];
+      };
+      compute_user_island_type: {
+        Args: { p_user_id?: string };
+        Returns: {
+          code: string;
+          name: string;
+          emoji: string;
+          archipelago: string;
+          archipelago_emoji: string;
+          tagline: string;
+          persona: string | null;
+          voyage: string;
+          is_social: boolean;
+          is_curious: boolean;
+          is_express: boolean;
+          is_flow: boolean;
+          confidence: number;
+          answered_weight: number;
+        }[];
+      };
+      submit_island_friend_guess: {
+        Args: {
+          p_target: string;
+          p_social: boolean;
+          p_curious: boolean;
+          p_express: boolean;
+          p_flow: boolean;
+        };
+        Returns: undefined;
+      };
+      get_friends_island_view: {
+        Args: { p_target?: string };
+        Returns: {
+          responses: number;
+          social_pct: number;
+          curious_pct: number;
+          express_pct: number;
+          flow_pct: number;
+          guessed_code: string | null;
+          guessed_name: string | null;
+          guessed_emoji: string | null;
+        }[];
+      };
+      island_best_matches: {
+        Args: { p_code: string; p_limit?: number };
+        Returns: { code: string; name: string; emoji: string; tagline: string; romance_score: number }[];
+      };
+      compute_island_compat: {
+        Args: { p_code_a: string; p_code_b: string };
+        Returns: Json;
+      };
       claim_daily_checkin: {
         Args: Record<string, never>;
         Returns: ShellLedgerRow;
