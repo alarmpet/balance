@@ -1,0 +1,5 @@
+{
+  "_deprecated": "2026-06-05: seed_key를 위치 기반에서 JSON의 명시적 `key`로 고정(freeze)하면서 NEW_ONLY(카운트/위치 기반)를 폐기함. 시더는 더 이상 이 파일을 읽지 않는다.",
+  "_use_instead": "증분 시드는 `node scripts/seed-question-bank.mjs --keys bank-xxx-001,bank-xxx-002`. 전량은 인자 없이 실행(멱등, ON CONFLICT 업서트).",
+  "counts": { "food": 57, "life": 53, "romance": 53, "career": 51, "culture": 51, "money": 20, "relationship": 20, "values": 20, "health": 20, "travel": 19, "trend": 20, "hobby": 19, "dilemma": 20 }
+}

@@ -11,6 +11,10 @@ client_secret_*.json
 npm-debug.log*
 supabase/.temp/
 
+# Generated seed SQL / agent run scratch (never commit)
+_tmp/
+.codex-run/
+
 # Obsidian local workspace cache
 .obsidian/workspace
 .obsidian/workspace-mobile

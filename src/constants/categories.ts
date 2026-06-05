@@ -1,4 +1,17 @@
-export type CategorySlug = 'food' | 'life' | 'romance' | 'career' | 'culture';
+export type CategorySlug =
+  | 'food'
+  | 'life'
+  | 'romance'
+  | 'career'
+  | 'culture'
+  | 'money'
+  | 'relationship'
+  | 'values'
+  | 'health'
+  | 'travel'
+  | 'trend'
+  | 'hobby'
+  | 'dilemma';
 
 export type CategoryInfo = {
   slug: CategorySlug | 'uncategorized';
@@ -31,6 +44,46 @@ export const CATEGORIES: Record<CategorySlug, CategoryInfo> = {
     slug: 'culture',
     name: '문화',
     color: '#8b5cf6'
+  },
+  money: {
+    slug: 'money',
+    name: '머니',
+    color: '#16a34a'
+  },
+  relationship: {
+    slug: 'relationship',
+    name: '관계',
+    color: '#f97316'
+  },
+  values: {
+    slug: 'values',
+    name: '가치관',
+    color: '#6366f1'
+  },
+  health: {
+    slug: 'health',
+    name: '건강',
+    color: '#ef4444'
+  },
+  travel: {
+    slug: 'travel',
+    name: '여행',
+    color: '#0ea5e9'
+  },
+  trend: {
+    slug: 'trend',
+    name: '트렌드',
+    color: '#d946ef'
+  },
+  hobby: {
+    slug: 'hobby',
+    name: '취미',
+    color: '#14b8a6'
+  },
+  dilemma: {
+    slug: 'dilemma',
+    name: '딜레마',
+    color: '#eab308'
   }
 };
 

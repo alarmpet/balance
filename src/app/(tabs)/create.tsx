@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CATEGORY_OPTIONS } from '../../constants/categories';
-import { submitUserQuestion } from '../../services/questionService';
+import { findSimilarQuestions, submitUserQuestion, type SimilarQuestion } from '../../services/questionService';
 import { useAuthStore } from '../../store/authStore';
 
 type SubmitState = 'idle' | 'submitting' | 'success' | 'error';
@@ -13,6 +13,11 @@ function friendlySubmitError(error: unknown) {
   const lower = raw.toLowerCase();
   if (lower.includes('authentication') || lower.includes('jwt') || lower.includes('unauthorized')) {
     return '로그인이 만료됐어요. 다시 로그인한 뒤 등록해 주세요.';
+  }
+  if (lower.includes('rate-limit')) {
+    return lower.includes('hour')
+      ? '짧은 시간에 너무 많이 등록했어요. 잠시 후 다시 시도해 주세요.'
+      : '오늘 등록 가능한 횟수를 넘었어요. 내일 다시 시도해 주세요.';
   }
   if (lower.includes('title')) return '질문 제목은 4자 이상 160자 이하로 적어 주세요.';
   if (lower.includes('option')) return 'A/B 선택지는 각각 1자 이상 80자 이하로 적어 주세요.';
@@ -30,6 +35,10 @@ export default function CreateScreen() {
   const [submitState, setSubmitState] = useState<SubmitState>('idle');
   const [message, setMessage] = useState('');
   const [lastSubmissionKey, setLastSubmissionKey] = useState('');
+  const [similar, setSimilar] = useState<SimilarQuestion[]>([]);
+  const [checkedKey, setCheckedKey] = useState('');
+  const [isChecking, setIsChecking] = useState(false);
+  const [confirmedDifferent, setConfirmedDifferent] = useState(false);
   const user = useAuthStore((state) => state.user);
   const isAuthLoading = useAuthStore((state) => state.isLoading);
   const bootstrapAuth = useAuthStore((state) => state.bootstrap);
@@ -40,11 +49,58 @@ export default function CreateScreen() {
   );
   const submissionKey = [title.trim(), optionA.trim(), optionB.trim(), categorySlug].join('|');
   const hasRequiredText = title.trim().length >= 4 && optionA.trim().length > 0 && optionB.trim().length > 0;
-  const canSubmit = Boolean(user) && hasRequiredText && submitState !== 'submitting' && submissionKey !== lastSubmissionKey;
+  // 현재 입력이 유사 질문 검사를 통과(검사됨 & 유사건 존재)해 사용자 확인을 기다리는 상태인지
+  const isReviewing = checkedKey === submissionKey && similar.length > 0;
+  const needsConfirm = isReviewing && !confirmedDifferent;
+  const canSubmit =
+    Boolean(user) &&
+    hasRequiredText &&
+    submitState !== 'submitting' &&
+    !isChecking &&
+    !needsConfirm &&
+    submissionKey !== lastSubmissionKey;
+
+  const buttonLabel = isChecking
+    ? '유사 질문 확인 중...'
+    : submitState === 'submitting'
+      ? '등록 중...'
+      : checkedKey === submissionKey
+        ? '검수 큐에 등록'
+        : '유사 질문 확인 후 등록';
 
   useEffect(() => {
     void bootstrapAuth();
   }, [bootstrapAuth]);
+
+  const doSubmit = async () => {
+    setSubmitState('submitting');
+    setMessage('');
+    try {
+      const created = await submitUserQuestion({ title, description, optionA, optionB, categorySlug, isAnonymous });
+      setLastSubmissionKey(submissionKey);
+
+      // 서버가 '거의 동일' 중복으로 판단하면 status='rejected'로 돌아온다(공개 큐에 안 들어감).
+      if (created?.status === 'rejected') {
+        setSubmitState('error');
+        setMessage('이미 거의 같은 질문이 있어서 등록되지 않았어요. 정말 다른 질문이면 제목을 조금 더 구체적으로 바꿔 주세요.');
+        return;
+      }
+
+      setSubmitState('success');
+      setMessage('질문이 관리자 검수 큐에 등록됐어요. 이미지와 성향 태그를 확인한 뒤 공개됩니다.');
+      setTitle('');
+      setDescription('');
+      setOptionA('');
+      setOptionB('');
+      setIsAnonymous(false);
+      setSimilar([]);
+      setCheckedKey('');
+      setConfirmedDifferent(false);
+    } catch (error) {
+      setSubmitState('error');
+      setMessage(friendlySubmitError(error));
+    }
+  };
 
   const handleSubmit = async () => {
     if (!user) {
@@ -62,33 +118,44 @@ export default function CreateScreen() {
       setMessage('방금 같은 질문을 등록했어요. 관리자 검수 큐에서 확인됩니다.');
       return;
     }
-    if (submitState === 'submitting') return;
+    if (submitState === 'submitting' || isChecking) return;
 
-    setSubmitState('submitting');
-    setMessage('');
-
-    try {
-      await submitUserQuestion({
-        title,
-        description,
-        optionA,
-        optionB,
-        categorySlug,
-        isAnonymous
-      });
-      setLastSubmissionKey(submissionKey);
-      setSubmitState('success');
-      setMessage('질문이 관리자 검수 큐에 등록됐어요. 이미지와 성향 태그를 확인한 뒤 공개됩니다.');
-      setTitle('');
-      setDescription('');
-      setOptionA('');
-      setOptionB('');
-      setIsAnonymous(false);
-    } catch (error) {
-      setSubmitState('error');
-      setMessage(friendlySubmitError(error));
+    // 1단계: 이 입력으로 아직 유사 질문 검사를 안 했으면 먼저 검사한다.
+    if (checkedKey !== submissionKey) {
+      setIsChecking(true);
+      setSubmitState('idle');
+      setMessage('');
+      let results: SimilarQuestion[] = [];
+      try {
+        results = await findSimilarQuestions(title);
+      } catch {
+        // 검사 실패 시 등록을 막지 않는다(가용성 우선).
+        results = [];
+      }
+      setIsChecking(false);
+      setCheckedKey(submissionKey);
+      setConfirmedDifferent(false);
+      setSimilar(results);
+      if (results.length > 0) {
+        setMessage('');
+        return; // 유사 질문 패널을 보여주고 사용자 확인을 기다린다.
+      }
+      // 유사 질문이 없으면 그대로 등록 진행.
+      await doSubmit();
+      return;
     }
+
+    // 2단계: 유사 질문이 있었는데 "다른 질문" 확인을 안 했으면 막는다.
+    if (similar.length > 0 && !confirmedDifferent) {
+      setMessage('아래 비슷한 질문을 확인하고 “이 중에 없어요 · 다른 질문입니다”에 체크해 주세요.');
+      return;
+    }
+
+    await doSubmit();
   };
+
+  const statusLabel = (status: string) =>
+    status === 'approved' ? '공개중' : status === 'pending' ? '검수중' : status;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -180,6 +247,52 @@ export default function CreateScreen() {
           </View>
         ) : null}
 
+        {isReviewing ? (
+          <View style={styles.similarBox}>
+            <Text style={styles.similarTitle}>비슷한 질문이 {similar.length}개 있어요</Text>
+            <Text style={styles.similarHint}>
+              이미 있는 질문과 겹치면 등록이 보류돼요. 아래를 확인하고, 정말 다른 질문이면 체크 후 등록해 주세요.
+            </Text>
+
+            {similar.map((item) => (
+              <View key={item.id} style={styles.similarItem}>
+                <View style={styles.similarItemTop}>
+                  <Text style={styles.similarBadge}>{statusLabel(item.status)}</Text>
+                  <Text style={styles.similarPercent}>{Math.round(item.similarity * 100)}% 유사</Text>
+                </View>
+                <Text style={styles.similarItemTitle}>{item.title}</Text>
+              </View>
+            ))}
+
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: confirmedDifferent }}
+              accessibilityLabel="이 중에 없어요, 다른 질문입니다"
+              style={styles.confirmRow}
+              onPress={() => setConfirmedDifferent((prev) => !prev)}
+            >
+              <View style={[styles.checkbox, confirmedDifferent && styles.checkboxOn]}>
+                {confirmedDifferent ? <Text style={styles.checkboxMark}>✓</Text> : null}
+              </View>
+              <Text style={styles.confirmText}>이 중에 없어요 · 다른 질문입니다</Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="제목을 수정하러 가기"
+              style={styles.editLink}
+              onPress={() => {
+                setSimilar([]);
+                setCheckedKey('');
+                setConfirmedDifferent(false);
+                setMessage('');
+              }}
+            >
+              <Text style={styles.editLinkText}>제목을 수정할게요</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
         {message ? (
           <View style={[styles.messageBox, submitState === 'error' ? styles.errorBox : styles.successBox]}>
             <Text style={[styles.messageText, submitState === 'error' ? styles.errorText : styles.successText]}>{message}</Text>
@@ -194,7 +307,7 @@ export default function CreateScreen() {
           style={[styles.primaryButton, !canSubmit ? styles.disabledButton : null]}
           onPress={handleSubmit}
         >
-          <Text style={styles.primaryButtonText}>{submitState === 'submitting' ? '등록 중...' : '검수 큐에 등록'}</Text>
+          <Text style={styles.primaryButtonText}>{buttonLabel}</Text>
         </Pressable>
 
         <Pressable
@@ -457,6 +570,99 @@ const styles = StyleSheet.create({
     color: '#0f766e',
     fontSize: 15,
     fontWeight: '900'
+  },
+  similarBox: {
+    backgroundColor: '#fffbeb',
+    borderColor: '#fde68a',
+    borderRadius: 18,
+    borderWidth: 1,
+    marginTop: 18,
+    padding: 16
+  },
+  similarTitle: {
+    color: '#92400e',
+    fontSize: 15,
+    fontWeight: '900'
+  },
+  similarHint: {
+    color: '#a16207',
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 18,
+    marginTop: 6
+  },
+  similarItem: {
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderColor: '#fde68a',
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 10,
+    padding: 12
+  },
+  similarItemTop: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8
+  },
+  similarBadge: {
+    backgroundColor: '#fef3c7',
+    borderRadius: 6,
+    color: '#92400e',
+    fontSize: 11,
+    fontWeight: '900',
+    overflow: 'hidden',
+    paddingHorizontal: 6,
+    paddingVertical: 2
+  },
+  similarPercent: {
+    color: '#b45309',
+    fontSize: 12,
+    fontWeight: '900'
+  },
+  similarItemTitle: {
+    color: '#0f172a',
+    fontSize: 14,
+    fontWeight: '800',
+    lineHeight: 20,
+    marginTop: 6
+  },
+  confirmRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14
+  },
+  checkbox: {
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderColor: '#d97706',
+    borderRadius: 6,
+    borderWidth: 2,
+    height: 24,
+    justifyContent: 'center',
+    width: 24
+  },
+  checkboxOn: {
+    backgroundColor: '#d97706'
+  },
+  checkboxMark: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '900'
+  },
+  confirmText: {
+    color: '#78350f',
+    fontSize: 14,
+    fontWeight: '900'
+  },
+  editLink: {
+    marginTop: 12
+  },
+  editLinkText: {
+    color: '#b45309',
+    fontSize: 13,
+    fontWeight: '800',
+    textDecorationLine: 'underline'
   },
   successBox: {
     backgroundColor: '#ecfdf5',

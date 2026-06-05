@@ -119,6 +119,36 @@ export async function submitReaction(questionId: string, reactionType: ReactionT
   if (error) throw error;
 }
 
+export type SimilarQuestion = {
+  id: string;
+  title: string;
+  status: string;
+  similarity: number;
+};
+
+/**
+ * 제출 전 중복 경고용. 기존 approved/pending 중 제목이 유사한 질문을 반환한다(무료 pg_trgm).
+ * 표기/공백/기호 차이는 잘 잡지만 동의어·재서술 중복은 약하다(임베딩 영역).
+ */
+export async function findSimilarQuestions(
+  title: string,
+  threshold = 0.45,
+  limit = 5
+): Promise<SimilarQuestion[]> {
+  if (!supabase || !hasSupabaseConfig()) return [];
+  const trimmed = title.trim();
+  if (trimmed.length < 4) return [];
+
+  const { data, error } = await rpcClient!.rpc('find_similar_questions', {
+    p_title: trimmed,
+    p_threshold: threshold,
+    p_limit: limit
+  });
+
+  if (error) throw error;
+  return (data ?? []) as SimilarQuestion[];
+}
+
 export async function submitUserQuestion(input: UserQuestionSubmission): Promise<QuestionRow> {
   if (!supabase || !hasSupabaseConfig()) {
     throw new Error('Supabase 설정이 필요합니다. 로그인 후 다시 시도해 주세요.');
