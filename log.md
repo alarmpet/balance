@@ -67,3 +67,4 @@ YYYY-MM-DD HH:mm | command | summary | linked files
 2026-06-05 | save | 섬 타입 정체성 P0: island_types(16섬·4군도) + compute_user_island_type RPC(4축→16섬+정박/원정+신뢰도) 라이브, 서비스/IslandTypeCard 섬탭 연결, tsc 0 | [[supabase/migrations/20260605160000_island_types]], [[src/components/island/IslandTypeCard]], [[timeline]]
 2026-06-05 | save | 섬 타입 P0 완성: 공유 카드(captureRef+Share) + 친구가 보는 내 섬(guesses 테이블·submit/aggregate RPC·/guess/[id] 라우트·초대링크), tsc 0 | [[supabase/migrations/20260605170000_island_friend_guesses]], [[src/app/guess/[id]]], [[timeline]]
 2026-06-05 | save | 섬 타입 P1 궁합: island_compat_line(36줄)+compute_island_compat/best_matches RPC(라이브 검증), compat 화면+카드 "잘 맞는 섬" 행, 생활문장 카피·낙인금지, tsc 0 | [[supabase/migrations/20260605180000_island_compat]], [[src/app/compat]], [[timeline]]
+2026-06-05 | save | 냉철한 제품 가지치기 계획서: 진짜 북극성(심심풀이 밸런스→가벼운 자기발견+여론+다마고찌/포켓몬 펫수집) 재정의, 16섬/궁합/친구추측은 PARK(영혼과 충돌), 펫 가챠·수집·여론 강화 권고 | [[AI-Sessions/wiki/decisions/product-refocus-cold-audit]]
