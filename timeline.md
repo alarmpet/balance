@@ -693,3 +693,107 @@
 - 배치 2: 과소 축(solo/social, comfort/curious, calm) 집중 32개 추가. NEW_ONLY 모드로 신규만 멱등 적용.
 - 결과(라이브): 공식 질문 146→178(원본30+뱅크148). 축 표본 plan/flow80, calm/express74, comfort/curious72, solo/social69, safe/adventure61 — 분포 43~80 → 61~80로 균형 개선.
 - repo: data/question-bank/*.json(확장), scripts/seed-question-bank.mjs(NEW_ONLY 모드)
+
+## 2026-06-05 — 계획 개정 실행 Step 1-2: 배치3 동기화 + NEW_ONLY 신뢰성
+- Step1 동기화: 배치3(30개) 라이브 멱등 적용 → approved 178→208. has_batch3(md5 bank-culture-034)=1 검증.
+- Step2 NEW_ONLY 개선: 하드코딩 batch1 임계 폐기 → data/question-bank/.seeded-highwater.json(카테고리별 라이브 반영 카운트) 기반. NEW_ONLY=1이 배치3 30개만 정확히 격리(검증). high-water 없으면 exit 2 거부. high-water 파일은 dot-prefix로 시더 목록 제외.
+- 라이브 축 분포(208): safe↔adv 97, calm↔exp 97, plan↔flow 81, comfort↔cur 72, solo↔soc 69(최저). 배치4는 solo/social 최우선.
+- 게이트: tsc 0, validate:question-bank ok, validate:question-review 0.
+- repo: scripts/seed-question-bank.mjs(high-water 로직), data/question-bank/.seeded-highwater.json, 계획서 갱신.
+
+## 2026-06-05 — Step 3(부분): 출시 P0 게이트 안전 검증
+- 보안(Task 2): RPC 권한 검증 — submit_user_question(SECURITY DEFINER+authenticated 전용, anon 제외), match_questions_by_embedding(authenticated 전용), fetch_feed_questions/submit_vote(anon 의도된 공개). Supabase security advisor = 전부 WARN/INFO, 내 변경발 신규 고위험 없음(anon SECDEF 피드/투표는 게스트 의도, extension_in_public·leaked-password는 기존 P1/P2 베이스라인).
+- 위생(Task 1): _tmp/·.codex-run/을 .gitignore에 추가(시드 산출물 커밋 방지, 검증 완료). 구버전 9개 migration은 whitespace-only diff(미커밋), 중복 draft 3개(20260604071308/071346/071506)는 격리 유지.
+- 남은 P0(브라우저/사용자 필요): Task3 제출 큐 E2E, Task4 UI 브라우저 스모크, Task8 build+commit+push(승인 후).
+
+## 2026-06-05 — Step 5: 배치 4 질문 확장 (과소 축 보강)
+- 배치4 30개(6/카테고리) append: solo↔social/plan↔flow/comfort↔curious 집중, safe/adventure·calm/express는 추가 안 함(이미 97 최다).
+- 검증: validate:question-bank ok(208 bank, 0 거부). NEW_ONLY(high-water 기반)가 배치4 30개만 정확히 격리.
+- 라이브 적용: approved 208→238. 축 분포 safe↔adv97/plan↔flow101/solo↔social95(이전69)/calm↔exp97/comfort↔cur86 — 전 축 86~101로 균형화(solo↔social 정상화).
+- high-water 갱신: food44/life43/romance41/career40/culture40. 일회성 append-batch4.mjs 제거.
+
+## 2026-06-05 — Step 6: 배치 5·6 → 라이브 300 달성 (축 균형 119~122)
+- 배치5(+30): comfort↔curious(최저 86) 우선 + 5축 고르게. 라이브 238→268. 축 105~111.
+- 배치6(+32): plan↔flow(최다) 최소화 + 나머지 4축 보강. 라이브 268→300.
+- 최종 라이브: approved 300 (seed 30 + bank 270). 축 분포 comfort↔cur122/plan↔flow121/safe↔adv119/solo↔soc119/calm↔exp119 — 편차 3, 거의 완벽 균형. 카테고리 food63/life61/culture59/romance59/career58.
+- 파이프라인: NEW_ONLY(high-water)로 배치5·6 각각 신규만 정확히 격리·적용. validate:question-bank ok(270 bank, 0 거부). 일회성 append 스크립트 제거.
+- high-water 갱신: food57/life55/romance53/career52/culture53.
+
+## 2026-06-05 — 카테고리 5종 → 9종 확장 (+신규 80문항)
+- 신규 카테고리 4종: 머니(money,💰,sort60)·관계(relationship,🤝,70)·가치관(values,⚖️,80)·건강(health,💪,90). repo: supabase/migrations/20260605120000_add_categories.sql (멱등 INSERT), Supabase MCP 적용.
+- 각 카테고리 20문항(축당 4개 균형) 재창작 → 80개. seed-question-bank.mjs IMG 풀에 신규 4종 추가(없으면 throw 가드). NEW_ONLY(high-water)로 신규 80만 격리·적용.
+- 클라이언트: src/constants/categories.ts에 4종 슬러그/이름/색상 추가(머니#16a34a·관계#f97316·가치관#6366f1·건강#ef4444). tsc 0.
+- 라이브: approved 300→380, 카테고리 5→9 (푸드63/라이프61/문화59/연애59/커리어58 + 머니20/관계20/가치관20/건강20).
+- 효과: 인사이트맵의 '카테고리 간 성향 일관성/모순' 분석이 9개 축으로 더 풍부해짐. 신규 카테고리는 카테고리당 trait 표본 ≥3(모순 계산 임계) 충족.
+- high-water 갱신: 신규 4종 각 20.
+
+## 2026-06-05 — 카테고리 9종 → 13종 2차 확장 (+신규 80문항)
+- 신규 카테고리 4종: 여행(travel,✈️,sort100)·트렌드(trend,📱,110)·취미(hobby,🐾,120)·딜레마(dilemma,😆,130). repo: supabase/migrations/20260605130000_add_categories_2.sql.
+- 각 20문항(축당 4) 재창작 → 80개. 딜레마는 '순수 재미'가 아니라 trait이 드러나는 가정형 딜레마로 설계(성향분석 연결 유지). seed-question-bank.mjs IMG 풀에 4종 추가, NEW_ONLY로 신규 80만 격리·적용.
+- 클라이언트: categories.ts에 4종 추가(여행#0ea5e9·트렌드#d946ef·취미#14b8a6·딜레마#eab308). tsc 0.
+- 라이브: approved 380→460, 카테고리 9→13. 축 분포 safe/adv183·plan/flow185·solo/soc183·calm/exp183·comfort/cur186(편차 3, 거의 완벽 균형 유지).
+- 성향분석 연결성: 모든 질문이 canonical trait 매핑 강제(검증) → 카테고리 무관하게 동일 5축 프로필에 기여. 카테고리↑ = 인사이트맵 '카테고리 간 모순' 분석 더 풍부.
+
+## 2026-06-05 — 질문 중복 검증 구축 (무료 pg_trgm)
+- 현황 진단: submit_user_question은 길이/카테고리 검증만(중복 ✕). 시더는 JSON 내 정확한 제목만 skip. 임베딩 인프라(embedding 컬럼·match_questions_by_embedding·embed-question)는 존재하나 임베딩 0개·미연결·유료라 미가동.
+- 구축(무료): normalize_question_title(공백·구두점 제거) + find_similar_questions(trgm 유사도 RPC) + idx_questions_title_trgm(GIN). submit_user_question에 유사도 0.70+ 시 'possible-duplicate' 소프트 태그(하드 차단 X, 관리자 검수). repo: supabase/migrations/20260605140000_question_dedup_trgm.sql.
+- 검증: 표기/공백/기호 차이 유사도 1.000(완벽 포착), 동의어 변형 0.286(pg_trgm 한계=임베딩 영역), 무관 신규 0매치(오탐 없음).
+- 클라이언트: questionService.findSimilarQuestions(제출 화면 사전 경고용) + database.types RPC 타입. tsc 0.
+- 한계 메모: 의미 기반 중복은 추후 임베딩(②안)으로 보강 필요.
+
+## 2026-06-05 — 등록 화면 유사 질문 확인 UX (pg_trgm 연동)
+- 흐름: 등록 버튼 → (1) find_similar_questions(무료 trgm)로 유사 질문 검사 → 유사건 있으면 "비슷한 질문 N개" 패널로 목록·상태(공개중/검수중)·유사도% 표시 → (2) 사용자가 직접 확인 후 "이 중에 없어요·다른 질문입니다" 체크해야 등록 활성화 → (3) 유사건 0이면 즉시 등록.
+- 구현: src/app/(tabs)/create.tsx. 상태(similar/checkedKey/isChecking/confirmedDifferent), 2단계 handleSubmit(check→confirm→submit), 유사 패널 UI + 체크박스 + "제목을 수정할게요" 링크. 제목 수정 시 패널 자동 리셋. 검사 실패 시 등록 안 막음(가용성 우선) + 서버 소프트 태그가 백업.
+- 임계: findSimilarQuestions 기본 0.45(표기변형·근접 재서술 포착, 동의어 오탐 회피). 서버 submit_user_question은 0.70+에 possible-duplicate 태그(이중 안전망).
+- 검증: tsc 0. 브라우저 스모크(로그인 필요)는 미실시.
+
+## 2026-06-05 — 사용자 제출 악용 방어 L1+L2+L3 (무료)
+- 전제: 제출 질문은 status='pending'+visibility='private'라 관리자 승인 전엔 공개 안 됨(사용자 피해는 이미 차단). 방어 목표 = 큐 스팸/반복 중복/대량 스팸.
+- L1 하드 거부: trgm 유사도 0.92+ → status='rejected'로 기록(공개 X, 롤백 대신 행으로 남겨 추적) + 'rejected-duplicate' 태그. 검증: 공백/기호 변형 1.000→거부, 소폭수정 0.636·동의어 0.286·신규 0.045→정상(오탐 없음).
+- L2 사용자별 한도: 시간당 10 / 일 30 초과 시 RAISE. 거부 행도 카운트에 포함→스팸이 스스로 한도에 걸림.
+- L3 반복 위반자 쓰로틀: 최근 7일 'rejected-duplicate' 3회+면 한도를 시간당 2 / 일 5로 자동 축소. 관리자용 get_submission_abuse_summary()(service_role 전용) 추가.
+- 클라이언트(create.tsx): status='rejected' 반환 시 "이미 거의 같은 질문…" 안내, rate-limit 에러 메시지 매핑. tsc 0.
+- 남은 갭: 의미 우회(동의어)는 trgm 미포착 → pending+관리자 게이트가 최종 방어선. 임베딩 도입 시 관리자 큐에 의미중복 플래그 보강 가능.
+- repo: supabase/migrations/20260605150000_submission_abuse_guard.sql
+
+## 2026-06-05 — 의미 기반 중복 탐지(임베딩) 최소비용 구축
+- 제약: .env에 openai/openrouter 키 있음, 서비스 롤 없음 → 벡터 DB 적재 비현실적.
+- 설계: scripts/admin/semantic-dedup.mjs. OpenAI text-embedding-3-small로 제목 임베딩(1배치) → 코사인 유사도 비교. 벡터는 DB 미저장, _tmp/embeddings-cache.json(gitignored, 13MB) 캐시 → 재실행 $0. 결과(id+점수)만 출력.
+- 모드: 전체 intra-bank 스캔 / --title(후보 1건) / --pending(관리자 큐 플래그). npm: admin:semantic-dedup.
+- 비용: 460개 제목 1배치 임베딩 ≈ $0.0002(1센트 미만), 캐시 재사용 시 0원. 실제 키로 검증 완료.
+- 발견(보너스 QA): 승인 460개 중 의미중복 9쌍 — 완전동일(1.0) 5쌍(카테고리 간 제목 충돌: 여행 스타일은/여행 일정은/길거리 음식 앞에서/오늘 밤 영화 취향은 등), 재서술(0.92~0.97) 4쌍(새 취미를 시작한다면↔할 때, 칭찬을 받았을 때↔받으면 등). pg_trgm 미포착 영역을 임베딩이 잡음.
+- 한계/주의: seed_key가 위치(index) 기반이라 JSON 중간 삭제 시 후속 seed_key가 밀려 id가 바뀜 → 중복 정리는 별도 설계 필요(content-hash seed_key 전환 권장).
+- repo: scripts/admin/semantic-dedup.mjs, package.json(admin:semantic-dedup)
+
+## 2026-06-05 — 의미중복 9쌍 정리 + seed_key 안정화(freeze)
+- 임베딩 스캔으로 발견한 의미중복 정리. 먼저 seed_key 안정화: 전 뱅크 질문에 명시적 `key`(현재 위치값) 박음(scripts/admin/freeze-seed-keys.mjs) → 이후 중간 삭제해도 다른 질문 id 불변. 검증: md5('bank-culture-001')=라이브 id 일치.
+- 시더 개편: seed_key=item.key(위치 비의존), 이미지도 key 일련번호 기준. 위치/카운트 기반 NEW_ONLY 폐기→안정적 --keys 증분 도입. .seeded-highwater.json 폐기 표시.
+- 제거 7개(투표·리액션·댓글 0 확인): bank-culture-001(영화·시드중복), bank-career-002(새프로젝트·시드중복), bank-life-020/bank-hobby-001(새취미 중복), bank-culture-010(여행스타일→travel 유지), bank-life-039(여행일정→travel 유지), bank-travel-002(길거리음식→food 유지). JSON 삭제 + 라이브 question_traits/questions DELETE.
+- 의도적 유지: 칭찬을 받았을 때?(career) ↔ 받으면?(relationship) 0.92 — 도메인 달라 교차모순 분석에 유용.
+- 결과: 라이브 460→453, JSON 뱅크 430→423(+시드30=453). 재스캔 0.9+ 잔여 1쌍(의도적). 축 175~186 균형 유지. validate ok.
+- repo: scripts/admin/freeze-seed-keys.mjs, scripts/seed-question-bank.mjs(--keys), data/question-bank/*.json(+key, -7)
+
+## 2026-06-05 — 섬 타입 정체성 시스템 P0 토대 (D1+D2+서비스+카드)
+- D2 카탈로그: island_types(16섬, 4군도, 항해수식어용 booleans, tagline/persona) 시드. RLS public read. supabase/migrations/20260605160000_island_types.sql.
+- D1 산출 RPC: compute_user_island_type(uid) — user_traits 집계점수에서 4축 우세극(혼자/함께·익숙/새로움·담담/표현·계획/즉흥) → 16섬 매칭 + 정박/원정(safe/adventure) + 신뢰도(total/30 게이팅). 라이브 검증: 실제 사용자→ESXJ 반장의 섬·원정형(광장군도), conf 0.28. 16섬=16조합 전수 커버.
+- 클라이언트: src/services/islandTypeService.ts(fetchMyIslandType, 신뢰도 임계 0.6), database.types RPC 타입, src/components/island/IslandTypeCard.tsx(정체성 카드: 군도·이모지·이름·항해수식어·4축 칩·신뢰도 게이팅 "아직 잠정/확실히 가까워요"). island 탭 상단에 연결. tsc 0.
+- 설계: deep-research2 반영(군도→섬→날씨 3층, safe/adv=정박/원정 자사언어, MBTI 직역 회피).
+- repo: 위 + src/app/(tabs)/island.tsx
+
+## 2026-06-05 — 섬 타입 P0 완성: 공유 카드 + "친구가 보는 내 섬"
+- A) 공유 카드: IslandTypeCard에 captureRef(png)+Share 공유(웹/실패 시 텍스트 폴백). 자기표현 메시지("나는 ○○섬·원정형 ... 넌 무슨 섬이야?").
+- B) 친구가 보는 내 섬(초대 루프 + 바넘 방어): 
+  - DB: island_friend_guesses(target,voter,4축 bool, unique) + submit_island_friend_guess(로그인·본인제외·업서트) + get_friends_island_view(본인만 집계, 축별%+다수결 섬). 직접접근 차단, 정의자 RPC만. migration 20260605170000.
+  - 클라: islandTypeService(submitFriendGuess/fetchFriendsView/fetchIslandByAxes) + database.types.
+  - 라우트 src/app/guess/[id].tsx: 친구가 4축 토글로 추측→제출→"당신이 본 이 친구는 ○○섬" + "나도 내 섬 알아보기" CTA(유입 루프).
+  - IslandTypeCard: "친구에게 물어보기"(공유 링크 https://balance-vert.vercel.app/guess/{uid}) + "친구 N명이 본 나 ○○섬(축별%)" 표시.
+- 검증: tsc 0, 3 RPC SECURITY DEFINER 등록 확인. (친구 제출 E2E는 다른 로그인 사용자 필요 → 브라우저 스모크 대상.)
+- repo: 위 + src/components/island/IslandTypeCard.tsx
+
+## 2026-06-05 — 섬 타입 P1: 궁합("관계 사용설명서")
+- 256쌍 손작업 대신 축 거리 자동산출 + 축별 관계 카피 36줄 큐레이션. island_compat_line(axis,state,context,line) 시드. migration 20260605180000.
+- RPC: compute_island_compat(a,b)→jsonb{연애/친구/일별 score + harmony[]/challenge[]}, island_best_matches(code)→연애점수 Top N. 라이브 검증: 동일타입 100, 정반대 40(4 도전항로, harmony 0), "싸울 때 바로 답 안 하면 불안" 생활문장 정상.
+- 점수: 40 + 일치축 12점(맥락 키축 +6), 0~100. 낙인 금지(워스트→도전 항로).
+- 클라: islandTypeService(fetchBestMatches/fetchCompat) + types. IslandTypeCard "나와 잘 맞는 섬" 행(탭→상세). src/app/compat.tsx(연애/친구/일 점수바 + 잘맞는점/도전항로 + "진단 아닌 재미" 면책).
+- 검증: tsc 0. (/compat은 신규 라우트→expo 타입젠 전 캐스팅, 런타임 정상.)
+- repo: 위 + src/components/island/IslandTypeCard.tsx
