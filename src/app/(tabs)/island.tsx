@@ -307,7 +307,8 @@ export default function IslandScreen() {
   const petEnergy = `${energyVal}%` as DimensionValue;
   const isGuest = snapshot.profile.id === 'guest';
   const actionDisabled = isMutating;
-  const petImage = getPetImage(snapshot) ?? LOCAL_PET_ISLAND;
+  const realPetImage = getPetImage(snapshot);
+  const petImage = realPetImage ?? LOCAL_PET_ISLAND;
 
   function runAuthAction(action: () => void) {
     if (isGuest) {
@@ -439,9 +440,11 @@ export default function IslandScreen() {
               ]}
             >
               <Image source={LOCAL_PET_ISLAND} style={styles.premiumIslandImage} contentFit="cover" />
-              <View style={styles.petPortrait}>
-                <Image source={petImage} style={styles.petPortraitImage} contentFit="contain" />
-              </View>
+              {realPetImage ? (
+                <View style={styles.petPortrait}>
+                  <Image source={realPetImage} style={styles.petPortraitImage} contentFit="contain" />
+                </View>
+              ) : null}
               <Animated.View
                 style={[
                   styles.floatingHearts,
