@@ -92,6 +92,59 @@ export async function fetchFeedQuestions(
   }));
 }
 
+export type PublicQuestion = {
+  id: string;
+  title: string;
+  description: string | null;
+  categoryName: string | null;
+  option_a_title: string;
+  option_a_description: string | null;
+  option_a_image_url: string | null;
+  option_b_title: string;
+  option_b_description: string | null;
+  option_b_image_url: string | null;
+  vote_count_a: number;
+  vote_count_b: number;
+};
+
+/**
+ * 무로그인 도전장 착지(`/q/[id]`)용. 승인된 질문 한 개를 anon 권한으로 직접 읽는다.
+ * (questions는 status='approved' 공개 read 정책 + 투표수 비정규화 컬럼 → 별도 RPC/익명쓰기 불필요)
+ */
+export async function fetchPublicQuestion(questionId: string): Promise<PublicQuestion | null> {
+  if (!supabase || !hasSupabaseConfig()) return null;
+
+  const { data, error } = await supabase
+    .from('questions')
+    .select(
+      'id, title, description, option_a_title, option_a_description, option_a_image_url, option_b_title, option_b_description, option_b_image_url, option_a_votes, option_b_votes, categories(name)'
+    )
+    .eq('id', questionId)
+    .eq('status', 'approved')
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  const row = data as Record<string, unknown>;
+  const catRaw = row.categories;
+  const cat = (Array.isArray(catRaw) ? catRaw[0] : catRaw) as { name?: string } | null;
+  return {
+    id: String(row.id),
+    title: String(row.title),
+    description: (row.description as string) ?? null,
+    categoryName: cat?.name ?? null,
+    option_a_title: String(row.option_a_title),
+    option_a_description: (row.option_a_description as string) ?? null,
+    option_a_image_url: (row.option_a_image_url as string) ?? null,
+    option_b_title: String(row.option_b_title),
+    option_b_description: (row.option_b_description as string) ?? null,
+    option_b_image_url: (row.option_b_image_url as string) ?? null,
+    vote_count_a: Number(row.option_a_votes ?? 0),
+    vote_count_b: Number(row.option_b_votes ?? 0)
+  };
+}
+
 export async function submitVote(questionId: string, selectedOption: OptionSide): Promise<void> {
   if (!supabase) {
     throw new Error('Supabase 설정이 필요합니다.');

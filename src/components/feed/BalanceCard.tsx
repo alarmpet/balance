@@ -1,10 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import type { FeedQuestion, OptionSide, ReactionType } from '../../services/questionService';
 import { THEME } from '../../theme/styles';
 import GlassView from '../common/GlassView';
+
+const Q_BASE_URL = 'https://balance-vert.vercel.app/q/';
 
 type Props = {
   question: FeedQuestion;
@@ -58,6 +60,21 @@ export default function BalanceCard({ question, onVote, onReaction, onOpenCommen
   const bPercent = percent(question.vote_count_b, totalVotes);
   const hasVoted = Boolean(question.userVote);
   const aWins = question.vote_count_a >= question.vote_count_b;
+
+  const myPercent = question.userVote === 'A' ? aPercent : bPercent;
+  const isMinority = myPercent < 50;
+
+  const handleShareChallenge = async () => {
+    const url = `${Q_BASE_URL}${question.id}${question.userVote ? `?v=${question.userVote}` : ''}`;
+    const a = question.option_a_title;
+    const b = question.option_b_title;
+    const message = `${question.title}\n${a} vs ${b}\n넌 뭐 고를래? 👀\n${url}`;
+    try {
+      await Share.share({ message, url: Platform.OS === 'web' ? undefined : url });
+    } catch {
+      // 취소/미지원 무시
+    }
+  };
 
   return (
     <GlassView style={styles.card} intensity={20} borderRadius={28}>
@@ -135,6 +152,23 @@ export default function BalanceCard({ question, onVote, onReaction, onOpenCommen
             <Text style={[styles.votesInfoText, !aWins ? styles.votesInfoWin : null]}>
               {question.vote_count_b.toLocaleString('ko-KR')}표
             </Text>
+          </View>
+
+          <View style={styles.revealRow}>
+            <View style={[styles.crowdBadge, isMinority ? styles.crowdBadgeMinority : styles.crowdBadgeMajority]}>
+              <Text style={[styles.crowdBadgeText, isMinority ? styles.crowdBadgeTextMinority : styles.crowdBadgeTextMajority]}>
+                {isMinority ? `🔥 ${myPercent}% 소수파` : `👑 ${myPercent}% 다수파`}
+              </Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="이 질문 친구한테 물어보기"
+              style={styles.challengeButton}
+              onPress={handleShareChallenge}
+            >
+              <Ionicons name="paper-plane" size={15} color="#ffffff" />
+              <Text style={styles.challengeButtonText}>친구한테 물어보기</Text>
+            </Pressable>
           </View>
         </View>
       ) : (
@@ -463,6 +497,51 @@ const styles = StyleSheet.create({
     marginTop: 6,
     paddingLeft: 40,
     paddingRight: 10
+  },
+  revealRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'space-between',
+    marginTop: 14
+  },
+  crowdBadge: {
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 7
+  },
+  crowdBadgeMinority: {
+    backgroundColor: 'rgba(251, 146, 60, 0.16)',
+    borderColor: 'rgba(234, 88, 12, 0.4)'
+  },
+  crowdBadgeMajority: {
+    backgroundColor: 'rgba(13, 148, 136, 0.12)',
+    borderColor: 'rgba(13, 148, 136, 0.35)'
+  },
+  crowdBadgeText: {
+    fontSize: 13,
+    fontWeight: '900'
+  },
+  crowdBadgeTextMinority: {
+    color: '#c2410c'
+  },
+  crowdBadgeTextMajority: {
+    color: '#0f766e'
+  },
+  challengeButton: {
+    alignItems: 'center',
+    backgroundColor: '#0f766e',
+    borderRadius: 999,
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 9
+  },
+  challengeButtonText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '900'
   },
   resultsWrapper: {
     marginTop: 16
