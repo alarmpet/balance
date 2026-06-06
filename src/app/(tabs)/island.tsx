@@ -2,7 +2,8 @@ import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, type Href } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ActivityIndicator,
   Modal,
@@ -19,6 +20,7 @@ import { InsightMapPreview } from '../../components/insight/InsightMapPreview';
 import TodayDiscoveryCard from '../../components/island/TodayDiscoveryCard';
 import { PetOriginCard } from '../../components/island/PetOriginCard';
 import { PetDiaryCard } from '../../components/island/PetDiaryCard';
+import { PetAwayCard } from '../../components/island/PetAwayCard';
 import { WeeklyRecapCard } from '../../components/island/WeeklyRecapCard';
 import { IslandTypeCard } from '../../components/island/IslandTypeCard';
 import IslandModeTabs, { type IslandMode } from '../../components/island/IslandModeTabs';
@@ -62,6 +64,20 @@ const RARITY_COPY: Record<ThemeDrawResultRow['rarity'], { label: string; color: 
 };
 
 const LOGIN_ROUTE = '/login' as Href;
+
+const PET_LAST_SEEN_KEY = 'bi_pet_last_seen';
+const PET_GIFT_DATE_KEY = 'bi_pet_gift_date';
+const PET_AWAY_MIN_HOURS = 6;
+
+function kstDateStr(date: Date) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(date);
+}
+
+function formatAwayLabel(hours: number) {
+  if (hours >= 48) return `${Math.floor(hours / 24)}일`;
+  if (hours >= 24) return '하루';
+  return `${Math.max(1, Math.floor(hours))}시간`;
+}
 
 const LOCAL_PET_ASSETS: Record<string, number> = {
   'asset://alarmpetgo/svg/american shorthair.png': require('../../../assets/pets/alarmpetgo/common/american-shorthair.png'),
@@ -190,10 +206,17 @@ export default function IslandScreen() {
     careForAvatar,
     assignPet,
     claimTheme,
+    claimCheckin,
     drawTheme,
     clearThemeDrawResults,
     clearError
   } = useGamificationStore();
+
+  // 펫 "부재중 한 일" 재방문 카드 상태
+  const [petAway, setPetAway] = useState<{ awayLabel: string; giftAvailable: boolean } | null>(null);
+  const [petGiftClaiming, setPetGiftClaiming] = useState(false);
+  const [petAwayDismissed, setPetAwayDismissed] = useState(false);
+  const petAwayChecked = useRef(false);
 
   const [activeMode, setActiveMode] = useState<IslandMode>('discover');
   const [isProbabilityVisible, setIsProbabilityVisible] = useState(false);
@@ -246,6 +269,46 @@ export default function IslandScreen() {
       void loadSnapshot();
     }
   }, [loadSnapshot, snapshot]);
+
+  // 부재 감지: 마지막 방문 이후 6시간↑면 "펫이 부재중에 한 일" 카드 표시(세션당 1회).
+  useEffect(() => {
+    if (petAwayChecked.current) return;
+    if (!snapshot || snapshot.profile.id === 'guest') return;
+    petAwayChecked.current = true;
+    (async () => {
+      try {
+        const [lastSeenRaw, giftDate] = await Promise.all([
+          AsyncStorage.getItem(PET_LAST_SEEN_KEY),
+          AsyncStorage.getItem(PET_GIFT_DATE_KEY)
+        ]);
+        const now = Date.now();
+        await AsyncStorage.setItem(PET_LAST_SEEN_KEY, String(now));
+        const giftAvailable = giftDate !== kstDateStr(new Date());
+        if (lastSeenRaw) {
+          const hoursAway = (now - Number(lastSeenRaw)) / 3_600_000;
+          if (Number.isFinite(hoursAway) && hoursAway >= PET_AWAY_MIN_HOURS) {
+            setPetAway({ awayLabel: formatAwayLabel(hoursAway), giftAvailable });
+          }
+        }
+        // 첫 방문(기록 없음)에는 '부재' 개념이 없으므로 표시하지 않는다.
+      } catch {
+        // 저장소 접근 실패는 조용히 무시(카드만 생략).
+      }
+    })();
+  }, [snapshot]);
+
+  const handleClaimPetGift = async () => {
+    setPetGiftClaiming(true);
+    try {
+      await claimCheckin();
+      await AsyncStorage.setItem(PET_GIFT_DATE_KEY, kstDateStr(new Date()));
+      setPetAway((prev) => (prev ? { ...prev, giftAvailable: false } : prev));
+    } catch {
+      // 에러는 스토어 error 배너로 표면화된다.
+    } finally {
+      setPetGiftClaiming(false);
+    }
+  };
 
   const skyPhase = useMemo(() => {
     // For decorate mode, match the sunset mockup exactly
@@ -341,6 +404,17 @@ export default function IslandScreen() {
             <Text style={styles.walletText}>{shellBalance}</Text>
           </View>
         </View>
+
+        {petAway && !petAwayDismissed ? (
+          <PetAwayCard
+            petName={snapshot.petState?.nickname?.trim() || snapshot.petSpecies?.display_name || '내 펫'}
+            awayLabel={petAway.awayLabel}
+            giftAvailable={petAway.giftAvailable}
+            claiming={petGiftClaiming}
+            onClaim={handleClaimPetGift}
+            onDismiss={() => setPetAwayDismissed(true)}
+          />
+        ) : null}
 
         <IslandTypeCard />
 
