@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { analyticsService } from '../../services/analyticsService';
 
-export type IslandMode = 'discover' | 'branch_map' | 'decorate';
+export type IslandMode = 'discover' | 'decorate';
 
 type IslandModeTabsProps = {
   activeMode: IslandMode;
@@ -22,12 +22,6 @@ export default function IslandModeTabs({ activeMode, onChangeMode }: IslandModeT
         label="발견"
         active={activeMode === 'discover'}
         onPress={() => handleModeChange('discover')}
-      />
-      <TabButton
-        icon="sitemap-outline"
-        label="가지 지도"
-        active={activeMode === 'branch_map'}
-        onPress={() => handleModeChange('branch_map')}
       />
       <TabButton
         icon="island"

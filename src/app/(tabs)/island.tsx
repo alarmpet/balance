@@ -16,13 +16,8 @@ import {
   type DimensionValue
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { InsightMapPreview } from '../../components/insight/InsightMapPreview';
-import TodayDiscoveryCard from '../../components/island/TodayDiscoveryCard';
-import { PetOriginCard } from '../../components/island/PetOriginCard';
 import { PetDiaryCard } from '../../components/island/PetDiaryCard';
 import { PetAwayCard } from '../../components/island/PetAwayCard';
-import { WeeklyRecapCard } from '../../components/island/WeeklyRecapCard';
-import { IslandTypeCard } from '../../components/island/IslandTypeCard';
 import IslandModeTabs, { type IslandMode } from '../../components/island/IslandModeTabs';
 import ThemeProbabilitySheet from '../../components/island/ThemeProbabilitySheet';
 import { analyticsService } from '../../services/analyticsService';
@@ -416,8 +411,6 @@ export default function IslandScreen() {
           />
         ) : null}
 
-        <IslandTypeCard />
-
         {error ? (
           <View style={styles.errorBanner}>
             <Text style={styles.errorBannerText}>{error}</Text>
@@ -570,76 +563,17 @@ export default function IslandScreen() {
 
         {activeMode === 'discover' && (
           <View style={styles.modeContainer}>
-            <TodayDiscoveryCard />
-
-            <PetOriginCard snapshot={snapshot} />
-
             <PetDiaryCard snapshot={snapshot} />
 
-            <WeeklyRecapCard snapshot={snapshot} />
-
-            <InsightMapPreview snapshot={snapshot} onOpen={() => router.push('/insight' as Href)} />
-
-            <View style={styles.traitPanel}>
-              <View style={styles.panelHeader}>
-                <View>
-                  <Text style={styles.cardLabel}>성향 조각</Text>
-                  <Text style={styles.cardTitle}>상위 성향</Text>
-                </View>
-                <MaterialCommunityIcons name="chart-donut" size={34} color="#14b8a6" />
-              </View>
-              {topTraits.length === 0 ? (
-                <Text style={styles.emptyText}>투표를 시작하면 이곳에 나의 선택 성향이 쌓입니다.</Text>
-              ) : (
-                topTraits.map((trait) => {
-                  const copy = TRAIT_COPY[trait.trait_key];
-                  return (
-                    <View key={trait.trait_key} style={styles.traitRow}>
-                      <Text style={styles.traitName}>{copy?.label ?? trait.trait_key}</Text>
-                      <Text style={styles.traitScore}>{trait.score}</Text>
-                    </View>
-                  );
-                })
-              )}
-            </View>
-          </View>
-        )}
-
-        {activeMode === 'branch_map' && (
-          <View style={styles.modeContainer}>
-            <View style={styles.traitPanel}>
-              <View style={styles.panelHeader}>
-                <View>
-                  <Text style={styles.cardLabel}>성향 가지</Text>
-                  <Text style={styles.cardTitle}>나의 취향/가치관 성장도</Text>
-                </View>
-                <MaterialCommunityIcons name="sitemap-outline" size={34} color="#0ea5e9" />
-              </View>
-              <Text style={styles.summaryText}>
-                선택이 모여 단단하고 풍성하게 뻗어 나가는 성향 가지들의 상태입니다.
-              </Text>
-              {snapshot.traits.length === 0 ? (
-                <Text style={styles.emptyText}>아직 발견된 성향 가지가 없습니다. 질문을 더 선택해 보세요!</Text>
-              ) : (
-                snapshot.traits.map((trait) => {
-                  const copy = TRAIT_COPY[trait.trait_key];
-                  const barWidth = `${Math.min(100, Math.max(8, trait.score * 5))}%` as DimensionValue;
-                  return (
-                    <View key={trait.trait_key} style={styles.progressBlock}>
-                      <View style={styles.progressTextRow}>
-                        <Text style={styles.progressLabel}>{copy?.label ?? trait.trait_key}</Text>
-                        <Text style={styles.progressValue}>{trait.score}점</Text>
-                      </View>
-                      <View style={styles.progressTrack}>
-                        <View style={[styles.progressFill, { width: barWidth, backgroundColor: '#0ea5e9' }]} />
-                      </View>
-                    </View>
-                  );
-                })
-              )}
-            </View>
-
-            <InsightMapPreview snapshot={snapshot} onOpen={() => router.push('/insight' as Href)} />
+            <Pressable
+              style={styles.insightLink}
+              accessibilityRole="button"
+              accessibilityLabel="성향 지도 자세히 보기"
+              onPress={() => router.push('/insight' as Href)}
+            >
+              <MaterialCommunityIcons name="chart-line-variant" size={16} color="#0f766e" />
+              <Text style={styles.insightLinkText}>성향 지도 자세히 보기 ›</Text>
+            </Pressable>
           </View>
         )}
 
@@ -1368,6 +1302,23 @@ const styles = StyleSheet.create({
   },
   modeContainer: {
     width: '100%'
+  },
+  insightLink: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderColor: 'rgba(15,118,110,0.2)',
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 6,
+    justifyContent: 'center',
+    marginTop: 12,
+    minHeight: 48
+  },
+  insightLinkText: {
+    color: '#0f766e',
+    fontSize: 14,
+    fontWeight: '900'
   },
   miniIcon: {
     fontSize: 10

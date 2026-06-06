@@ -69,3 +69,5 @@ YYYY-MM-DD HH:mm | command | summary | linked files
 2026-06-05 | save | 섬 타입 P1 궁합: island_compat_line(36줄)+compute_island_compat/best_matches RPC(라이브 검증), compat 화면+카드 "잘 맞는 섬" 행, 생활문장 카피·낙인금지, tsc 0 | [[supabase/migrations/20260605180000_island_compat]], [[src/app/compat]], [[timeline]]
 2026-06-05 | save | 냉철한 제품 가지치기 계획서: 진짜 북극성(심심풀이 밸런스→가벼운 자기발견+여론+다마고찌/포켓몬 펫수집) 재정의, 16섬/궁합/친구추측은 PARK(영혼과 충돌), 펫 가챠·수집·여론 강화 권고 | [[AI-Sessions/wiki/decisions/product-refocus-cold-audit]]
 - 2026-06-06 save: AI-Sessions/wiki/projects/core-play-loop-plan.md — 코어 동사(A|B 탭) 중심 재배치, 3반응(공유 도전장/펫 부재중일기/가벼운 충돌) 계획서. 근거 PIKU·다마고치·Smile Test.
+- 2026-06-06 deploy: P0 도전장 공유 루프(117eb72) + P1 펫 부재중 카드(c9501eb) feat+main 푸시. /q/[id] 무로그인 착지 프로덕션 검증, P1 게스트 무회귀 확인.
+- 2026-06-06 save: AI-Sessions/wiki/design/island-tab-simplify-plan.md — 섬 탭 다이어트(심플·직관·트렌디). 모드탭 제거+단일스크롤, IslandTypeCard PARK, 펫 주인공화, 인사이트 분리.
