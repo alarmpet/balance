@@ -12,4 +12,3 @@ export function deadlineToIso(presetId: DeadlinePresetId, now = Date.now()): str
   if (!preset || preset.durationMs === null) return null;
   return new Date(now + preset.durationMs).toISOString();
 }
-

@@ -41,4 +41,3 @@ const styles = StyleSheet.create({
   value: { color: colors.muted, fontSize: 13 },
   control: { flexShrink: 1 },
 });
-

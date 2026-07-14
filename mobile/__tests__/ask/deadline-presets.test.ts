@@ -10,4 +10,3 @@ test.each([
 ] as const)('converts %s into the expected close time', (preset, expected) => {
   expect(deadlineToIso(preset, now)).toBe(expected);
 });
-

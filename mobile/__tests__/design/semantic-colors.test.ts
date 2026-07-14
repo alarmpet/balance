@@ -8,4 +8,3 @@ test('defines semantic soft surfaces used by balance cards', () => {
     insightSoft: '#F5F2FF',
   });
 });
-
