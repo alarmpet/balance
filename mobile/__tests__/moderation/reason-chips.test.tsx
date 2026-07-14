@@ -124,8 +124,8 @@ test('shows reasons only after a vote and reaction persistence never blocks adva
     questionId: 'daily', userId: 'user-1', reason: 'realistic',
   });
 
-  await act(async () => jest.advanceTimersByTime(800));
-  expect(view.getByText('다음 질문')).toBeTruthy();
+  await fireEvent.press(view.getByRole('button', { name: '다음 질문' }));
+  expect(view.getByLabelText('A 선택: 다음 질문')).toBeTruthy();
   expect(view.queryByText('현실적으로 이쪽')).toBeNull();
 });
 
@@ -150,8 +150,8 @@ test('serializes fast reason changes so the latest selection is persisted last w
   expect(source.reactReason).toHaveBeenNthCalledWith(1, {
     questionId: 'daily', userId: 'user-1', reason: 'realistic',
   });
-  await act(async () => jest.advanceTimersByTime(800));
-  expect(view.getByText('다음 질문')).toBeTruthy();
+  await fireEvent.press(view.getByRole('button', { name: '다음 질문' }));
+  expect(view.getByLabelText('A 선택: 다음 질문')).toBeTruthy();
 
   await act(async () => {
     firstSave.resolve();
@@ -183,7 +183,8 @@ test('keeps each questions latest pending reason when play advances during a sav
   });
   await fireEvent.press(view.getByLabelText('현실적으로 이쪽'));
   await fireEvent.press(view.getByLabelText('감정적으로 이쪽'));
-  await act(async () => jest.advanceTimersByTime(800));
+  await fireEvent.press(view.getByRole('button', { name: '다음 질문' }));
+  expect(view.getByLabelText('A 선택: 다음 질문')).toBeTruthy();
 
   await act(async () => {
     fireEvent.press(view.getByLabelText('A 선택: 다음 질문'));
@@ -226,11 +227,11 @@ test('hands a failed reason reaction to an explicit retry after the play loop ad
   await act(async () => {
     await Promise.resolve();
     await Promise.resolve();
-    jest.advanceTimersByTime(800);
   });
 
-  expect(view.getByText('다음 질문')).toBeTruthy();
   expect(view.getByRole('alert')).toHaveTextContent('선택 이유를 저장하지 못했어요.');
+  await fireEvent.press(view.getByRole('button', { name: '다음 질문' }));
+  expect(view.getByLabelText('A 선택: 다음 질문')).toBeTruthy();
   await fireEvent.press(view.getByRole('button', { name: '선택 이유 다시 시도' }));
   await waitFor(() => expect(source.reactReason).toHaveBeenCalledTimes(2));
   expect(source.reactReason).toHaveBeenLastCalledWith({

@@ -74,6 +74,8 @@ export function PlayScreen({
   const [failedVoteChoice, setFailedVoteChoice] = useState<VoteChoice | null>(null);
   const [failedReasonReaction, setFailedReasonReaction] = useState<PendingReasonReaction | null>(null);
   const submissionLock = useRef(false);
+  const resultNavigationReady = useRef(false);
+  const navigationCooldownUntil = useRef(0);
   const mounted = useRef(false);
   const generation = useRef(0);
   const pendingReasonReactions = useRef<PendingReasonReaction[]>([]);
@@ -123,6 +125,8 @@ export function PlayScreen({
     mounted.current = true;
     const activeGeneration = ++generation.current;
     submissionLock.current = false;
+    resultNavigationReady.current = false;
+    navigationCooldownUntil.current = 0;
     setResult(null);
     setSubmitting(false);
     setActionError(null);
@@ -134,6 +138,8 @@ export function PlayScreen({
       mounted.current = false;
       if (generation.current === activeGeneration) generation.current += 1;
       submissionLock.current = false;
+      resultNavigationReady.current = false;
+      navigationCooldownUntil.current = 0;
       setResult(null);
       setSubmitting(false);
       setActionError(null);
@@ -177,6 +183,7 @@ export function PlayScreen({
           void trackEvent({ name: 'question_voted', userId, questionId: question.id, source: 'play' }).catch(() => undefined);
           void trackEvent({ name: 'result_viewed', userId, questionId: question.id, source: 'play' }).catch(() => undefined);
         }
+        resultNavigationReady.current = true;
         setResult(receipt);
         setSubmitting(false);
       } catch (error) {
@@ -221,18 +228,19 @@ export function PlayScreen({
   }, [canMutate, createActionId, pendingActionQueue, question, repository, trackEvent, userId]);
 
   const next = useCallback(() => {
-    if (!result) return;
+    if (!result || !resultNavigationReady.current) return;
+    resultNavigationReady.current = false;
+    submissionLock.current = false;
     setResult(null);
     setSubmitting(false);
     setActionError(null);
     setFailedVoteChoice(null);
-    setFailedReasonReaction(null);
-    submissionLock.current = false;
+    navigationCooldownUntil.current = Date.now() + 400;
     advance();
   }, [advance, result]);
 
   const skip = useCallback(async () => {
-    if (!canMutate || !question || submissionLock.current) return;
+    if (!canMutate || !question || submissionLock.current || Date.now() < navigationCooldownUntil.current) return;
     submissionLock.current = true;
     setSubmitting(true);
     setActionError(null);

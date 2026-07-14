@@ -141,8 +141,11 @@ test('shows the daily result until the user explicitly opens the next question',
   expect(view.getByText('Daily question')).toBeTruthy();
   expect(view.getByLabelText('A 선택: Daily question, 선택됨')).toBeDisabled();
 
-  await fireEvent.press(view.getByRole('button', { name: '다음 질문' }));
+  const next = view.getByRole('button', { name: '다음 질문' });
+  await fireEvent.press(next);
+  await fireEvent.press(next);
   expect(view.getByText('First feed question')).toBeTruthy();
+  expect(useDeckStore.getState().index).toBe(1);
 });
 
 test('offers an explicit retry when the question repository is offline', async () => {
