@@ -23,16 +23,12 @@ test('ask controls expose Korean names, state, and 44 point touch targets', asyn
   const view = await render(<AskScreen repository={repository} userId="guest-accessibility" />);
   expect(minHeight(view.getByLabelText('선택지 A'))).toBeGreaterThanOrEqual(44);
   expect(minHeight(view.getByLabelText('선택지 B'))).toBeGreaterThanOrEqual(44);
-  const disclosure = view.getByRole('button', { name: '추가 설정' });
-  expect(minHeight(disclosure)).toBeGreaterThanOrEqual(44);
-  await fireEvent.press(disclosure);
-
-  for (const name of ['추가 설정 닫기', '전체 공개', '링크로만 공개', '질문 등록']) {
-    expect(minHeight(view.getByRole(name.includes('공개') ? 'radio' : 'button', { name })))
+  for (const name of ['일상', '전체 공개', '링크로만 공개', '게시하기']) {
+    expect(minHeight(view.getByRole(name === '게시하기' ? 'button' : 'radio', { name })))
       .toBeGreaterThanOrEqual(44);
   }
   expect(view.getByRole('radio', { name: '전체 공개' })).toHaveProp(
-    'accessibilityState', { checked: true },
+    'accessibilityState', { checked: true, disabled: false },
   );
   expect(view.getByText('✓ 전체 공개')).toBeTruthy();
 });

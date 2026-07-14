@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -18,6 +20,14 @@ import {
   areCreateQuestionOptionsDifferent,
   normalizeCreateQuestion,
 } from '../domain/createQuestion';
+import { QUESTION_CATEGORIES } from '../domain/questionCategories';
+import {
+  DEADLINE_PRESETS,
+  deadlineToIso,
+  type DeadlinePresetId,
+} from '../domain/deadlinePresets';
+import { CategoryChipGroup } from './CategoryChipGroup';
+import { SettingRow } from './SettingRow';
 
 interface AskScreenProps {
   canMutate?: boolean;
@@ -46,9 +56,8 @@ export function AskScreen({
   const [optionB, setOptionB] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('일상');
-  const [closesAt, setClosesAt] = useState('');
+  const [deadlinePreset, setDeadlinePreset] = useState<DeadlinePresetId>('none');
   const [visibility, setVisibility] = useState<QuestionVisibility>('public');
-  const [showOptional, setShowOptional] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -96,7 +105,7 @@ export function AskScreen({
         description,
         category,
         visibility,
-        closesAt: closesAt.trim() || null,
+        closesAt: deadlineToIso(deadlinePreset),
       });
     } catch {
       setError('입력한 내용을 확인해 주세요.');
@@ -119,9 +128,8 @@ export function AskScreen({
       setOptionB('');
       setDescription('');
       setCategory('일상');
-      setClosesAt('');
+      setDeadlinePreset('none');
       setVisibility('public');
-      setShowOptional(false);
       setMessage(SUCCESS_MESSAGE);
       if (registerNotifications && canMutateRef.current && source !== 'offline') {
         const expected = identityRef.current;
@@ -144,18 +152,25 @@ export function AskScreen({
   };
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.screen}
-      keyboardShouldPersistTaps="handled"
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={styles.frame}
     >
-      <Text style={styles.eyebrow}>질문 만들기</Text>
-      <Text style={styles.title}>둘 중 하나를{`\n`}고르게 해 보세요.</Text>
+      <ScrollView
+        contentContainerStyle={styles.screen}
+        keyboardShouldPersistTaps="handled"
+      >
+      <Text accessibilityRole="header" style={styles.title}>밸런스 작성</Text>
+      <Text style={styles.subtitle}>헷갈리는 선택을 세상에 물어보세요.</Text>
 
-      <View style={styles.options}>
+      <View style={styles.sectionCard}>
+        <Text style={styles.sectionTitle}>밸런스 질문 만들기</Text>
+        <View style={styles.options}>
         <View style={[styles.optionCard, styles.optionA]}>
-          <Text style={styles.optionLabel}>A</Text>
+          <Text style={[styles.optionLabel, styles.optionALabel]}>선택 A</Text>
           <TextInput
             accessibilityLabel="선택지 A"
+            editable={canMutate && !submitting}
             maxLength={40}
             onChangeText={setOptionA}
             placeholder="선택지 A"
@@ -165,9 +180,10 @@ export function AskScreen({
           />
         </View>
         <View style={[styles.optionCard, styles.optionB]}>
-          <Text style={styles.optionLabel}>B</Text>
+          <Text style={[styles.optionLabel, styles.optionBLabel]}>선택 B</Text>
           <TextInput
             accessibilityLabel="선택지 B"
+            editable={canMutate && !submitting}
             maxLength={40}
             onChangeText={setOptionB}
             placeholder="선택지 B"
@@ -177,24 +193,23 @@ export function AskScreen({
           />
         </View>
       </View>
+      </View>
 
-      <Pressable
-        accessibilityLabel={showOptional ? '추가 설정 닫기' : '추가 설정'}
-        accessibilityRole="button"
-        accessibilityState={{ expanded: showOptional }}
-        onPress={() => setShowOptional((current) => !current)}
-        style={styles.optionalToggle}
-      >
-        <Text style={styles.optionalToggleText}>
-          {showOptional ? '추가 설정 닫기' : '추가 설정'}
-        </Text>
-      </Pressable>
+      <View style={styles.sectionCard}>
+        <Text style={styles.sectionTitle}>카테고리 선택</Text>
+        <CategoryChipGroup
+          disabled={!canMutate || submitting}
+          onChange={setCategory}
+          options={QUESTION_CATEGORIES}
+          value={category}
+        />
+      </View>
 
-      {showOptional ? (
-        <View style={styles.optionalPanel}>
-          <Text style={styles.fieldLabel}>설명</Text>
+      <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>추가 설명 <Text style={styles.optional}>(선택)</Text></Text>
           <TextInput
             accessibilityLabel="질문 설명"
+            editable={canMutate && !submitting}
             maxLength={120}
             multiline
             onChangeText={setDescription}
@@ -203,47 +218,54 @@ export function AskScreen({
             style={[styles.secondaryInput, styles.description]}
             value={description}
           />
+      </View>
 
-          <Text style={styles.fieldLabel}>카테고리</Text>
-          <TextInput
-            accessibilityLabel="카테고리"
-            onChangeText={setCategory}
-            placeholder="일상"
-            placeholderTextColor={colors.muted}
-            style={styles.secondaryInput}
-            value={category}
-          />
-
-          <Text style={styles.fieldLabel}>마감 시간</Text>
-          <TextInput
-            accessibilityLabel="마감 시간"
-            autoCapitalize="none"
-            onChangeText={setClosesAt}
-            placeholder="2026-07-31T15:00:00.000Z"
-            placeholderTextColor={colors.muted}
-            style={styles.secondaryInput}
-            value={closesAt}
-          />
-
-          <Text style={styles.fieldLabel}>공개 방식</Text>
+      <View style={styles.sectionCard}>
+        <Text style={styles.sectionTitle}>공개 및 마감</Text>
+        <SettingRow
+          disabled={!canMutate || submitting}
+          label="공개 방식"
+          value={visibility === 'public' ? '전체 공개' : '링크로만 공개'}
+          control={(
           <View
             accessibilityLabel="공개 방식"
             accessibilityRole="radiogroup"
             style={styles.visibilityRow}
           >
             <VisibilityButton
+              disabled={!canMutate || submitting}
               label="전체 공개"
               onPress={() => setVisibility('public')}
               selected={visibility === 'public'}
             />
             <VisibilityButton
+              disabled={!canMutate || submitting}
               label="링크로만 공개"
               onPress={() => setVisibility('link')}
               selected={visibility === 'link'}
             />
           </View>
-        </View>
-      ) : null}
+          )}
+        />
+        <SettingRow
+          disabled={!canMutate || submitting}
+          label="마감 시간"
+          value={DEADLINE_PRESETS.find(({ id }) => id === deadlinePreset)?.label ?? '마감 없음'}
+          control={(
+            <View accessibilityLabel="마감 기간" accessibilityRole="radiogroup" style={styles.deadlineRow}>
+              {DEADLINE_PRESETS.map((preset) => (
+                <DeadlineButton
+                  disabled={!canMutate || submitting}
+                  key={preset.id}
+                  label={preset.label}
+                  onPress={() => setDeadlinePreset(preset.id)}
+                  selected={deadlinePreset === preset.id}
+                />
+              ))}
+            </View>
+          )}
+        />
+      </View>
 
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
       {error ? (
@@ -260,7 +282,7 @@ export function AskScreen({
       ) : null}
 
       <Pressable
-        accessibilityLabel="질문 등록"
+        accessibilityLabel="게시하기"
         accessibilityRole="button"
         disabled={!canMutate || !canSubmit || submitting}
         onPress={() => void submit()}
@@ -270,17 +292,20 @@ export function AskScreen({
           pressed && canMutate && canSubmit && !submitting && styles.submitPressed,
         ]}
       >
-        <Text style={styles.submitText}>{submitting ? '등록 중…' : '질문 등록'}</Text>
+        <Text style={styles.submitText}>{submitting ? '게시 중…' : '게시하기'}</Text>
       </Pressable>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 function VisibilityButton({
+  disabled,
   label,
   onPress,
   selected,
 }: {
+  disabled: boolean;
   label: string;
   onPress: () => void;
   selected: boolean;
@@ -289,9 +314,10 @@ function VisibilityButton({
     <Pressable
       accessibilityLabel={label}
       accessibilityRole="radio"
-      accessibilityState={{ checked: selected }}
+      accessibilityState={{ checked: selected, disabled }}
+      disabled={disabled}
       onPress={onPress}
-      style={[styles.visibilityButton, selected && styles.visibilityButtonSelected]}
+      style={[styles.visibilityButton, selected && styles.visibilityButtonSelected, disabled && styles.controlDisabled]}
     >
       <Text style={[styles.visibilityText, selected && styles.visibilityTextSelected]}>
         {selected ? `✓ ${label}` : label}
@@ -300,15 +326,51 @@ function VisibilityButton({
   );
 }
 
+function DeadlineButton({
+  disabled,
+  label,
+  onPress,
+  selected,
+}: {
+  disabled: boolean;
+  label: string;
+  onPress: () => void;
+  selected: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityLabel={label}
+      accessibilityRole="radio"
+      accessibilityState={{ checked: selected, disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={[styles.deadlineButton, selected && styles.deadlineButtonSelected, disabled && styles.controlDisabled]}
+    >
+      <Text style={[styles.deadlineText, selected && styles.deadlineTextSelected]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
+  frame: { backgroundColor: colors.background, flex: 1 },
   screen: {
     flexGrow: 1,
     backgroundColor: colors.background,
     padding: spacing.lg,
     gap: spacing.md,
   },
-  eyebrow: { color: colors.primary, fontSize: 14, fontWeight: '700' },
   title: { color: colors.text, fontSize: 30, fontWeight: '800', lineHeight: 39 },
+  subtitle: { color: colors.muted, fontSize: 15, lineHeight: 22 },
+  sectionCard: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.card,
+    borderWidth: 1,
+    gap: spacing.md,
+    padding: spacing.md,
+  },
+  sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },
+  optional: { color: colors.muted, fontSize: 14, fontWeight: '500' },
   options: { gap: spacing.md },
   optionCard: {
     backgroundColor: colors.surface,
@@ -319,16 +381,9 @@ const styles = StyleSheet.create({
   optionA: { borderLeftColor: colors.optionA },
   optionB: { borderLeftColor: colors.optionB },
   optionLabel: { color: colors.muted, fontSize: 13, fontWeight: '800' },
+  optionALabel: { color: colors.optionA },
+  optionBLabel: { color: colors.optionB },
   input: { color: colors.text, fontSize: 20, fontWeight: '700', minHeight: 44, paddingVertical: spacing.sm },
-  optionalToggle: { alignItems: 'center', alignSelf: 'flex-start', justifyContent: 'center', minHeight: 44, minWidth: 44, paddingHorizontal: spacing.sm },
-  optionalToggleText: { color: colors.primary, fontSize: 15, fontWeight: '700' },
-  optionalPanel: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.card,
-    gap: spacing.sm,
-    padding: spacing.md,
-  },
-  fieldLabel: { color: colors.text, fontSize: 14, fontWeight: '700', marginTop: spacing.xs },
   secondaryInput: {
     borderColor: colors.border,
     borderRadius: 12,
@@ -337,7 +392,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   description: { minHeight: 80, textAlignVertical: 'top' },
-  visibilityRow: { flexDirection: 'row', gap: spacing.sm },
+  visibilityRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'flex-end' },
   visibilityButton: {
     borderColor: colors.border,
     borderRadius: radius.button,
@@ -350,6 +405,12 @@ const styles = StyleSheet.create({
   visibilityButtonSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
   visibilityText: { color: colors.text, fontWeight: '700' },
   visibilityTextSelected: { color: colors.surface },
+  controlDisabled: { opacity: 0.45 },
+  deadlineRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, justifyContent: 'flex-end' },
+  deadlineButton: { alignItems: 'center', borderColor: colors.border, borderRadius: radius.button, borderWidth: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: spacing.sm },
+  deadlineButtonSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  deadlineText: { color: colors.text, fontSize: 13, fontWeight: '700' },
+  deadlineTextSelected: { color: colors.surface },
   error: { color: '#B42318' },
   success: { color: '#067647', lineHeight: 21 },
   submit: {
