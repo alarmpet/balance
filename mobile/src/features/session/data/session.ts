@@ -174,6 +174,12 @@ export async function getOrCreateOnlineFirstSession(options: {
   captchaTokenProvider?: CaptchaTokenProvider;
   now?: () => number;
 } = {}): Promise<{ userId: string; isAnonymous: boolean; source: 'anonymous' | 'permanent' | 'offline' }> {
+  if (!options.client
+    && (!process.env.EXPO_PUBLIC_SUPABASE_URL
+      || !process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY)) {
+    const guest = await getOrCreateGuestSession(options.storage, options.createId);
+    return { ...guest, isAnonymous: false, source: 'offline' };
+  }
   const now = options.now ?? Date.now;
   try {
     const existing = await currentUser(options.client ?? defaultClient());

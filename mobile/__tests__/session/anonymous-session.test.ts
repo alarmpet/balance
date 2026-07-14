@@ -213,3 +213,28 @@ test('refreshes and retries once when Supabase rejects an expired CAPTCHA token'
   expect(client.auth.signInAnonymously).toHaveBeenNthCalledWith(1, { options: { captchaToken: 'first' } });
   expect(client.auth.signInAnonymously).toHaveBeenNthCalledWith(2, { options: { captchaToken: 'second' } });
 });
+
+test('uses a local guest without loading Supabase when only the URL is configured', async () => {
+  const previousUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+  const previousKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://legacy-project.supabase.co';
+  delete process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  jest.doMock('@/src/lib/supabase', () => {
+    throw new Error('Supabase client must stay unloaded');
+  });
+
+  try {
+    await expect(getOrCreateOnlineFirstSession({
+      storage: new Map<string, string>(),
+      createId: () => '10000000-0000-0000-0000-000000000099',
+    })).resolves.toEqual({
+      userId: 'guest_10000000-0000-0000-0000-000000000099',
+      isAnonymous: false,
+      source: 'offline',
+    });
+  } finally {
+    process.env.EXPO_PUBLIC_SUPABASE_URL = previousUrl;
+    process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY = previousKey;
+    jest.dontMock('@/src/lib/supabase');
+  }
+});
