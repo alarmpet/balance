@@ -1,7 +1,7 @@
 import { randomUUID } from 'expo-crypto';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useQuestionRepository, useSession } from '@/src/providers/AppProviders';
 import { colors, radius, spacing } from '@/src/design/tokens';
@@ -176,9 +176,15 @@ export default function ShareRoute() {
   if (!question) return null;
 
   return (
-    <View style={styles.screen}>
+    <ScrollView accessibilityLabel="공유된 밸런스 화면" contentContainerStyle={styles.screen}>
+      <Text accessibilityRole="header" style={styles.screenTitle}>공유된 밸런스</Text>
       <Text style={styles.category}>{question.category}</Text>
-      {question.description ? <Text style={styles.description}>{question.description}</Text> : null}
+      <View style={styles.questionIntro}>
+        <Text accessibilityRole="header" style={styles.questionTitle}>
+          {question.optionA} vs {question.optionB}
+        </Text>
+        {question.description ? <Text style={styles.description}>{question.description}</Text> : null}
+      </View>
       <Pressable
         accessibilityLabel={`A 선택: ${question.optionA}`}
         accessibilityRole="button"
@@ -229,13 +235,16 @@ export default function ShareRoute() {
           </Pressable>
         </View>
       ) : null}
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background, gap: spacing.md, justifyContent: 'center', padding: spacing.lg },
-  category: { color: colors.muted, textAlign: 'center' },
+  screen: { backgroundColor: colors.background, flexGrow: 1, gap: spacing.md, justifyContent: 'center', padding: spacing.lg, paddingBottom: spacing.xl },
+  screenTitle: { color: colors.text, fontSize: 28, fontWeight: '800', textAlign: 'center' },
+  category: { alignSelf: 'center', backgroundColor: colors.primarySoft, borderRadius: radius.button, color: colors.primary, fontWeight: '700', overflow: 'hidden', paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  questionIntro: { gap: spacing.sm },
+  questionTitle: { color: colors.text, fontSize: 24, fontWeight: '800', lineHeight: 33, textAlign: 'center' },
   description: { color: colors.text, textAlign: 'center' },
   choice: { alignItems: 'center', borderRadius: radius.card, justifyContent: 'center', minHeight: 160, padding: spacing.lg },
   optionA: { backgroundColor: colors.optionA },

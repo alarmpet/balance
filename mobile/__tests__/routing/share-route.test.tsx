@@ -89,6 +89,15 @@ afterEach(async () => {
   (track as jest.Mock).mockClear();
 });
 
+test('shows a clear shared-balance hierarchy without fake social controls or early results', async () => {
+  await renderShare(repository());
+
+  await waitFor(() => expect(screen.getByRole('header', { name: '공유된 밸런스' })).toBeTruthy());
+  expect(screen.getByRole('header', { name: `${question.optionA} vs ${question.optionB}` })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /댓글|공감|저장|비슷한 사람/ })).toBeNull();
+  expect(screen.queryByText(/%/)).toBeNull();
+});
+
 test('reuses one persisted action id after a lost response and shows the result before upgrade', async () => {
   const target = repository();
   (target.vote as jest.Mock)
@@ -195,7 +204,7 @@ test('renders the primary detail when auxiliary vote evidence is offline', async
     </QuestionRepositoryContext.Provider>;
   }
   await renderRouter({ 'question/[id]': QuestionDetailRoute }, { initialUrl: `/question/${question.id}`, wrapper: Wrapper });
-  await waitFor(() => expect(screen.getByText(`A. ${question.optionA}`)).toBeTruthy());
+  await waitFor(() => expect(screen.getByRole('header', { name: `${question.optionA} vs ${question.optionB}` })).toBeTruthy());
   expect(screen.queryByRole('button', { name: /돈/ })).toBeNull();
   expect(screen.queryByText('질문을 불러오지 못했어요.')).toBeNull();
 });
@@ -212,9 +221,9 @@ test('tracks successful share and report with identifiers only', async () => {
     </QuestionRepositoryContext.Provider>;
   }
   await renderRouter({ 'question/[id]': QuestionDetailRoute }, { initialUrl: `/question/${question.id}`, wrapper: Wrapper });
-  await waitFor(() => expect(screen.getByLabelText('질문 공유')).toBeTruthy());
-  await fireEvent.press(screen.getByLabelText('질문 공유'));
-  await fireEvent.press(screen.getByLabelText('질문 신고'));
+  await waitFor(() => expect(screen.getByLabelText('공유하기')).toBeTruthy());
+  await fireEvent.press(screen.getByLabelText('공유하기'));
+  await fireEvent.press(screen.getByLabelText('신고하기'));
   await waitFor(() => expect(track).toHaveBeenCalledWith(expect.objectContaining({ name: 'report_submitted' })));
   expect(track).toHaveBeenCalledWith({ name: 'question_shared', userId: '71000000-0000-0000-0000-000000000001', questionId: question.id, source: 'share' });
   for (const [event] of (track as jest.Mock).mock.calls) {
@@ -223,13 +232,13 @@ test('tracks successful share and report with identifiers only', async () => {
   }
   (track as jest.Mock).mockClear();
   (Share.share as jest.Mock).mockResolvedValueOnce({ action: Share.dismissedAction });
-  await fireEvent.press(screen.getByLabelText('질문 공유'));
+  await fireEvent.press(screen.getByLabelText('공유하기'));
   await Promise.resolve();
   expect(track).not.toHaveBeenCalled();
 
   (Share.share as jest.Mock).mockResolvedValueOnce({ action: Share.sharedAction });
   (track as jest.Mock).mockRejectedValueOnce(new Error('analytics offline'));
-  await fireEvent.press(screen.getByLabelText('질문 공유'));
+  await fireEvent.press(screen.getByLabelText('공유하기'));
   await Promise.resolve();
   expect(screen.queryByText('공유하지 못했어요. 다시 시도해 주세요.')).toBeNull();
 });

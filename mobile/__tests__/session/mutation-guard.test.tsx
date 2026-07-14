@@ -30,7 +30,7 @@ test('blocks ask creation when the session mutation guard is closed', async () =
   const view = await render(<AskScreen canMutate={false} repository={target} userId="server-user" />);
   await fireEvent.changeText(view.getByPlaceholderText('선택지 A'), 'Alpha');
   await fireEvent.changeText(view.getByPlaceholderText('선택지 B'), 'Beta');
-  const submit = view.getByRole('button', { name: '질문 등록' });
+  const submit = view.getByRole('button', { name: '게시하기' });
 
   expect(submit).toBeDisabled();
   await fireEvent.press(submit);
@@ -54,10 +54,10 @@ test('blocks question reason, report, and block calls when the session mutation 
   await renderRouter({ 'question/[id]': QuestionDetailRoute }, {
     initialUrl: `/question/${question.id}`, wrapper: Wrapper,
   });
-  await waitFor(() => expect(screen.getByText(/A\. Alpha/)).toBeTruthy());
+  await waitFor(() => expect(screen.getByRole('header', { name: 'Alpha vs Beta' })).toBeTruthy());
 
-  await fireEvent.press(screen.getByLabelText('질문 신고'));
-  await fireEvent.press(screen.getByLabelText('작성자 차단'));
+  await fireEvent.press(screen.getByLabelText('신고하기'));
+  await fireEvent.press(screen.getByLabelText('작성자 차단하기'));
   expect(screen.queryByRole('button', { name: /돈/ })).toBeNull();
 
   expect(target.report).not.toHaveBeenCalled();

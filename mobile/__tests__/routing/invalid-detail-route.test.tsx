@@ -26,5 +26,6 @@ test('rejects a non-UUID detail parameter without calling the repository', async
   });
 
   await waitFor(() => expect(screen.getByText('질문을 찾을 수 없어요.')).toBeTruthy());
+  expect(screen.getByRole('button', { name: '피드로 돌아가기' })).toBeTruthy();
   expect(getById).not.toHaveBeenCalled();
 });

@@ -5,8 +5,12 @@ export const colors = {
   muted: '#6B6B6B',
   border: '#ECECF2',
   primary: '#6C4DFF',
+  primarySoft: '#F0ECFF',
   optionA: '#245FB8',
+  optionASoft: '#EAF2FF',
   optionB: '#B83255',
+  optionBSoft: '#FFF0F4',
+  insightSoft: '#F5F2FF',
   warning: '#8A4600',
 } as const;
 

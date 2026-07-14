@@ -1,7 +1,7 @@
 import * as Linking from 'expo-linking';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { useQuestionRepository, useSession } from '@/src/providers/AppProviders';
 import { colors, radius, spacing } from '@/src/design/tokens';
@@ -13,6 +13,11 @@ import { track } from '@/src/features/analytics/analytics';
 
 export const createQuestionShareUrl = (questionId: string) =>
   Linking.createURL(`/share/${encodeURIComponent(questionId)}`);
+
+function returnToPreviousOrFeed() {
+  if (router.canGoBack()) router.back();
+  else router.replace('/');
+}
 
 export function isQuestionDetailAvailable(question: Question | null, now = Date.now()): question is Question {
   if (!question || question.stage === 'hidden' || question.stage === 'limited') return false;
@@ -34,6 +39,12 @@ export default function QuestionDetailRoute() {
 
   useEffect(() => {
     let active = true;
+    setQuestion(null);
+    setClosedResult(null);
+    setMissing(false);
+    setNetworkError(false);
+    setReasonEligible(false);
+    setNotice(null);
     if (!isQuestionId(id)) {
       setMissing(true);
       return () => { active = false; };
@@ -64,10 +75,16 @@ export default function QuestionDetailRoute() {
     <View style={styles.messageContainer}>
       <Text accessibilityRole="alert" style={styles.message}>질문을 불러오지 못했어요.</Text>
       <Action label="질문 다시 시도" onPress={() => setReload((value) => value + 1)} />
+      <Action label="피드로 돌아가기" onPress={returnToPreviousOrFeed} subtle />
     </View>
   );
 
-  if (missing) return <Text style={styles.message}>질문을 찾을 수 없어요.</Text>;
+  if (missing) return (
+    <View style={styles.messageContainer}>
+      <Text style={styles.message}>질문을 찾을 수 없어요.</Text>
+      <Action label="피드로 돌아가기" onPress={returnToPreviousOrFeed} subtle />
+    </View>
+  );
   if (!question || !userId) return <Text style={styles.message}>질문을 불러오는 중이에요.</Text>;
 
   const report = () => {
@@ -87,19 +104,48 @@ export default function QuestionDetailRoute() {
     void repository.blockQuestionAuthor({ questionId: question.id, blockerId: userId })
       .then(() => setNotice('이 작성자의 질문을 숨겼어요.'), () => setNotice('차단하지 못했어요. 다시 시도해 주세요.'));
   };
+  const share = () => {
+    void Share.share({ message: createQuestionShareUrl(question.id) })
+      .then((result) => {
+        if (result.action === Share.sharedAction) {
+          void track({ name: 'question_shared', userId, questionId: question.id, source: 'share' }).catch(() => undefined);
+        }
+      })
+      .catch(() => setNotice('공유하지 못했어요. 다시 시도해 주세요.'));
+  };
 
   return (
-    <View style={styles.screen}>
+    <ScrollView accessibilityLabel="밸런스 상세" contentContainerStyle={styles.screen}>
+      <View style={styles.topBar}>
+        <Action label="뒤로 가기" onPress={returnToPreviousOrFeed} subtle />
+        <Text accessibilityRole="header" style={styles.screenTitle}>밸런스 상세</Text>
+        <Action label="공유하기" onPress={share} subtle />
+      </View>
       <Text style={styles.category}>{question.category}</Text>
-      <Text style={styles.option}>A. {question.optionA}</Text>
-      <Text style={styles.option}>B. {question.optionB}</Text>
-      {question.description ? <Text style={styles.description}>{question.description}</Text> : null}
+      <View style={styles.questionCard}>
+        <Text accessibilityRole="header" style={styles.questionTitle}>
+          {question.optionA} vs {question.optionB}
+        </Text>
+        <View style={[styles.optionCard, styles.optionA]}>
+          <Text style={styles.optionCode}>A</Text>
+          <Text style={styles.option}>{question.optionA}</Text>
+        </View>
+        <View style={[styles.optionCard, styles.optionB]}>
+          <Text style={styles.optionCode}>B</Text>
+          <Text style={styles.option}>{question.optionB}</Text>
+        </View>
+        {question.description ? <Text style={styles.description}>{question.description}</Text> : null}
+      </View>
       {closedResult ? (
         <View accessibilityRole="summary" style={styles.result}>
           <Text style={styles.resultText}>{closedResult.percentA}% vs {closedResult.percentB}%</Text>
           <Text style={styles.resultLabel}>{closedResult.label}</Text>
         </View>
       ) : null}
+      <View accessibilityLabel="한 줄 인사이트" style={styles.insight}>
+        <Text style={styles.insightLabel}>한 줄 인사이트</Text>
+        <Text style={styles.insightText}>이 질문은 {question.category}에 관한 선택이에요.</Text>
+      </View>
       <View accessibilityLabel="근거 태그" style={styles.tags}>
         <Text style={styles.tag}>#{question.category}</Text>
         {Object.keys({ ...question.weightsA, ...question.weightsB }).map((axis) => (
@@ -114,51 +160,54 @@ export default function QuestionDetailRoute() {
             .catch(() => setNotice('반응을 저장하지 못했어요. 다시 시도해 주세요.'));
         }}
       /> : null}
+      <Text style={styles.safetyTitle}>안전 도구</Text>
       <View style={styles.actions}>
-        <Action
-          label="질문 공유"
-          onPress={() => {
-            void Share.share({ message: createQuestionShareUrl(question.id) })
-              .then((result) => {
-                if (result.action === Share.sharedAction) {
-                  void track({ name: 'question_shared', userId, questionId: question.id, source: 'share' }).catch(() => undefined);
-                }
-              })
-              .catch(() => setNotice('공유하지 못했어요. 다시 시도해 주세요.'));
-          }}
-        />
-        <Action disabled={!canMutate} label="질문 신고" onPress={report} />
+        <Action disabled={!canMutate} label="신고하기" onPress={report} />
         <Action
           disabled={!canMutate || !repository.blockQuestionAuthor}
-          label={repository.blockQuestionAuthor ? '작성자 차단' : '로컬 모드에서는 차단 불가'}
+          label={repository.blockQuestionAuthor ? '작성자 차단하기' : '로컬 모드에서는 차단 불가'}
           onPress={block}
         />
       </View>
       {notice ? <Text accessibilityRole="alert" style={styles.notice}>{notice}</Text> : null}
-    </View>
+    </ScrollView>
   );
 }
 
-function Action({ disabled = false, label, onPress }: { disabled?: boolean; label: string; onPress(): void }) {
+function Action({ disabled = false, label, onPress, subtle = false }: { disabled?: boolean; label: string; onPress(): void; subtle?: boolean }) {
   return (
-    <Pressable accessibilityLabel={label} accessibilityRole="button" disabled={disabled} onPress={onPress} style={styles.action}>
-      <Text style={styles.actionText}>{label}</Text>
+    <Pressable accessibilityLabel={label} accessibilityRole="button" disabled={disabled} onPress={onPress} style={[styles.action, subtle && styles.subtleAction]}>
+      <Text style={[styles.actionText, subtle && styles.subtleActionText]}>{label}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background, gap: spacing.md, padding: spacing.lg },
+  screen: { backgroundColor: colors.background, flexGrow: 1, gap: spacing.md, padding: spacing.lg, paddingBottom: spacing.xl },
   messageContainer: { alignItems: 'center', flex: 1, gap: spacing.md, justifyContent: 'center' },
   message: { color: colors.text, padding: spacing.lg, textAlign: 'center' },
-  category: { color: colors.muted },
-  option: { color: colors.text, fontSize: 22, fontWeight: '700' },
-  description: { color: colors.text },
+  topBar: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
+  screenTitle: { color: colors.text, fontSize: 22, fontWeight: '800' },
+  category: { alignSelf: 'flex-start', backgroundColor: colors.primarySoft, borderRadius: radius.button, color: colors.primary, fontWeight: '700', overflow: 'hidden', paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  questionCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.card, borderWidth: 1, gap: spacing.md, padding: spacing.lg },
+  questionTitle: { color: colors.text, fontSize: 24, fontWeight: '800', lineHeight: 33, textAlign: 'center' },
+  optionCard: { borderRadius: radius.button, gap: spacing.xs, minHeight: 96, padding: spacing.md },
+  optionA: { backgroundColor: colors.optionASoft },
+  optionB: { backgroundColor: colors.optionBSoft },
+  optionCode: { color: colors.muted, fontSize: 13, fontWeight: '800' },
+  option: { color: colors.text, fontSize: 20, fontWeight: '700' },
+  description: { color: colors.muted, lineHeight: 22, textAlign: 'center' },
+  insight: { backgroundColor: colors.insightSoft, borderRadius: radius.button, gap: spacing.xs, padding: spacing.md },
+  insightLabel: { color: colors.primary, fontSize: 13, fontWeight: '800' },
+  insightText: { color: colors.text, lineHeight: 22 },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   tag: { color: colors.primary },
+  safetyTitle: { color: colors.text, fontSize: 16, fontWeight: '800', marginTop: spacing.sm },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   action: { alignItems: 'center', borderColor: colors.border, borderRadius: radius.button, borderWidth: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: spacing.md },
   actionText: { color: colors.text },
+  subtleAction: { borderColor: 'transparent', minWidth: 44, paddingHorizontal: spacing.sm },
+  subtleActionText: { color: colors.primary, fontWeight: '700' },
   notice: { color: colors.muted },
   result: { alignItems: 'center', backgroundColor: colors.surface, borderRadius: radius.card, gap: spacing.sm, padding: spacing.lg },
   resultText: { color: colors.text, fontSize: 24, fontWeight: '700' },
