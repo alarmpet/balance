@@ -48,6 +48,16 @@
 - 공식: [Expo Symbols SDK 57](https://docs.expo.dev/versions/latest/sdk/symbols/)의 교차 플랫폼 이름/fallback 계약
 - 공식: [react-native-svg](https://github.com/software-mansion/react-native-svg)의 React Native Web 호환 계층과 Expo 설치 안내
 
+### Balance Card Integration Opinion Review (2026-07-15)
+
+후속 `2026-07-15-balance-card-integration-design-opinion.md`를 현재 local 결과 계산, Supabase RPC·pgTAP 계약, React Native 0.86, React Native Web 0.21과 대조했다. 상세 실행 절차는 `docs/superpowers/plans/2026-07-15-balance-card-integration.md`를 단일 기준으로 사용한다.
+
+- **수용:** selected 항목의 2px primary 테두리·옅은 배경·체크·`선택됨` 텍스트, `props.mode` 분기 후 union narrowing.
+- **부분 수용:** read-only 질문·A·B·카테고리를 명시 라벨로 그룹화하되 질문 카드에 맞지 않는 `summary` 역할은 정적 text 의미로 바꾼다.
+- **부분 수용:** 잘못된 퍼센트는 결과 막대 안의 비차단 fallback으로 처리하고 무투표 마감 `0/0`은 별도 빈 상태로 표시한다.
+- **기각:** 현재 local·RPC가 모두 `percentB = 100 - percentA`를 보장하므로 95–105 임의 자동 보정은 하지 않는다.
+- **기각:** React Native Web 0.21에서 deprecated인 `focusable={true}`를 추가하지 않는다. 활성 `Pressable`의 기본 tab stop과 실제 Tab/Enter/Space·`:focus-visible`을 검증한다.
+
 ## Reference Screen Mapping
 
 - `ChatGPT Image 2026년 7월 14일 오전 03_16_17.png` → 피드의 큰 오늘의 카드, compact 일반 카드, floating CTA가 아닌 고정 작성 탭의 시각 방향
@@ -68,6 +78,7 @@
 - `mobile/src/components/ui/Pill.tsx`: 카테고리·오늘의 밸런스 badge
 - `mobile/src/components/ui/SectionCard.tsx`: 작성 화면 섹션 컨테이너
 - `mobile/src/features/play/ui/HeroBalanceCard.tsx`: 이미지/아이콘 fallback을 지원하는 오늘의 질문
+- `mobile/src/features/play/ui/BalanceChoicePanel.tsx`: 피드·상세·공유가 함께 쓰는 read-only/votable A/B 프리미티브
 - `mobile/src/features/play/ui/CompactBalanceCard.tsx`: 일반 질문 목록 카드
 - `mobile/src/features/play/ui/VoteSplitBar.tsx`: 투표 후 실제 결과 막대
 - `mobile/src/features/play/ui/QuestionMedia.tsx`: 검수 이미지와 fallback 렌더링
@@ -326,8 +337,11 @@ git commit -m "feat(feed): add optional question media"
 
 ### Task 3: 오늘의 질문 hero와 일반 질문 compact card
 
+> **후속 통합 기준:** 이 작업의 공통 A/B 기반, 결과 경계, 상세·공유 연결은 `docs/superpowers/plans/2026-07-15-balance-card-integration.md`의 Tasks 1–5를 먼저 따른다. 이 절의 compact 카드 요구사항은 그 후 이어서 구현한다.
+
 **Files:**
 - Create: `mobile/src/features/play/ui/HeroBalanceCard.tsx`
+- Create: `mobile/src/features/play/ui/BalanceChoicePanel.tsx`
 - Create: `mobile/src/features/play/ui/CompactBalanceCard.tsx`
 - Create: `mobile/src/features/play/ui/VoteSplitBar.tsx`
 - Modify: `mobile/src/features/play/ui/QuestionCard.tsx`
@@ -339,6 +353,7 @@ git commit -m "feat(feed): add optional question media"
 
 **Interfaces:**
 - Produces: `HeroBalanceCard({ question, result, disabled, onVote, onSkip })`
+- Produces: `BalanceChoicePanel` discriminated union with `readOnly` and `votable` modes
 - Produces: `CompactBalanceCard({ question, result?, onOpen })`
 - Produces: `VoteSplitBar({ percentA, percentB, selected })`
 - Consumes: `Question`, `VoteResult`, `VoteChoice`
@@ -470,6 +485,8 @@ git commit -m "feat(feed): compose daily hero and question list"
 ### Task 5: 상세 화면을 1차 기능에 맞게 정돈
 
 > **2026-07-15 실행 메모:** 사용자 요청으로 Task 1–4보다 먼저 기존 토큰 위에서 상세/공유 계층, active 결과 비공개, 딥링크 복구, 공유 큐 회귀를 구현했다. `HeroBalanceCard`/`VoteSplitBar` 통합과 상단 more 메뉴는 선행 Task 3 완료 후 수행하며, 현재 전용 카드에 가짜 more 액션을 추가하지 않는다.
+>
+> **후속 연결 메모:** `HeroBalanceCard` 자체를 상세·공유에 넣지 않는다. `docs/superpowers/plans/2026-07-15-balance-card-integration.md`의 `BalanceChoicePanel`과 `VoteSplitBar`만 연결해 피드 전용 패스·badge가 route로 새지 않게 한다.
 
 **Files:**
 - Modify: `mobile/app/question/[id].tsx`
@@ -480,7 +497,7 @@ git commit -m "feat(feed): compose daily hero and question list"
 - Create: `mobile/__tests__/design/semantic-colors.test.ts`
 
 **Interfaces:**
-- Consumes: `HeroBalanceCard`, `VoteSplitBar`, `ReasonChips`, report/block/share actions
+- Consumes: `BalanceChoicePanel`, `VoteSplitBar`, `ReasonChips`, report/block/share actions
 - Produces: 상세 화면 header, 결과 panel, 이유 칩, 신고·차단, 공유
 
 - [ ] **Step 1: 가짜 소셜 액션 방지 테스트 작성**
