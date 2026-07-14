@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Stack } from 'expo-router';
+import '@/global.css';
 import { AppProviders, useSession } from '@/src/providers/AppProviders';
 import { isAnalyticsUuid, track } from '@/src/features/analytics/analytics';
 import {

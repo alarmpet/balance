@@ -100,8 +100,10 @@ test('brain nodes and result feedback avoid fixed-height clipping at 200% font s
 
 test('web controls have a visible keyboard focus treatment', () => {
   const css = readFileSync(join(process.cwd(), 'src', 'global.css'), 'utf8');
+  const rootLayout = readFileSync(join(process.cwd(), 'app', '_layout.tsx'), 'utf8');
   expect(css).toContain(':focus-visible');
   expect(css).toContain("[role='tab']:focus-visible");
   expect(css).toContain('a[href]:focus-visible');
   expect(css).toMatch(/outline:\s*3px solid/);
+  expect(rootLayout).toMatch(/import ['"]@\/global\.css['"];?/);
 });
