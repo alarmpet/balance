@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import type { PropsWithChildren } from 'react';
+import { StyleSheet } from 'react-native';
 
 import type { QuestionRepository } from '@/src/features/play/data/QuestionRepository';
 import type { Question, VoteReceipt } from '@/src/features/play/domain/question';
@@ -230,6 +231,8 @@ test('hands a failed reason reaction to an explicit retry after the play loop ad
   });
 
   expect(view.getByRole('alert')).toHaveTextContent('선택 이유를 저장하지 못했어요.');
+  expect(StyleSheet.flatten(view.getByTestId('reason-reaction-recovery').props.style))
+    .not.toHaveProperty('position', 'absolute');
   await fireEvent.press(view.getByRole('button', { name: '다음 질문' }));
   expect(view.getByLabelText('A 선택: 다음 질문')).toBeTruthy();
   await fireEvent.press(view.getByRole('button', { name: '선택 이유 다시 시도' }));

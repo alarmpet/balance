@@ -35,6 +35,10 @@ export function HeroBalanceCard({
           <Text style={styles.badgeText}>오늘의 밸런스</Text>
         </View>
       ) : null}
+      <Text style={styles.category}>{question.category}</Text>
+      {question.description ? (
+        <Text style={styles.description}>{question.description}</Text>
+      ) : null}
       <BalanceChoicePanel
         disabled={disabled || result !== null}
         mode="votable"
@@ -91,6 +95,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   badgeText: { color: colors.primary, fontWeight: '800' },
+  category: { color: colors.muted, textAlign: 'center' },
+  description: { color: colors.text, textAlign: 'center' },
   primaryAction: {
     alignItems: 'center',
     backgroundColor: colors.primary,

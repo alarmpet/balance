@@ -69,6 +69,28 @@ test('does not label an ordinary feed question as daily', async () => {
   expect(view.queryByLabelText('오늘의 밸런스')).toBeNull();
 });
 
+test('keeps an ordinary question category and context visible', async () => {
+  const view = await render(
+    <HeroBalanceCard
+      disabled={false}
+      onNext={jest.fn()}
+      onSkip={jest.fn()}
+      onVote={jest.fn()}
+      question={{
+        ...daily,
+        id: 'contextual-feed',
+        isDaily: false,
+        category: '연애',
+        description: '친구와 의견이 갈려서 물어봐요.',
+      }}
+      result={null}
+    />,
+  );
+
+  expect(view.getByText('연애')).toBeTruthy();
+  expect(view.getByText('친구와 의견이 갈려서 물어봐요.')).toBeTruthy();
+});
+
 test('fires haptics only when the vote is synchronously accepted', async () => {
   const onVote = jest.fn().mockReturnValueOnce(true).mockReturnValueOnce(false);
   const view = await render(

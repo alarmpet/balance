@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { randomUUID } from 'expo-crypto';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '@/src/design/tokens';
 import { RetryButton } from '@/src/components/RetryButton';
@@ -361,7 +361,11 @@ export function PlayScreen({
   }
 
   return (
-    <View style={styles.screen}>
+    <ScrollView
+      contentContainerStyle={styles.screenContent}
+      style={styles.screen}
+      testID="play-screen-scroll"
+    >
       <HeroBalanceCard
         disabled={!canMutate || submitting}
         onNext={next}
@@ -375,7 +379,7 @@ export function PlayScreen({
         <RetryButton accessibilityLabel="투표 다시 시도" disabled={!canMutate} onPress={() => vote(failedVoteChoice)} />
       ) : null}
       {failedReasonReaction ? (
-        <View style={styles.reactionRecovery}>
+        <View style={styles.reactionRecovery} testID="reason-reaction-recovery">
           <Text accessibilityRole="alert">선택 이유를 저장하지 못했어요.</Text>
           <RetryButton accessibilityLabel="선택 이유 다시 시도" disabled={!canMutate} onPress={retryReasonReaction} />
         </View>
@@ -391,14 +395,15 @@ export function PlayScreen({
           </View>
         </View>
       ) : null}
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background, gap: 8, padding: 16 },
+  screen: { flex: 1, backgroundColor: colors.background },
+  screenContent: { flexGrow: 1, gap: 8, padding: 16 },
   recovery: { alignItems: 'center', flex: 1, gap: 16, justifyContent: 'center' },
-  reactionRecovery: { alignItems: 'center', bottom: 16, gap: 8, left: 16, position: 'absolute', right: 16 },
+  reactionRecovery: { alignItems: 'center', gap: 8 },
   feedback: { gap: 8 },
   reasons: { alignSelf: 'stretch' },
 });

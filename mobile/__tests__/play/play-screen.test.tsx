@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import type { PropsWithChildren } from 'react';
+import { StyleSheet } from 'react-native';
 
 import {
   ClosedQuestionError,
@@ -146,6 +147,19 @@ test('shows the daily result until the user explicitly opens the next question',
   await fireEvent.press(next);
   expect(view.getByText('First feed question')).toBeTruthy();
   expect(useDeckStore.getState().index).toBe(1);
+});
+
+test('keeps persistent result feedback in a scrollable content container', async () => {
+  const view = await render(
+    <PlayScreen repository={fakeRepository()} userId="user-scroll" />,
+    { wrapper: wrapper() },
+  );
+
+  await fireEvent.press(await view.findByRole('button', { name: 'A 선택: Daily question' }));
+  await view.findByRole('button', { name: '다음 질문' });
+
+  const scroll = view.getByTestId('play-screen-scroll');
+  expect(StyleSheet.flatten(scroll.props.contentContainerStyle)).toMatchObject({ flexGrow: 1 });
 });
 
 test('offers an explicit retry when the question repository is offline', async () => {
