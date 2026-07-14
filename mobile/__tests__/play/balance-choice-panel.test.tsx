@@ -1,4 +1,5 @@
 import { fireEvent, render } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 
 import type { Question } from '@/src/features/play/domain/question';
 import { BalanceChoicePanel } from '@/src/features/play/ui/BalanceChoicePanel';
@@ -40,6 +41,7 @@ test('marks the selected choice with semantic and visible state', async () => {
 
   const selected = view.getByRole('button', { name: 'A 선택: 바로 자기, 선택됨' });
   expect(selected.props.accessibilityState).toEqual({ disabled: true, selected: true });
+  expect(StyleSheet.flatten(selected.props.style)).not.toMatchObject({ opacity: 0.55 });
   expect(view.getByText('✓ 선택됨')).toBeTruthy();
   fireEvent.press(selected);
   expect(onVote).not.toHaveBeenCalled();

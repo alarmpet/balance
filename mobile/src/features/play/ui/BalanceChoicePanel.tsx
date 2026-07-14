@@ -105,7 +105,7 @@ function ChoiceButton({ choice, disabled, onVote, selected, text }: {
         styles.choice,
         choice === 'A' ? styles.optionA : styles.optionB,
         selected && styles.selected,
-        disabled && styles.disabled,
+        disabled && !selected && styles.disabled,
       ]}
     >
       <Text style={styles.code}>{choice}</Text>
