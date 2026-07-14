@@ -284,14 +284,14 @@ git commit -m "feat(ui): add resilient vote split bar"
 - Modify: `mobile/__tests__/play/play-screen.test.tsx`
 
 **Interfaces:**
-- Produces: `HeroBalanceCard({ question, result, disabled, onVote, onSkip })`
+- Produces: `HeroBalanceCard({ question, result, disabled, onVote, onSkip, onNext })`
 - Consumes: `BalanceChoicePanel`, `VoteSplitBar`, existing vote/skip locks
 
 - [ ] **Step 1: 피드 전용 행동과 비공개 테스트 작성**
 
 ```tsx
 test('keeps results hidden before repository success', () => {
-  const view = render(<HeroBalanceCard question={question} result={null} disabled={false} onVote={jest.fn()} onSkip={jest.fn()} />);
+  const view = render(<HeroBalanceCard question={question} result={null} disabled={false} onVote={jest.fn()} onSkip={jest.fn()} onNext={jest.fn()} />);
   expect(view.getByText('오늘의 밸런스')).toBeTruthy();
   expect(view.getByRole('button', { name: '질문 패스' })).toBeTruthy();
   expect(view.queryByText(/%/)).toBeNull();
@@ -299,7 +299,7 @@ test('keeps results hidden before repository success', () => {
 
 test('keeps the result inline until explicit navigation', () => {
   const result = { selected: 'A' as const, countA: 7, countB: 3, percentA: 70, percentB: 30, label: '다수파' as const };
-  const view = render(<HeroBalanceCard question={question} result={result} disabled onVote={jest.fn()} onSkip={jest.fn()} />);
+  const view = render(<HeroBalanceCard question={question} result={result} disabled onVote={jest.fn()} onSkip={jest.fn()} onNext={jest.fn()} />);
   expect(view.getByLabelText('A 70퍼센트, B 30퍼센트, 내가 선택한 답 A')).toBeTruthy();
 });
 ```
@@ -319,15 +319,20 @@ interface HeroBalanceCardProps {
   disabled: boolean;
   onVote(choice: VoteChoice): boolean;
   onSkip(): void;
+  onNext(): void;
 }
 
-export function HeroBalanceCard({ question, result, disabled, onVote, onSkip }: HeroBalanceCardProps) {
+export function HeroBalanceCard({ question, result, disabled, onVote, onSkip, onNext }: HeroBalanceCardProps) {
   return (
     <View style={styles.card}>
-      <View accessible accessibilityLabel="오늘의 밸런스" style={styles.badge}><Text style={styles.badgeText}>오늘의 밸런스</Text></View>
+      {question.isDaily ? <View accessible accessibilityLabel="오늘의 밸런스" style={styles.badge}><Text style={styles.badgeText}>오늘의 밸런스</Text></View> : null}
+      <Text>{question.category}</Text>
+      {question.description ? <Text>{question.description}</Text> : null}
       <BalanceChoicePanel question={question} mode="votable" disabled={disabled} selected={result?.selected} onVote={onVote} showMedia={question.isDaily} />
       {result ? <VoteSplitBar percentA={result.percentA} percentB={result.percentB} selected={result.selected} label={result.label} /> : null}
-      <Pressable accessibilityLabel="질문 패스" accessibilityRole="button" disabled={disabled} onPress={onSkip} style={styles.skip}><Text>패스</Text></Pressable>
+      {result
+        ? <Pressable accessibilityLabel="다음 질문" accessibilityRole="button" onPress={onNext}><Text>다음 질문</Text></Pressable>
+        : <Pressable accessibilityLabel="질문 패스" accessibilityRole="button" disabled={disabled} onPress={onSkip} style={styles.skip}><Text>패스</Text></Pressable>}
     </View>
   );
 }
@@ -493,11 +498,20 @@ git commit -m "refactor(share): use shared balance card primitives"
 
 **Files:**
 - Modify: `mobile/__tests__/accessibility/interactive-controls.test.tsx`
-- Modify only if a verified violation exists: `mobile/src/global.css`
+- Modify after verified browser violations: `mobile/app/_layout.tsx`, `mobile/metro.config.js`, `mobile/src/features/play/ui/PlayScreen.tsx`
+- Modify after fresh typed-route generation exposed a stale route: `mobile/src/components/app-tabs.web.tsx`
+- Keep unchanged after verification: `mobile/src/global.css`
 
 **Interfaces:**
 - Verifies: enabled button tab stop, disabled exclusion, `:focus-visible`, Enter/Space activation
-- Produces: no new runtime API
+- Produces: no public runtime API; the play screen becomes vertically scrollable
+
+Verified implementation notes:
+
+- The focus CSS already contained the correct 3px rule, but the root layout did not import it. Import `@/global.css` from `app/_layout.tsx` and keep a regression test for that connection.
+- Expo SDK 57 does not include `wasm` in Metro's default `assetExts`. Add `metro.config.js` so the `expo-sqlite` web worker resolves in the development server.
+- Persistent inline results plus reason chips are unreachable at 200% zoom in a fixed `View`. Use a `ScrollView` with `flexGrow: 1`, and keep failed-reason recovery inline so it contributes to scroll height.
+- A fresh Expo typed-route file excludes the removed `/explore` route. Point the compiled but currently unused starter tab file at the existing `/brain` route so `tsc --noEmit` remains truthful.
 
 - [ ] **Step 1: 정적 계약 테스트 추가**
 

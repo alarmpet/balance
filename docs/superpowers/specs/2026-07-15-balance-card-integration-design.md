@@ -112,13 +112,15 @@ interface HeroBalanceCardProps {
   disabled: boolean;
   onVote(choice: VoteChoice): boolean;
   onSkip(): void;
+  onNext(): void;
 }
 ```
 
 - `BalanceChoicePanel mode='votable'`을 조합한다.
-- 오늘의 질문 badge와 `질문 패스`를 소유한다.
+- `question.isDaily === true`일 때만 오늘의 질문 badge를 표시하고, 피드 전용 `질문 패스`를 소유한다.
+- 일반 피드 질문의 `category`와 선택 맥락인 `description`을 유지한다.
 - `result === null`이면 비율을 렌더링하지 않는다.
-- 결과는 `VoteSplitBar`로 inline 유지하며 타이머로 사라지거나 자동으로 다음 질문으로 이동하지 않는다.
+- 결과는 `VoteSplitBar`로 inline 유지하며 타이머로 사라지거나 자동으로 다음 질문으로 이동하지 않는다. 결과 상태에서는 명시적인 `onNext` CTA를 제공한다.
 
 ### `ResultOverlay`
 
@@ -132,7 +134,7 @@ interface HeroBalanceCardProps {
 2. `HeroBalanceCard`가 사용자 선택을 `onVote`로 전달한다.
 3. repository 성공 응답만 `VoteSplitBar`로 표시한다.
 4. 오프라인 큐 저장 메시지는 결과처럼 위장하지 않는다.
-5. 성공 후 800ms 자동 `advance()`를 호출하지 않는다.
+5. 성공 후 800ms 자동 `advance()`를 호출하지 않고, 사용자의 명시적인 다음 질문 동작에서만 한 번 전환한다.
 
 ### 상세
 
