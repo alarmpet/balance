@@ -188,7 +188,7 @@ test('notification detail renders an authorized closed result instead of unavail
   await renderRouter({ 'question/[id]': QuestionDetailRoute }, {
     initialUrl: `/question/${question.id}?source=notification`, wrapper: Wrapper,
   });
-  await waitFor(() => expect(screen.getByText('100% vs 0%')).toBeTruthy());
+  await waitFor(() => expect(screen.getByLabelText('A 100퍼센트, B 0퍼센트')).toBeTruthy());
   expect(screen.getByText('A 우세')).toBeTruthy();
   expect(screen.queryByText(/찾을 수 없/)).toBeNull();
 });

@@ -8,6 +8,8 @@ import { colors, radius, spacing } from '@/src/design/tokens';
 import type { Question } from '@/src/features/play/domain/question';
 import type { ClosedQuestionResult } from '@/src/features/play/data/QuestionRepository';
 import { isQuestionId } from '@/src/features/play/domain/questionId';
+import { BalanceChoicePanel } from '@/src/features/play/ui/BalanceChoicePanel';
+import { VoteSplitBar } from '@/src/features/play/ui/VoteSplitBar';
 import { ReasonChips } from '@/src/features/moderation/ui/ReasonChips';
 import { track } from '@/src/features/analytics/analytics';
 
@@ -122,25 +124,22 @@ export default function QuestionDetailRoute() {
         <Action label="공유하기" onPress={share} subtle />
       </View>
       <Text style={styles.category}>{question.category}</Text>
-      <View style={styles.questionCard}>
-        <Text accessibilityRole="header" style={styles.questionTitle}>
-          {question.optionA} vs {question.optionB}
-        </Text>
-        <View style={[styles.optionCard, styles.optionA]}>
-          <Text style={styles.optionCode}>A</Text>
-          <Text style={styles.option}>{question.optionA}</Text>
-        </View>
-        <View style={[styles.optionCard, styles.optionB]}>
-          <Text style={styles.optionCode}>B</Text>
-          <Text style={styles.option}>{question.optionB}</Text>
-        </View>
-        {question.description ? <Text style={styles.description}>{question.description}</Text> : null}
-      </View>
+      <Text accessibilityRole="header" style={styles.questionTitle}>
+        {question.optionA} vs {question.optionB}
+      </Text>
+      <BalanceChoicePanel mode="readOnly" question={question} />
       {closedResult ? (
-        <View accessibilityRole="summary" style={styles.result}>
-          <Text style={styles.resultText}>{closedResult.percentA}% vs {closedResult.percentB}%</Text>
-          <Text style={styles.resultLabel}>{closedResult.label}</Text>
-        </View>
+        closedResult.countA + closedResult.countB === 0 ? (
+          <Text accessibilityRole="summary" style={styles.emptyResult}>
+            아직 투표가 없어요
+          </Text>
+        ) : (
+          <VoteSplitBar
+            label={closedResult.label}
+            percentA={closedResult.percentA}
+            percentB={closedResult.percentB}
+          />
+        )
       ) : null}
       <View accessibilityLabel="한 줄 인사이트" style={styles.insight}>
         <Text style={styles.insightLabel}>한 줄 인사이트</Text>
@@ -189,14 +188,7 @@ const styles = StyleSheet.create({
   topBar: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   screenTitle: { color: colors.text, fontSize: 22, fontWeight: '800' },
   category: { alignSelf: 'flex-start', backgroundColor: colors.primarySoft, borderRadius: radius.button, color: colors.primary, fontWeight: '700', overflow: 'hidden', paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-  questionCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.card, borderWidth: 1, gap: spacing.md, padding: spacing.lg },
   questionTitle: { color: colors.text, fontSize: 24, fontWeight: '800', lineHeight: 33, textAlign: 'center' },
-  optionCard: { borderRadius: radius.button, gap: spacing.xs, minHeight: 96, padding: spacing.md },
-  optionA: { backgroundColor: colors.optionASoft },
-  optionB: { backgroundColor: colors.optionBSoft },
-  optionCode: { color: colors.muted, fontSize: 13, fontWeight: '800' },
-  option: { color: colors.text, fontSize: 20, fontWeight: '700' },
-  description: { color: colors.muted, lineHeight: 22, textAlign: 'center' },
   insight: { backgroundColor: colors.insightSoft, borderRadius: radius.button, gap: spacing.xs, padding: spacing.md },
   insightLabel: { color: colors.primary, fontSize: 13, fontWeight: '800' },
   insightText: { color: colors.text, lineHeight: 22 },
@@ -209,7 +201,5 @@ const styles = StyleSheet.create({
   subtleAction: { borderColor: 'transparent', minWidth: 44, paddingHorizontal: spacing.sm },
   subtleActionText: { color: colors.primary, fontWeight: '700' },
   notice: { color: colors.muted },
-  result: { alignItems: 'center', backgroundColor: colors.surface, borderRadius: radius.card, gap: spacing.sm, padding: spacing.lg },
-  resultText: { color: colors.text, fontSize: 24, fontWeight: '700' },
-  resultLabel: { color: colors.primary, fontSize: 18, fontWeight: '700' },
+  emptyResult: { color: colors.muted, textAlign: 'center' },
 });

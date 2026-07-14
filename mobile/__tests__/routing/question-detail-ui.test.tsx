@@ -21,7 +21,7 @@ const question: Question = {
   weightsB: { freedom: 1 },
 };
 
-function createRepository(): QuestionRepository {
+function createRepository(overrides: Partial<QuestionRepository> = {}): QuestionRepository {
   return {
     getDaily: jest.fn(),
     getFeed: jest.fn(),
@@ -32,11 +32,12 @@ function createRepository(): QuestionRepository {
     create: jest.fn(),
     report: jest.fn().mockResolvedValue(undefined),
     blockQuestionAuthor: jest.fn().mockResolvedValue(undefined),
+    ...overrides,
   } as QuestionRepository;
 }
 
-async function renderDetail() {
-  const repository = createRepository();
+async function renderDetail(overrides: Partial<QuestionRepository> = {}) {
+  const repository = createRepository(overrides);
   const pendingActionQueue = createPendingActionQueue(new Map());
   function Wrapper({ children }: PropsWithChildren) {
     return (
@@ -74,5 +75,32 @@ test('shows the approved detail hierarchy and only implemented phase-one actions
   expect(screen.getByRole('button', { name: '신고하기' })).toBeTruthy();
   expect(screen.getByRole('button', { name: '작성자 차단하기' })).toBeTruthy();
   expect(screen.queryByRole('button', { name: /댓글|공감|저장|비슷한 사람/ })).toBeNull();
-  expect(screen.queryByText(/%/)).toBeNull();
+  expect(screen.queryByTestId('vote-split-bar')).toBeNull();
+});
+
+test('groups active options as read-only content rather than fake buttons', async () => {
+  await renderDetail();
+
+  await waitFor(() => expect(screen.getByLabelText(
+    `질문: ${question.description}, A: ${question.optionA}, B: ${question.optionB}, 카테고리: ${question.category}`,
+  )).toBeTruthy());
+  expect(screen.queryByRole('button', { name: /A 선택|B 선택/ })).toBeNull();
+});
+
+test('renders an empty closed result without a broken zero-to-zero bar', async () => {
+  const closedQuestion = { ...question, closesAt: '2026-07-14T00:00:00.000Z' };
+  await renderDetail({
+    getById: jest.fn().mockResolvedValue(null),
+    getClosedResult: jest.fn().mockResolvedValue({
+      question: closedQuestion,
+      countA: 0,
+      countB: 0,
+      percentA: 0,
+      percentB: 0,
+      label: '결과 없음',
+    }),
+  });
+
+  await waitFor(() => expect(screen.getByText('아직 투표가 없어요')).toBeTruthy());
+  expect(screen.queryByTestId('vote-split-bar')).toBeNull();
 });
