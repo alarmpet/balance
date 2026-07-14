@@ -24,3 +24,17 @@ test('handoff runbook contains reproducible setup, verification, deploy, rollbac
     'Gate 1', '15명', '12명', '10명',
   ]) expect(readme).toContain(topic);
 });
+
+test('Vercel builds and serves the mobile MVP instead of the legacy root app', () => {
+  const vercel = JSON.parse(read('../vercel.json')) as {
+    buildCommand?: string;
+    outputDirectory?: string;
+  };
+  const packageJson = JSON.parse(read('package.json')) as {
+    scripts?: Record<string, string>;
+  };
+
+  expect(vercel.buildCommand).toBe('npm --prefix mobile ci && npm --prefix mobile run build');
+  expect(vercel.outputDirectory).toBe('mobile/dist');
+  expect(packageJson.scripts?.build).toBe('expo export --platform web');
+});

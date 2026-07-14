@@ -1,4 +1,6 @@
 {
+  "buildCommand": "npm --prefix mobile ci && npm --prefix mobile run build",
+  "outputDirectory": "mobile/dist",
   "rewrites": [
     {
       "source": "/(.*)",
