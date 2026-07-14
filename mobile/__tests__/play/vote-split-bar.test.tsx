@@ -29,7 +29,7 @@ test.each([
   const warning = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
   const view = await render(<VoteSplitBar percentA={percentA} percentB={percentB} />);
 
-  expect(view.getByText('결과를 표시할 수 없어요')).toBeTruthy();
+  expect(view.getByText('결과를 표시할 수 없어요').props.accessibilityRole).toBe('text');
   expect(view.queryByLabelText(/^A \d+퍼센트, B \d+퍼센트/)).toBeNull();
   expect(warning).toHaveBeenCalledWith('Invalid vote split', { percentA, percentB });
   warning.mockRestore();

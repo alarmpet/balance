@@ -29,7 +29,7 @@ export function VoteSplitBar({
   if (!isValidVoteSplit(percentA, percentB)) {
     if (__DEV__) console.warn('Invalid vote split', { percentA, percentB });
     return (
-      <Text accessibilityRole="alert" style={styles.fallback}>
+      <Text accessibilityRole="text" style={styles.fallback}>
         결과를 표시할 수 없어요
       </Text>
     );
