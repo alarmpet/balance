@@ -1,0 +1,23 @@
+appId: com.semobal.balance
+---
+- launchApp:
+    clearState: true
+- assertVisible: "A 선택:.*"
+- tapOn:
+    text: "A 선택:.*"
+- assertVisible: ".*% vs .*%"
+- repeat:
+    times: 9
+    commands:
+      - tapOn:
+          text: "A 선택:.*"
+      - assertVisible: ".*% vs .*%"
+- tapOn: "물어보기"
+- tapOn: "선택지 A"
+- inputText: "여행 비용 정확히 반반"
+- tapOn: "선택지 B"
+- inputText: "소득에 따라 나누기"
+- tapOn: "질문 등록"
+- assertVisible: "질문이 등록되었어요.*"
+- tapOn: "나의 뇌"
+- assertVisible: "지금 두드러진 성향"

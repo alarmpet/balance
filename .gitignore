@@ -2,6 +2,10 @@ node_modules/
 .expo/
 dist/
 web-build/
+.worktrees/
+.superpowers/
+coverage/
+*.log
 .env
 .env.local
 .env.*.local
