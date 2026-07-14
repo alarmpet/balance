@@ -17,8 +17,7 @@ import {
 } from '../data/QuestionRepository';
 import type { Question, VoteChoice, VoteResult } from '../domain/question';
 import { useDeckStore } from '../state/useDeckStore';
-import { QuestionCard } from './QuestionCard';
-import { ResultOverlay } from './ResultOverlay';
+import { HeroBalanceCard } from './HeroBalanceCard';
 
 interface PlayScreenProps {
   canMutate?: boolean;
@@ -75,7 +74,6 @@ export function PlayScreen({
   const [failedVoteChoice, setFailedVoteChoice] = useState<VoteChoice | null>(null);
   const [failedReasonReaction, setFailedReasonReaction] = useState<PendingReasonReaction | null>(null);
   const submissionLock = useRef(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mounted = useRef(false);
   const generation = useRef(0);
   const pendingReasonReactions = useRef<PendingReasonReaction[]>([]);
@@ -124,8 +122,6 @@ export function PlayScreen({
   useEffect(() => {
     mounted.current = true;
     const activeGeneration = ++generation.current;
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = null;
     submissionLock.current = false;
     setResult(null);
     setSubmitting(false);
@@ -137,8 +133,6 @@ export function PlayScreen({
     return () => {
       mounted.current = false;
       if (generation.current === activeGeneration) generation.current += 1;
-      if (timer.current) clearTimeout(timer.current);
-      timer.current = null;
       submissionLock.current = false;
       setResult(null);
       setSubmitting(false);
@@ -184,13 +178,7 @@ export function PlayScreen({
           void trackEvent({ name: 'result_viewed', userId, questionId: question.id, source: 'play' }).catch(() => undefined);
         }
         setResult(receipt);
-        timer.current = setTimeout(() => {
-          if (!mounted.current || generation.current !== requestGeneration) return;
-          setResult(null);
-          setSubmitting(false);
-          submissionLock.current = false;
-          advance();
-        }, 800);
+        setSubmitting(false);
       } catch (error) {
         if (isDuplicateVoteError(error)) {
           if (!mounted.current || generation.current !== requestGeneration) return;
@@ -230,7 +218,18 @@ export function PlayScreen({
       }
     })();
     return true;
-  }, [advance, canMutate, createActionId, pendingActionQueue, question, repository, trackEvent, userId]);
+  }, [canMutate, createActionId, pendingActionQueue, question, repository, trackEvent, userId]);
+
+  const next = useCallback(() => {
+    if (!result) return;
+    setResult(null);
+    setSubmitting(false);
+    setActionError(null);
+    setFailedVoteChoice(null);
+    setFailedReasonReaction(null);
+    submissionLock.current = false;
+    advance();
+  }, [advance, result]);
 
   const skip = useCallback(async () => {
     if (!canMutate || !question || submissionLock.current) return;
@@ -355,11 +354,13 @@ export function PlayScreen({
 
   return (
     <View style={styles.screen}>
-      <QuestionCard
+      <HeroBalanceCard
         disabled={!canMutate || submitting}
+        onNext={next}
         onSkip={() => void skip()}
         onVote={vote}
         question={question}
+        result={result}
       />
       {actionError ? <Text accessibilityRole="alert">{actionError}</Text> : null}
       {failedVoteChoice ? (
@@ -373,7 +374,6 @@ export function PlayScreen({
       ) : null}
       {result ? (
         <View style={styles.feedback}>
-          <ResultOverlay result={result} />
           <View style={styles.reasons}>
             <ReasonChips
               disabled={!canMutate}
@@ -388,9 +388,9 @@ export function PlayScreen({
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1, backgroundColor: colors.background, gap: 8, padding: 16 },
   recovery: { alignItems: 'center', flex: 1, gap: 16, justifyContent: 'center' },
   reactionRecovery: { alignItems: 'center', bottom: 16, gap: 8, left: 16, position: 'absolute', right: 16 },
-  feedback: { gap: 8, left: 16, position: 'absolute', right: 16, top: '36%' },
+  feedback: { gap: 8 },
   reasons: { alignSelf: 'stretch' },
 });

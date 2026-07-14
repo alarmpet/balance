@@ -107,7 +107,7 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-test('shows the daily first, reveals the result, then advances after 800 ms', async () => {
+test('shows the daily result until the user explicitly opens the next question', async () => {
   const repository = fakeRepository();
   const view = await render(
     <PlayScreen
@@ -121,20 +121,14 @@ test('shows the daily first, reveals the result, then advances after 800 ms', as
   await waitFor(() => expect(view.getByText('Daily question')).toBeTruthy());
   jest.useRealTimers();
 
-  const nativeSetTimeout = global.setTimeout;
-  let finishOverlay: (() => void) | undefined;
-  const timeout = jest.spyOn(global, 'setTimeout').mockImplementation((callback, delay, ...args) => {
-    if (delay === 800) {
-      finishOverlay = () => callback(...args);
-      return 1 as unknown as ReturnType<typeof setTimeout>;
-    }
-    return nativeSetTimeout(callback, delay, ...args);
-  });
+  const timeout = jest.spyOn(global, 'setTimeout');
   const choice = view.getByLabelText('A 선택: Daily question');
   await fireEvent.press(choice);
   await fireEvent.press(choice);
 
-  expect(view.getByText('75% vs 25%')).toBeTruthy();
+  await waitFor(() => expect(view.getByLabelText(
+    'A 75퍼센트, B 25퍼센트, 내가 선택한 답 A',
+  )).toBeTruthy());
   expect(repository.vote).toHaveBeenCalledTimes(1);
   expect(repository.vote).toHaveBeenCalledWith({
     questionId: 'daily',
@@ -143,12 +137,11 @@ test('shows the daily first, reveals the result, then advances after 800 ms', as
     actionId: 'action-1',
   });
 
-  expect(timeout).toHaveBeenCalledWith(expect.any(Function), 800);
+  expect(timeout).not.toHaveBeenCalledWith(expect.any(Function), 800);
   expect(view.getByText('Daily question')).toBeTruthy();
+  expect(view.getByLabelText('A 선택: Daily question, 선택됨')).toBeDisabled();
 
-  await act(async () => {
-    finishOverlay?.();
-  });
+  await fireEvent.press(view.getByRole('button', { name: '다음 질문' }));
   expect(view.getByText('First feed question')).toBeTruthy();
 });
 
@@ -270,7 +263,7 @@ test('queues a failed vote with its original action id and shows offline feedbac
   expect(await queue.list()).toEqual([
     { id: actionId, type: 'vote', questionId: 'daily', choice: 'A', ownerId: 'user-1' },
   ]);
-  expect(view.queryByText(/% vs %/)).toBeNull();
+  expect(view.queryByTestId('vote-split-bar')).toBeNull();
   expect(useDeckStore.getState().index).toBe(0);
 });
 
@@ -398,7 +391,7 @@ test('ignores a vote result from an obsolete repository generation', async () =>
     await pendingVote.promise;
   });
 
-  expect(view.queryByText('75% vs 25%')).toBeNull();
+  expect(view.queryByTestId('vote-split-bar')).toBeNull();
   expect(view.getByLabelText('A 선택: Replacement daily')).toBeEnabled();
   expect(timeout).not.toHaveBeenCalledWith(expect.any(Function), 800);
   expect(useDeckStore.getState().index).toBe(0);
@@ -443,19 +436,9 @@ test('uses distinct Expo Crypto UUIDs for accepted votes', async () => {
   );
   await waitFor(() => expect(view.getByText('Daily question')).toBeTruthy());
   jest.useRealTimers();
-  const nativeSetTimeout = global.setTimeout;
-  let finishOverlay: (() => void) | undefined;
-  jest.spyOn(global, 'setTimeout').mockImplementation((callback, delay, ...args) => {
-    if (delay === 800) {
-      finishOverlay = () => callback(...args);
-      return 1 as unknown as ReturnType<typeof setTimeout>;
-    }
-    return nativeSetTimeout(callback, delay, ...args);
-  });
-
   await fireEvent.press(view.getByLabelText('A 선택: Daily question'));
   await waitFor(() => expect(repository.vote).toHaveBeenCalledTimes(1));
-  await act(async () => finishOverlay?.());
+  await fireEvent.press(view.getByRole('button', { name: '다음 질문' }));
   await fireEvent.press(view.getByLabelText('A 선택: First feed question'));
   await waitFor(() => expect(repository.vote).toHaveBeenCalledTimes(2));
 
