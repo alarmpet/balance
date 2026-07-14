@@ -56,8 +56,12 @@ function repository(overrides: Partial<QuestionRepository> = {}): QuestionReposi
   } as QuestionRepository;
 }
 
-async function renderShare(target: QuestionRepository) {
+async function renderShare(
+  target: QuestionRepository,
+  prepareQueue?: (queue: ReturnType<typeof createPendingActionQueue>) => Promise<void>,
+) {
   const pendingActionQueue = createPendingActionQueue(new Map<string, string>());
+  await prepareQueue?.(pendingActionQueue);
   function Wrapper({ children }: PropsWithChildren) {
     return (
       <QuestionRepositoryContext.Provider value={target}>
@@ -95,7 +99,33 @@ test('shows a clear shared-balance hierarchy without fake social controls or ear
   await waitFor(() => expect(screen.getByRole('header', { name: '공유된 밸런스' })).toBeTruthy());
   expect(screen.getByRole('header', { name: `${question.optionA} vs ${question.optionB}` })).toBeTruthy();
   expect(screen.queryByRole('button', { name: /댓글|공감|저장|비슷한 사람/ })).toBeNull();
-  expect(screen.queryByText(/%/)).toBeNull();
+  expect(screen.queryByTestId('vote-split-bar')).toBeNull();
+});
+
+test('shows a pending selection without exposing percentages before a receipt', async () => {
+  await renderShare(repository(), async (queue) => {
+    await queue.enqueue({
+      id: '10000000-0000-4000-8000-000000000088',
+      type: 'vote',
+      questionId: question.id,
+      choice: 'A',
+      ownerId: '71000000-0000-0000-0000-000000000001',
+    });
+  });
+
+  await waitFor(() => expect(screen.getByRole('button', {
+    name: `A 선택: ${question.optionA}, 선택됨`,
+  })).toBeTruthy());
+  expect(screen.queryByTestId('vote-split-bar')).toBeNull();
+});
+
+test('shows the exact selected split only after a receipt', async () => {
+  await renderShare(repository());
+
+  await fireEvent.press(await screen.findByRole('button', { name: `A 선택: ${question.optionA}` }));
+  await waitFor(() => expect(screen.getByLabelText(
+    'A 70퍼센트, B 30퍼센트, 내가 선택한 답 A',
+  )).toBeTruthy());
 });
 
 test('reuses one persisted action id after a lost response and shows the result before upgrade', async () => {
@@ -117,7 +147,9 @@ test('reuses one persisted action id after a lost response and shows the result 
   expect(queued).toHaveLength(1);
   await fireEvent.press(screen.getByText('저장한 투표 다시 시도'));
 
-  await waitFor(() => expect(screen.getByText('70% vs 30%')).toBeTruthy());
+  await waitFor(() => expect(screen.getByLabelText(
+    'A 70퍼센트, B 30퍼센트, 내가 선택한 답 A',
+  )).toBeTruthy());
   expect(target.vote).toHaveBeenCalledWith(expect.objectContaining({
     questionId: question.id,
     userId: '71000000-0000-0000-0000-000000000001',

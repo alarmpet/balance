@@ -46,7 +46,9 @@ test('shows a provider-recovered vote receipt after an app restart without losin
 
   await renderRouter({ 'share/[id]': ShareRoute }, { initialUrl: `/share/${questionId}`, wrapper: Wrapper });
 
-  await waitFor(() => expect(screen.getByText('70% vs 30%')).toBeTruthy());
+  await waitFor(() => expect(screen.getByLabelText(
+    'A 70퍼센트, B 30퍼센트, 내가 선택한 답 A',
+  )).toBeTruthy());
   expect(repository.vote).toHaveBeenCalledTimes(1);
   expect(await afterRestart.list()).toEqual([]);
   await waitFor(() => expect(acknowledge).toHaveBeenCalledTimes(1));

@@ -58,7 +58,7 @@ export function VoteSplitBar({
 }
 
 const styles = StyleSheet.create({
-  container: { gap: spacing.sm },
+  container: { alignSelf: 'stretch', gap: spacing.sm },
   labels: { flexDirection: 'row', justifyContent: 'space-between' },
   percentA: { color: colors.optionA, fontSize: 24, fontWeight: '800' },
   percentB: { color: colors.optionB, fontSize: 24, fontWeight: '800' },

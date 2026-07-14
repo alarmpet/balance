@@ -8,6 +8,8 @@ import { colors, radius, spacing } from '@/src/design/tokens';
 import type { Question, VoteChoice, VoteReceipt } from '@/src/features/play/domain/question';
 import { ClosedQuestionError, isRetryableTransportError } from '@/src/features/play/data/QuestionRepository';
 import { isQuestionId } from '@/src/features/play/domain/questionId';
+import { BalanceChoicePanel } from '@/src/features/play/ui/BalanceChoicePanel';
+import { VoteSplitBar } from '@/src/features/play/ui/VoteSplitBar';
 import { track } from '@/src/features/analytics/analytics';
 
 function routeId(value: string | string[] | undefined): string | null {
@@ -174,6 +176,12 @@ export default function ShareRoute() {
     );
   }
   if (!question) return null;
+  const choiceDisabled = !canMutate
+    || voting
+    || receipt !== null
+    || pendingVote !== null
+    || Boolean(continuityConflict)
+    || Boolean(ownershipConflict);
 
   return (
     <ScrollView accessibilityLabel="공유된 밸런스 화면" contentContainerStyle={styles.screen}>
@@ -185,27 +193,13 @@ export default function ShareRoute() {
         </Text>
         {question.description ? <Text style={styles.description}>{question.description}</Text> : null}
       </View>
-      <Pressable
-        accessibilityLabel={`A 선택: ${question.optionA}`}
-        accessibilityRole="button"
-        accessibilityState={{ disabled: !canMutate || voting || receipt !== null || pendingVote !== null || Boolean(continuityConflict) || Boolean(ownershipConflict), selected: pendingVote?.choice === 'A' }}
-        disabled={!canMutate || voting || receipt !== null || pendingVote !== null || Boolean(continuityConflict) || Boolean(ownershipConflict)}
-        onPress={() => vote('A')}
-        style={[styles.choice, styles.optionA]}
-      >
-        <Text style={styles.choiceText}>{question.optionA}{pendingVote?.choice === 'A' ? ' · 선택됨' : ''}</Text>
-      </Pressable>
-      <Text style={styles.vs}>VS</Text>
-      <Pressable
-        accessibilityLabel={`B 선택: ${question.optionB}`}
-        accessibilityRole="button"
-        accessibilityState={{ disabled: !canMutate || voting || receipt !== null || pendingVote !== null || Boolean(continuityConflict) || Boolean(ownershipConflict), selected: pendingVote?.choice === 'B' }}
-        disabled={!canMutate || voting || receipt !== null || pendingVote !== null || Boolean(continuityConflict) || Boolean(ownershipConflict)}
-        onPress={() => vote('B')}
-        style={[styles.choice, styles.optionB]}
-      >
-        <Text style={styles.choiceText}>{question.optionB}{pendingVote?.choice === 'B' ? ' · 선택됨' : ''}</Text>
-      </Pressable>
+      <BalanceChoicePanel
+        disabled={choiceDisabled}
+        mode="votable"
+        onVote={(choice) => vote(choice)}
+        question={question}
+        selected={pendingVote?.choice ?? receipt?.selected ?? null}
+      />
       {voting ? <ActivityIndicator accessibilityLabel="투표 처리 중" /> : null}
       {voteError ? <Text accessibilityRole="alert" style={styles.error}>{voteError}</Text> : null}
       {continuityConflict ? <Text accessibilityRole="alert" style={styles.error}>{continuityConflict}</Text> : null}
@@ -222,9 +216,13 @@ export default function ShareRoute() {
         </Pressable>
       ) : null}
       {receipt ? (
-        <View accessibilityRole="summary" style={styles.result}>
-          <Text style={styles.resultText}>{receipt.percentA}% vs {receipt.percentB}%</Text>
-          <Text style={styles.resultLabel}>{receipt.label}</Text>
+        <View style={styles.result}>
+          <VoteSplitBar
+            label={receipt.label}
+            percentA={receipt.percentA}
+            percentB={receipt.percentB}
+            selected={receipt.selected}
+          />
           <Pressable
             accessibilityLabel="다른 밸런스도 보기"
             accessibilityRole="button"
@@ -246,17 +244,10 @@ const styles = StyleSheet.create({
   questionIntro: { gap: spacing.sm },
   questionTitle: { color: colors.text, fontSize: 24, fontWeight: '800', lineHeight: 33, textAlign: 'center' },
   description: { color: colors.text, textAlign: 'center' },
-  choice: { alignItems: 'center', borderRadius: radius.card, justifyContent: 'center', minHeight: 160, padding: spacing.lg },
-  optionA: { backgroundColor: colors.optionA },
-  optionB: { backgroundColor: colors.optionB },
-  choiceText: { color: colors.surface, fontSize: 24, fontWeight: '700', textAlign: 'center' },
-  vs: { color: colors.muted, fontWeight: '700', textAlign: 'center' },
   message: { color: colors.text, padding: spacing.lg, textAlign: 'center' },
   messageContainer: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   error: { color: colors.warning, textAlign: 'center' },
   result: { alignItems: 'center', backgroundColor: colors.surface, borderRadius: radius.card, gap: spacing.sm, padding: spacing.lg },
-  resultText: { color: colors.text, fontSize: 24, fontWeight: '700' },
-  resultLabel: { color: colors.primary, fontSize: 18 },
   moreButton: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: radius.button, justifyContent: 'center', minHeight: 44, paddingHorizontal: spacing.lg },
   moreText: { color: colors.surface, fontWeight: '700' },
 });

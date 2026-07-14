@@ -21,6 +21,12 @@ test('accepts a valid zero-to-one-hundred split', async () => {
   expect(view.getByLabelText('A 0퍼센트, B 100퍼센트')).toBeTruthy();
 });
 
+test('stretches to the available card width', async () => {
+  const view = await render(<VoteSplitBar percentA={50} percentB={50} />);
+
+  expect(view.getByTestId('vote-split-bar')).toHaveStyle({ alignSelf: 'stretch' });
+});
+
 test.each([
   [50, 49],
   [-1, 101],

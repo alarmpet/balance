@@ -47,7 +47,9 @@ test('restores an offline shared vote after restart and retries its original act
   await waitFor(() => expect(screen.getByText('저장한 투표 다시 시도')).toBeTruthy());
   await fireEvent.press(screen.getByText('저장한 투표 다시 시도'));
 
-  await waitFor(() => expect(screen.getByText('40% vs 60%')).toBeTruthy());
+  await waitFor(() => expect(screen.getByLabelText(
+    'A 40퍼센트, B 60퍼센트, 내가 선택한 답 B',
+  )).toBeTruthy());
   expect(vote).toHaveBeenCalledWith(expect.objectContaining({ actionId: action.id, choice: 'B' }));
   expect(await afterRestart.list()).toEqual([]);
 });
@@ -78,7 +80,9 @@ test('locks both choices to the persisted selection until that exact vote is ret
     );
   }
   await renderRouter({ 'share/[id]': ShareRoute }, { initialUrl: `/share/${questionId}`, wrapper: Wrapper });
-  await waitFor(() => expect(screen.getByText('Beta · 선택됨')).toBeTruthy());
+  await waitFor(() => expect(screen.getByRole('button', {
+    name: 'B 선택: Beta, 선택됨',
+  })).toBeTruthy());
 
   await fireEvent.press(screen.getByLabelText('A 선택: Alpha'));
   expect(vote).not.toHaveBeenCalled();
