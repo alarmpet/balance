@@ -1,0 +1,11 @@
+appId: com.semobal.balance
+---
+- launchApp:
+    clearState: true
+- openLink: "mobile:///share/60000000-0000-0000-0000-000000000001"
+- assertVisible: "A 선택:.*"
+- tapOn:
+    text: "A 선택:.*"
+- assertVisible: ".*% vs .*%"
+- tapOn: "다른 밸런스도 보기"
+- assertVisible: "A 선택:.*"
